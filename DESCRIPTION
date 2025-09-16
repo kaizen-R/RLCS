@@ -1,0 +1,26 @@
+Package: RLCS
+Type: Package
+Title: Learning Classifier System for Binary Input Strings
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Nicolas", "Leconte-Demarsy",
+      email = "nicolas.lecontedemarsy@r-es.org",
+      role = c("aut", "cre")
+    )
+  )
+Description: A rather simple implementation of J. H. Holland's "Learning Classifier System".
+    This is a Michigan style LCS.
+    An LCS is "natively" interpretable ML algorithm in that it generates rules as its output model(s).
+    Said rules can be "read".
+    This implementation accepts only binary strings as "state" for input, and any set of classes.
+    It is also a somewhat slow algorithm to be trained.
+    However, said drawbacks are compensated by an interpretable output, and given enough time (depending on training data), it can be used to do Supervised Learning.
+    The same package can be used to do data mining, as some examples (included) demonstrate.
+    Moreover, although not included in the published v0.1.0, the RLCS package allows for Reinforcement Learning scenarios as well.
+    Future versions will provide tests and also include more examples & datasets (e.g. images classifier scheduled for v0.2.0).
+License: CC BY 4.0
+Encoding: UTF-8
+LazyData: true
+Imports: Rcpp (>= 1.0.14)
+LinkingTo: Rcpp
