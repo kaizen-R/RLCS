@@ -19,7 +19,7 @@ Description: A rather simple implementation of J. H. Holland's "Learning Classif
     The same package can be used to do data mining, as some examples (included) demonstrate.
     Moreover, although not included in the published v0.1.0, the RLCS package allows for Reinforcement Learning scenarios as well.
     Future versions will provide tests and also include more examples & datasets (e.g. images classifier scheduled for v0.2.0).
-License: CC BY 4.0
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Imports: Rcpp (>= 1.0.14)
