@@ -25,12 +25,30 @@
   structure(x, class = "rlcs_population")
 }
 
+## VERY basic error generation and processing stop.
+## Simply put, if input strings are not right, nothing would work...
+## So no need to tryCatch(), as STOPPING would be needed anyway.
+## At least in current implementation.
+.validate_state_string <- function(state_string = "") {
+    if(is.null(state_string) || !is.character(state_string)) stop("Input States must be strings.")
+    if(nchar(state_string) < 2) stop("Input States strings must be of length >= 2.")
+    ## Only basic ternary alphabet is accepted for now
+    t_chars <- strsplit(state_string, "")[[1]]
+    if(any(!(t_chars %in% c("0", "1")))) stop("Current implementation works with ternary alphabet. Input States must contain only characters 0 and 1.")
+    T ## implicit return
+}
+
 ## Create Cover for a yet to be found state
 ## state_string must contain at LEAST two characters for this to work
-.generate_cover_rule_for_unmatched_instance <- function(state_string,
+.generate_cover_rule_for_unmatched_instance <- function(state_string = "",
                                                        wildcard_prob = 0.5) {
+
+  ## Hidden function, so instead I contorl at Pop level for SL.
+  ## For RL, this is optional probably as it adds runtime.
+  # if(!.validate_state_string(state_string)) return(NULL)
   len_state <- nchar(state_string)
-  if(wildcard_prob > 1 || wildcard_prob < 0 || is.null(state_string) || len_state < 2)
+
+  if(wildcard_prob > 1 || wildcard_prob < 0)
     return(NULL)
 
   ## ROUGH approximation to the correct count of wildcard. Should use runif()...
@@ -116,7 +134,7 @@
   })
 }
 
-.get_match_set <- function(instance_state, pop) {
+get_match_set <- function(instance_state, pop) {
   if(length(pop) > 0) {
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])

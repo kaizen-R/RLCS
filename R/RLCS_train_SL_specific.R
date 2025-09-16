@@ -188,7 +188,7 @@
   ######
 
   ## ADD ERROR CONTROL
-  match_set <- .get_match_set(t_instance$state, pop)
+  match_set <- get_match_set(t_instance$state, pop)
   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
                                                              run_params$get_wildcard_prob())
@@ -255,6 +255,11 @@
   pop
 }
 
+.validate_SL_train_df <- function(train_env_df) {
+  if(!("state" %in% names(train_env_df))) stop("Input Data Frame must contain a 'state' column.")
+  if(!("class" %in% names(train_env_df))) stop("Input Data Frame must contain a 'class' column.")
+  if(!all(sapply(train_env_df$state, .validate_state_string))) stop("SL: Training environment, wrong state found. STOP.")
+}
 
 rlcs_train <- function(train_env_df, run_params,
                        pre_trained_lcs = NULL, verbose=F) {
@@ -262,8 +267,11 @@ rlcs_train <- function(train_env_df, run_params,
   lcs <- .new_rlcs_population()
   # structure(list(), class = "rlcs_population")
 
+  .validate_SL_train_df(train_env_df)
+
   ## TODO Add Running Params Checks here...
   ## Further testing will surface issues here.
+
 
   ## Re-training, or "online" updates
   if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs

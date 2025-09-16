@@ -1,7 +1,7 @@
 Package: RLCS
 Type: Package
 Title: Learning Classifier System for Binary Input Strings
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person(
       "Nicolas", "Leconte-Demarsy",
@@ -24,3 +24,6 @@ Encoding: UTF-8
 LazyData: true
 Imports: Rcpp (>= 1.0.14)
 LinkingTo: Rcpp
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
