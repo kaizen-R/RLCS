@@ -4,8 +4,11 @@
 \usage{
 rlcs_train(environment_df, run_params, pre_trained_lcs = NULL, verbose = F)
 
-environment_df: A data frame containing, specifically, one "state" and one "class" column. The "state" column MUST contain strings made of ONLY 0 and 1, such as: "00110101". This is a requirement for the current RLCS implementation.
-run_params: An RLCS_hyperparameters object, for which an object construction is provided.
+environment_df: A data frame containing, specifically, one "state" and one
+"class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+such as: "00110101". This is a requirement for the current RLCS implementation.
+run_params: An RLCS_hyperparameters object, for which an object construction is
+provided.
 pre_trained_lcs: Optional. Can be used to EVOLVE a pre-trained LCS.
 verbose: Default is FALSE. I strongly suggest you do not use that parameter.
 }

@@ -151,6 +151,7 @@ get_match_set <- function(instance_state, pop) {
     if(length(match_set) > 0)
       return(match_set)
   }
+
   NULL ## implicit return
 }
 
