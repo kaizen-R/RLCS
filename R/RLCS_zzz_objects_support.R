@@ -29,10 +29,10 @@ plot.rlcs_population <- function(x, ...) {
     }
   }
 
-  heatmap(t_m, Rowv=NA, Colv=NA, scale="none",
+  stats::heatmap(t_m, Rowv=NA, Colv=NA, scale="none",
           main="LCS focus", xlab="bit", ylab="# Used Bits",
-          col=cm.colors(max(t_m)))
-  persp(1:nbits, 1:nbits, t_m, theta = 150, phi = 30,
+          col=grDevices::cm.colors(max(t_m)))
+  graphics::persp(1:nbits, 1:nbits, t_m, theta = 150, phi = 30,
         expand=0.5,
         col="lightgreen",
         shade=0.75,
@@ -45,10 +45,9 @@ plot.rlcs_population <- function(x, ...) {
 #' @export
 print.rlcs_population <- function(x, ...) {
   if(length(x) == 0) return(NULL)
-
   x <- .lcs_best_sort_sl(x)
   x <- unclass(x)
-  plyr::rbind.fill(lapply(1:length(x), \(i) {
+  l <- lapply(1:length(x), \(i) {
     t_c <- x[[i]]
     data.frame(condition = t_c$condition_string,
                action = t_c$action,
@@ -58,6 +57,11 @@ print.rlcs_population <- function(x, ...) {
                numerosity = t_c$numerosity,
                reward = t_c$total_reward,
                first_seen = t_c$first_seen)
-  }))
+  })
+  # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
+  ## Slower, but no dependency:
+  df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
+  names(df) <- c("condition", "action", "match_count", "correct_count", "accuracy", "numerosity", "reward", "first_seeen")
+  df
 }
 

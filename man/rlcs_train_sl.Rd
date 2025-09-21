@@ -17,13 +17,13 @@ Returns an \R \code{RLCS Model} containing the proposed model, made of several c
 }
 \examples{
 ## Generate running hyperparameters
-test_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
 ## One demo dataset for data mining scenario
-demo_env1 <- rlcs_secret1()
+demo_env1 <- rlcs_example_secret1()
 ## Try to see for yourself what the dataset hides:
 demo_env1
 ## Generate the model with RLCS:
-rlcs_model <- rlcs_train_sl(demo_env1, test_params)
+rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
 print(rlcs_model)
 plot(rlcs_model)
 }

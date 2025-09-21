@@ -60,9 +60,9 @@ rlcs_mux6 <- function() {
 }
 
 
-rlcs_secret1 <- function() {
+rlcs_example_secret1 <- function() {
   .rlcs_not_bit_4()
 }
-rlcs_secret2 <- function() {
+rlcs_example_secret2 <- function() {
   .rlcs_xor_bits_4_5()
 }
