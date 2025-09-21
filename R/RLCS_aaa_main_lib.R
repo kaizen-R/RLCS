@@ -155,6 +155,25 @@ get_match_set <- function(instance_state, pop) {
   NULL ## implicit return
 }
 
+reverse_match_set <- function(rlcs_classifier, environment) {
+  print(rlcs_classifier)
+
+  rule_0 <- rlcs_classifier$condition_list$'0'
+  rule_1 <- rlcs_classifier$condition_list$'1'
+
+  match_set <- which(sapply(environment$state, \(item, rule_0, rule_1) {
+    env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
+    !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
+  }, rule_0, rule_1))
+
+  # match_set <- get_match_set_cpp(pop, ti_cond)
+
+  if(length(match_set) > 0)
+    return(match_set)
+  NULL ## implicit return
+}
+
+
 .found_same_condition <- function(pop, item) {
   any(sapply(pop, \(x, item) {
     if(x$condition_string == item) return(TRUE)

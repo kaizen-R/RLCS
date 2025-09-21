@@ -261,7 +261,7 @@
   if(!all(sapply(train_env_df$state, .validate_state_string))) stop("SL: Training environment, wrong state found. STOP.")
 }
 
-rlcs_train <- function(train_env_df, run_params,
+rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                        pre_trained_lcs = NULL, verbose=F) {
   ## Initialization:
   lcs <- .new_rlcs_population()
