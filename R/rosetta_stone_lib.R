@@ -45,7 +45,8 @@ rlcs_rosetta_stone <- function(input_df, class_col=1) {
 
     names(output_df) <- paste0("rlcs_", names(output_df))
 
-    output_df$class <- input_df[, class_col]
+    output_df$class <- as.character(input_df[, class_col])
+
     output_df$state <- sapply(1:nrow(output_df), \(i) {
         state_val <- paste(output_df[i, which(names(output_df) != "class")], collapse="")
         state_val

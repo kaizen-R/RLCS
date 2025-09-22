@@ -69,11 +69,12 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
         print(max(t_recommendation))
         print(possible_classes[which(t_recommendation == max(t_recommendation))])
       }
-
-      ret_set <- c(ret_set, as.character(possible_classes[which(t_recommendation == max(t_recommendation))]))
+      predicted_actions <- as.character(possible_classes[which(t_recommendation == max(t_recommendation))])
+      if(length(predicted_actions) > 1) ret_set <- c(ret_set, "rlcs_doubt")
+      else ret_set <- c(ret_set, predicted_actions)
     } else {
       if(verbose) print("NO suitable rule for this instance.")
-      ret_set <- c(ret_set, -1)
+      ret_set <- c(ret_set, "rlcs_no_match")
     }
 
   }
