@@ -25,11 +25,12 @@
 
   t_pop <- lapply(new_pop, \(x) { if(x$numerosity == 0) return(NULL); x })
 
-  ranking <- sapply(t_pop, \(x) {
-    x$accuracy * x$numerosity + 100 *
-      (x$condition_length - (length(x$condition_list$"0")+length(x$condition_list$"1")))
-  })
-  t_pop <- t_pop[order(ranking, decreasing=T)]
+  # ranking <- sapply(t_pop, \(x) {
+  #   x$accuracy * x$numerosity + 100 *
+  #     (x$condition_length - (length(x$condition_list$"0")+length(x$condition_list$"1")))
+  # })
+  # t_pop <- t_pop[order(ranking, decreasing=T)]
+  t_pop <- .lcs_best_sort_sl(t_pop)
 
   extract_n <- min(n_elements, tournament_pressure)
 
@@ -96,6 +97,95 @@
   return(c(child1, child2))
 }
 
+## This will eventually go into a Function Factory
+.ga_run_one_tournament_rl3 <- function(new_pop, tournament_pressure) {
+  if(length(new_pop) == 1) {
+    return(new_pop[[1]]$condition_string)
+  }
+
+  n_elements <- sum(sapply(new_pop, \(x) { x$numerosity }))
+
+  t_pop <- lapply(new_pop, \(x) { if(x$numerosity == 0) return(NULL); x })
+
+  # ranking <- sapply(t_pop, \(x) {
+  #   #x$total_reward * x$numerosity + 100 *
+  #   # (x$condition_length - (length(x$condition_list$"0")+length(x$condition_list$"1")))
+  #   x$total_reward
+  #   # -
+  #   #   (length(x$condition_list$"0")+length(x$condition_list$"1"))
+  #
+  # })
+  # t_pop <- t_pop[order(ranking, decreasing=T)]
+  t_pop <- .lcs_best_sort_rl(t_pop)
+
+  extract_n <- min(n_elements, tournament_pressure)
+
+  p1_index <- min(sample.int(n_elements, extract_n))
+  p2_index <- min(sample.int(n_elements, extract_n))
+  parents_indices <- sort(c(p1_index, p2_index))
+
+  parents_condition_strings <- c("", "")
+
+  for(j in 1:2) {
+    temp_index <- parents_indices[j]
+
+    t_pop[[1]]$rank <- 0
+
+    for(i in 2:length(t_pop)) {
+
+      if(i == length(t_pop)) { ## We're at last item
+        parents_condition_strings[j] <- t_pop[[i]]$condition_string
+        if(j == 1) {
+          parents_condition_strings[2] <- t_pop[[i]]$condition_string
+        }
+        return(parents_condition_strings)
+      }
+
+      last_rank <- t_pop[[i-1]]$rank + 1
+      new_rank <-  last_rank + t_pop[[i-1]]$numerosity
+
+      if(last_rank <= temp_index && new_rank > temp_index) {
+        parents_condition_strings[j] <- t_pop[[i-1]]$condition_string
+        break ## Continue to next j
+      }
+      t_pop[[i]]$rank <- new_rank
+    }
+  }
+
+  return(parents_condition_strings)
+}
+
+.cross_over_parents_strings_rl <- function(parents_pop, sel_mode,
+                                           tournament_pressure) {
+  ## Sometimes only one individual is in Correct population
+  if(length(parents_pop) == 1)
+    return(parents_pop[[1]]$condition_string) #### IF SOMETHING BREAKS...
+
+  if(sel_mode == "tournament") {
+    parents <- .ga_run_one_tournament_rl3(parents_pop, tournament_pressure)
+  }
+
+  max_bits <- nchar(parents[1])
+  cut_point <- floor(stats::runif(1, min = 1, max = max_bits))
+
+  child1 <- paste0(substr(parents[1], 1, cut_point),
+                   substr(parents[2], cut_point+1, max_bits))
+  child2 <- paste0(substr(parents[2], 1, cut_point),
+                   substr(parents[1], cut_point+1, max_bits))
+
+  if(child1 == child2) return(child1)
+  ## remove children if all wildcards!
+  if(child1 == paste(rep('#', nchar(parents[1])), collapse = ''))
+    return(child2)
+  if(child2 == paste(rep('#', nchar(parents[1])), collapse = ''))
+    return(child1)
+
+  return(c(child1, child2))
+}
+
+
+
+## Old approach had an unnecessary dependency
 # .ga_run_one_tournament_rl <- function(colec_df, tournament_pressure) {
 #   parents <- NULL
 #   n_elements <- nrow(colec_df)

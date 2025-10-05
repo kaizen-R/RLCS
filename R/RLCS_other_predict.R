@@ -81,30 +81,30 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
   return(ret_set)
 }
 
-# rlcs_predict_simple_rl <- function(pop, verbose=F) {
-#
-#   ## Simple version that *only* works for our demo for RL!!
-#   t_df <- data.frame(action=c("left", "right", "up", "down"),
-#                      total_reward = 0,
-#                      n_entries = 0)
-#   for(i in 1:length(pop)) {
-#     item <- pop[[i]]
-#     t_row <- which(t_df$action == item$action)
-#     ## Key to selecting right action here:
-#     ## As total_reward is applied to rule directly, no need to consider accuracy...
-#     t_df[t_row, "total_reward"] <- t_df[t_row, "total_reward"] +
-#       item$total_reward * item$numerosity
-#
-#     t_df[t_row, "n_entries"] <- t_df[t_row, "n_entries"] + item$numerosity
-#   }
-#   t_df <- t_df[t_df$n_entries > 0,]
-#   t_df$mean_reward_match <- t_df$total_reward / t_df$n_entries
-#
-#   predicted_actions <- t_df[t_df$mean_reward_match == max(t_df$mean_reward_match), "action"]
-#
-#   if(length(predicted_actions) > 1) return(predicted_actions[sample(1:length(predicted_actions), 1)])
-#   predicted_actions
-# }
+rlcs_predict_simple_rl <- function(pop, verbose=F) {
+
+  ## Simple version that *only* works for our demo for RL!!
+  t_df <- data.frame(action=c("left", "right", "up", "down"),
+                     total_reward = 0,
+                     n_entries = 0)
+  for(i in 1:length(pop)) {
+    item <- pop[[i]]
+    t_row <- which(t_df$action == item$action)
+    ## Key to selecting right action here:
+    ## As total_reward is applied to rule directly, no need to consider accuracy...
+    t_df[t_row, "total_reward"] <- t_df[t_row, "total_reward"] +
+      item$total_reward * item$numerosity
+
+    t_df[t_row, "n_entries"] <- t_df[t_row, "n_entries"] + item$numerosity
+  }
+  t_df <- t_df[t_df$n_entries > 0,]
+  t_df$mean_reward_match <- t_df$total_reward / t_df$n_entries
+
+  predicted_actions <- t_df[t_df$mean_reward_match == max(t_df$mean_reward_match), "action"]
+
+  if(length(predicted_actions) > 1) return(predicted_actions[sample(1:length(predicted_actions), 1)])
+  predicted_actions
+}
 
 rlcs_SL_stats <- function(runtime, train_size, test_env_res) {
   print(paste("Training Runtime:", runtime))

@@ -10,11 +10,13 @@
        condition_list = list("0" = which(strsplit(condition_string, "", fixed=T)[[1]] == "0"),
                              "1" = which(strsplit(condition_string, "", fixed=T)[[1]] == "1")),
        action = action,
+       total_reward = 5, ## Force initial exploration
+       action_count = 1, ## For Reinforcement Learning
+
+       accuracy = 1,
        match_count = 1,
        correct_count = 1, ## For Supervised Learning/Data Mining
-       accuracy = 1,
-       action_count = 1, ## For Reinforcement Learning
-       total_reward = 5, ## Force initial exploration
+
        numerosity = 1,
        first_seen = 1)
   class(t_rule) <- "rlcs_rule"

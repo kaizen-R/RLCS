@@ -45,23 +45,45 @@ plot.rlcs_population <- function(x, ...) {
 #' @export
 print.rlcs_population <- function(x, ...) {
   if(length(x) == 0) return(NULL)
-  x <- .lcs_best_sort_sl(x)
-  x <- unclass(x)
-  l <- lapply(1:length(x), \(i) {
-    t_c <- x[[i]]
-    data.frame(condition = t_c$condition_string,
-               action = t_c$action,
-               match_count = t_c$match_count,
-               correct_count = t_c$correct_count,
-               accuracy = t_c$accuracy,
-               numerosity = t_c$numerosity,
-               reward = t_c$total_reward,
-               first_seen = t_c$first_seen)
-  })
-  # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
-  ## Slower, but no dependency:
-  df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
-  names(df) <- c("condition", "action", "match_count", "correct_count", "accuracy", "numerosity", "reward", "first_seeen")
+  if(any(sapply(x, \(elem) elem$total_reward != 5))) {
+    x <- .lcs_best_sort_rl(x)
+    x <- unclass(x)
+    l <- lapply(1:length(x), \(i) {
+      t_c <- x[[i]]
+      data.frame(condition = t_c$condition_string,
+                 action = t_c$action,
+                 match_count = t_c$match_count,
+                 action_count = t_c$action_count,
+                 reward = t_c$total_reward,
+                 numerosity = t_c$numerosity,
+                 first_seen = t_c$first_seen)
+    })
+    # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
+    ## Slower, but no dependency:
+    df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
+    names(df) <- c("condition", "action", "match_count", "action_count", "reward", "numerosity", "first_seeen")
+  }
+
+
+  else {
+    x <- .lcs_best_sort_sl(x)
+    x <- unclass(x)
+    l <- lapply(1:length(x), \(i) {
+      t_c <- x[[i]]
+      data.frame(condition = t_c$condition_string,
+                 action = t_c$action,
+                 match_count = t_c$match_count,
+                 correct_count = t_c$correct_count,
+                 accuracy = t_c$accuracy,
+                 numerosity = t_c$numerosity,
+                 first_seen = t_c$first_seen)
+    })
+    # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
+    ## Slower, but no dependency:
+    df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
+    names(df) <- c("condition", "action", "match_count", "correct_count", "accuracy", "numerosity", "first_seeen")
+  }
+
   df
 }
 

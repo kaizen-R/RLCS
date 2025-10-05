@@ -5,6 +5,6 @@
 src/*.o
 src/*.so
 src/*.dll
-WIP/*
 auth/*
+WIP/*
 demos/*
