@@ -1,3 +1,24 @@
+#' Generates an object of Hyperparameters required to run RLCS training.
+#' All parameters have a default, although it is recommended each parameter is
+#' reviewed and set depending on the use-case
+#'
+#' @field wildcard_prob numeric. Probability of a matching rule to set wildcards
+#' instead of fixed bits.
+#' @field rd_trigger numeric. When to trigger Genetic Algorithm.
+#' The smaller this number, the more often new rules are generated
+#' @field mutation_probability numeric. For each new rule generated, what's the
+#' probability of each bit to be mutated.
+#' @field parents_selection_mode character.
+#' @field tournament_pressure numeric.
+#' @field n_epochs numeric.
+#' @field deletion_trigger numeric.
+#' @field deletion_threshold numeric.
+#'
+#' @returns An RLCS Object with a set of hyperparameters for LCS Training.
+#' @export
+#'
+#' @examples
+#' default_rlcs_hyperparameters <- RLCS_hyperparameters()
 RLCS_hyperparameters <- setRefClass(
   Class = "RLCS_hyperparameters",
   fields = list(wildcard_prob = "numeric",

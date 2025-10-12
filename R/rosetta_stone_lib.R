@@ -11,6 +11,17 @@
 
 ## TODO: Characters & Factors
 ## TODO: Allow variable length encoding, instead of 4 bits always
+#' Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding
+#'
+#' @param input_df A dataframe with numeric or integers columns, and a "class" column
+#' @param class_col The "class" column which is not to be transformed
+#'
+#' @returns a list with a vector of cut values per column, column names and assigned values per entry, per column
+#' @export
+#'
+#' @examples
+#' rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5) ## NOT part of the LCS Algorithm!
+#' head(rlcs_iris$model, n=3)
 rlcs_rosetta_stone <- function(input_df, class_col=1) {
   quartiles_slicer_cuts <- function(input_vec, nbits = 2) {
 

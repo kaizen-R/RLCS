@@ -136,6 +136,21 @@
   })
 }
 
+#' Get the subset of a Population of Classifiers that matches a given State
+#'
+#' @param instance_state A state from the RLCS environment
+#' @param pop A population of Classifiers
+#'
+#' @returns Numeric vector, of indices of the matching Classifiers
+#' @export
+#'
+#' @examples
+#' demo_env1 <- rlcs_example_secret1()
+#' demo_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
+#' rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model1)
+#' get_match_set("00101", rlcs_model1)
+#'
 get_match_set <- function(instance_state, pop) {
   if(length(pop) > 0) {
     # Only part relevant for matching
@@ -157,13 +172,23 @@ get_match_set <- function(instance_state, pop) {
   NULL ## implicit return
 }
 
-reverse_match_set <- function(rlcs_classifier, environment) {
+#' Returns all rlcs_environment entries (data frame row indices) that match a Classifier/Rule
+#'
+#' @param rlcs_classifier A Population of Classifiers, pre-trained.
+#' @param rlcs_environment An RLCS environment (data frame inc. a "state" variable)
+#'
+#' @returns Data Frame Row Indices from an environment that match a Classifier
+#' @export
+#'
+#' @examples
+#' ## See Iris Example in GitHub for detailed example. NOT RUN
+reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   print(rlcs_classifier)
 
   rule_0 <- rlcs_classifier$condition_list$'0'
   rule_1 <- rlcs_classifier$condition_list$'1'
 
-  match_set <- which(sapply(environment$state, \(item, rule_0, rule_1) {
+  match_set <- which(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
     env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
     !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
   }, rule_0, rule_1))

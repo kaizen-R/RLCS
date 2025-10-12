@@ -261,8 +261,35 @@
   if(!all(sapply(train_env_df$state, .validate_state_string))) stop("SL: Training environment, wrong state found. STOP.")
 }
 
+#' Train a Learning Classifier System (LCS).
+#'
+#' @param train_env_df
+#' A data frame containing, specifically, one "state" and one
+#' "class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+#' such as: "00110101". This is a requirement for the current RLCS implementation.
+#' @param run_params
+#' An RLCS_hyperparameters object, for which an object construction is provided.
+#' @param pre_trained_lcs
+#' Optional. Can be used to EVOLVE a pre-trained LCS.
+#' @param verbose Default is FALSE. I strongly suggest you do not use that parameter.
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
+#' @export
+#'
+#' @examples
+#' ## Generate running hyperparameters
+#' demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+#' ## One demo dataset for data mining scenario
+#' demo_env1 <- rlcs_example_secret1()
+#' ## Try to see for yourself what the dataset hides:
+#' demo_env1
+#' ## Generate the model with RLCS:
+#' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model)
+#' plot(rlcs_model)
 rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
-                       pre_trained_lcs = NULL, verbose=F) {
+                       pre_trained_lcs = NULL, verbose=FALSE) {
   ## Initialization:
   lcs <- .new_rlcs_population()
   # structure(list(), class = "rlcs_population")
