@@ -54,6 +54,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1) {
   for(t_col in 1:ncol(input_df)[-class_col]) {
     x <- input_df[,t_col]
     if(class(x) == "numeric" || class(x) == "integer") {
+      if(length(unique(x)) < 16) stop("Current implementation of Rosetta Stone requires 16+ unique values per column")
       t_cuts <- quartiles_slicer_cuts(input_df[, t_col])
       t_vals <- quartiles_slicer_vals(input_df[, t_col], t_cuts)
       t_name <- names(input_df)[t_col]
