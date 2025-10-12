@@ -23,5 +23,13 @@ print(rlcs_model1)
 
 # Further information
 
+A "short" presentation (meant for a 15' intro to data scientists) is included here:
+https://kaizen-r.github.io/others/RLCS_documentation_15.html
+
 A much more detailed presentation is offered here:
 https://kaizen-r.github.io/others/RLCS_documentation.html
+
+# More Detailed examples
+
+Work in progress. Demos exist for Data Mining, Supervised Learning and even Reinforcement Learning.
+However, documenting each requires just a bit of time. ETA: End of October 2025.
