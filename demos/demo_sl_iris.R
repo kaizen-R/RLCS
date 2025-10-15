@@ -25,9 +25,9 @@ head(test_environment)
 
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = 0.25, ## Probability that covering will choose a wildcard char
+  wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
   rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.1,
+  mutation_probability = 0.105,
   parents_selection_mode <- "tournament",
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
@@ -39,9 +39,17 @@ iris_hyperparameters <- RLCS_hyperparameters(
 ## Doubling process with intermediate cleanup
 t_start <- Sys.time()
 
+## This here is the training. That's all there is to it!
 iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters,
                               pre_trained_lcs = NULL)
+
+## SECRET TRICK: You can keep only the best rules of your model.
+## (IF you're willing to accept the cost on Accuracy...)
+iris_classifier <- RLCS:::.apply_deletion_sl(
+  iris_classifier,
+  deletion_limit = 0.95,
+  max_pop_size = 100)
 
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
@@ -49,7 +57,8 @@ print(t_end - t_start) ## Training Runtime.
 ## Let's see how we could do testing:
 test_environment$predicted <- -1 ## Stands for not found
 test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier, verbose=F)
-print(test_environment)
+
+head(test_environment)
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
@@ -58,7 +67,7 @@ length(iris_classifier)
 
 ## So what does it all look like?
 print(iris_classifier[[1]])
-print(iris_classifier)
+head(print(iris_classifier))
 plot(iris_classifier)
 
 ## Visualize how some of the generated rules correspond to the actual data:

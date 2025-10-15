@@ -11,7 +11,8 @@
 
 ## TODO: Characters & Factors
 ## TODO: Allow variable length encoding, instead of 4 bits always
-#' Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding
+#' Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding.
+#' THIS IS CURRENTLY Work In Progress and should not be used aside from the Iris example.
 #'
 #' @param input_df A dataframe with numeric or integers columns, and a "class" column
 #' @param class_col The "class" column which is not to be transformed

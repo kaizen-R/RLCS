@@ -2,7 +2,8 @@
 % Please edit documentation in R/rosetta_stone_lib.R
 \name{rlcs_rosetta_stone}
 \alias{rlcs_rosetta_stone}
-\title{Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding}
+\title{Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding.
+THIS IS CURRENTLY Work In Progress and should not be used aside from the Iris example.}
 \usage{
 rlcs_rosetta_stone(input_df, class_col = 1)
 }
@@ -15,7 +16,8 @@ rlcs_rosetta_stone(input_df, class_col = 1)
 a list with a vector of cut values per column, column names and assigned values per entry, per column
 }
 \description{
-Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding
+Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding.
+THIS IS CURRENTLY Work In Progress and should not be used aside from the Iris example.
 }
 \examples{
 rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5) ## NOT part of the LCS Algorithm!
