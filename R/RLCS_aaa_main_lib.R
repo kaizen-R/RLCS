@@ -233,36 +233,36 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 #   structure(pop[c(survivors_set)], class = "rlcs_population")
 # }
 
-# ## Particularly useful function for parallel runs, which is not a default.
-# .remove_duplicate_rules <- function(pop) {
-#   ## Somewhat expensive function, but... Doesn't show up all that much in profvis
-#   if(length(pop) > 1) {
-#     # pop <- lcs_best_sort(pop) ## Not needed here
-#     for(item in 1:(length(pop)-1)) {
-#
-#       cond_string <- pop[[item]]$condition_string
-#       cond_lab <- pop[[item]]$action
-#
-#       if(pop[[item]]$numerosity > 0) {
-#         ## Showing progress points. As this could take a while...
-#         if(item %% 100 == 0) print(item)
-#
-#         pop[item:length(pop)] <- lapply(item:length(pop), \(x, t_cond, t_lab, ref_num) {
-#           if(x > ref_num &&
-#              pop[[x]]$numerosity > 0 &&
-#              pop[[x]]$condition_string == t_cond &&
-#              pop[[x]]$action == t_lab) {
-#             pop[[x]]$numerosity <- 0
-#           }
-#
-#           pop[[x]]
-#         }, cond_string, cond_lab, item)
-#       }
-#     }
-#
-#     ## Removing duplicates
-#     pop <- apply_deletion_no_threshold(pop)
-#   }
-#
-#   pop
-# }
+## Particularly useful function for parallel runs, which is not a default.
+.remove_duplicate_rules <- function(pop) {
+  ## Somewhat expensive function, but... Doesn't show up all that much in profvis
+  if(length(pop) > 1) {
+    # pop <- lcs_best_sort(pop) ## Not needed here
+    for(item in 1:(length(pop)-1)) {
+
+      cond_string <- pop[[item]]$condition_string
+      cond_lab <- pop[[item]]$action
+
+      if(pop[[item]]$numerosity > 0) {
+        ## Showing progress points. As this could take a while...
+        if(item %% 100 == 0) print(item)
+
+        pop[item:length(pop)] <- lapply(item:length(pop), \(x, t_cond, t_lab, ref_num) {
+          if(x > ref_num &&
+             pop[[x]]$numerosity > 0 &&
+             pop[[x]]$condition_string == t_cond &&
+             pop[[x]]$action == t_lab) {
+            pop[[x]]$numerosity <- 0
+          }
+
+          pop[[x]]
+        }, cond_string, cond_lab, item)
+      }
+    }
+
+    ## Removing duplicates
+    pop <- .apply_deletion_no_threshold(pop)
+  }
+
+  pop
+}
