@@ -237,8 +237,8 @@ plot(mnist01_classifier)
 library(foreach)
 library(doParallel) ## could be mirai, this is just one example
 n_cores <- detectCores()
-n_cores
-run_par_count <- n_cores-1
+## More cores would only make sense with more data!
+run_par_count <- min(8, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 
@@ -288,6 +288,7 @@ results <- foreach(i = 1:run_par_count
   ## But you could imagine running much more comprehensive training per-subset!
 
   # Now do the actual training
+  set.seed(12345)
   par_pop <- rlcs_train_sl(train_mnist_bin01_49b[sub_start:sub_end,],
              mnist_hyperparameters,
              pre_trained_lcs = mnist01_par_classifier) ## Optional pre-trained
