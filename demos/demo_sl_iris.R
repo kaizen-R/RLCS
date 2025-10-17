@@ -20,7 +20,7 @@ head(full_dataset)
 ## Train-test separation:
 train_set <- sample(1:nrow(full_dataset),size = round(0.8*nrow(full_dataset)), replace = F)
 train_environment <- full_dataset[train_set,]
-test_environment <- full_dataset[(1:nrow(full_dataset))[-train_set],]
+test_environment <- full_dataset[-train_set,]
 head(test_environment)
 
 ## Hyperparameters are key for performance of RLCS:

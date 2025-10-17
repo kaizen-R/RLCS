@@ -150,8 +150,8 @@ print_mnist_number_49b(mnist_string = mnist_bin01_49b[1, "state"])
 ## Let's train a model on our demo simplified-MNIST dataset:
 set.seed(12345)
 train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
-train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],]
-test_mnist_bin01_49b <- mnist_bin01_49b[(1:nrow(mnist_bin01_49b))[-train_set],]
+train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
+test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
 ## Key to adapt to each problem...
@@ -249,10 +249,15 @@ library(RLCS)
 ## Seeding is the same as above, for results comparison.
 set.seed(12345)
 train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
-train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],]
-test_mnist_bin01_49b <- mnist_bin01_49b[(1:nrow(mnist_bin01_49b))[-train_set],]
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
+train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
+test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
 
+## IF YOU HAVE LOTS OF CPU Cores... You could try this:
+# train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.25*nrow(mnist_bin01_49b)), replace = F)
+# train_mnist_bin01_49b <- mnist_bin01_49b[train_set,] ## !!TRAIN << TEST!!
+# test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,]
+
+test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
 t_start_par <- Sys.time()
 sets_size <- floor(nrow(train_mnist_bin01_49b) / run_par_count)
@@ -297,6 +302,10 @@ results <- foreach(i = 1:run_par_count
   ## Keep only the very best of each population of classifier
   ##  for later compaction, which will keep things running a bit faster...
   RLCS:::.apply_deletion_sl(par_pop, deletion_limit = 0.95, max_pop_size = 700)
+
+  ## !! If you use LOTS of CPU cores, and work on large enough sub-datasets...
+  ## You could be more aggressive with shortening the sub-models, like so:
+  # RLCS:::.apply_deletion_sl(par_pop, deletion_limit = 0.95, max_pop_size = 100)
 }
 
 
