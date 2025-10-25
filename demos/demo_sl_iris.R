@@ -27,13 +27,13 @@ head(test_environment)
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
   rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.105,
+  mutation_probability = 0.1,
   parents_selection_mode <- "tournament",
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
-  n_epochs = 160, ## Epochs to repeat process on train set
-  deletion_trigger = 40, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.8
+  n_epochs = 250, ## Epochs to repeat process on train set
+  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.9
 )
 
 ## Doubling process with intermediate cleanup
@@ -44,12 +44,12 @@ iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters,
                               pre_trained_lcs = NULL)
 
-## SECRET TRICK: You can keep only the best rules of your model.
-## (IF you're willing to accept the cost on Accuracy...)
-iris_classifier <- RLCS:::.apply_deletion_sl(
-  iris_classifier,
-  deletion_limit = 0.95,
-  max_pop_size = 100)
+# ## SECRET TRICK: You can keep only the best rules of your model.
+# ## (IF you're willing to accept the cost on Accuracy...)
+# iris_classifier <- RLCS:::.apply_deletion_sl(
+#   iris_classifier,
+#   deletion_limit = 0.95,
+#   max_pop_size = 100)
 
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
@@ -75,7 +75,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 7, 8)) {
+for(example in c(1, 2, 3)) {
   sample_result_set <- reverse_match_set(iris_classifier[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -98,13 +98,21 @@ for(example in c(1, 7, 8)) {
 head(print(iris_classifier), 10)
 
 
-## DECODING RESULTS FOR INTERPRETATION
-## *Soon-to-be* function to reverse the Rosetta-Stone information to facilitate
-## Rules readability:
-print(rlcs_iris$var_names)
-print(RLCS:::.Gray_strings)
-head(full_dataset, 1)
-rlcs_iris$cuts
-head(print(iris_classifier), 1)
+# ## DECODING RESULTS FOR INTERPRETATION
+# ## *Soon-to-be* function to reverse the Rosetta-Stone information to facilitate
+# ## Rules readability:
+# print(rlcs_iris$var_names)
+# print(RLCS:::.Gray_strings)
+# head(full_dataset, 1)
+# rlcs_iris$cuts
+# head(print(iris_classifier), 1)
 
+test_environment[1,]
 
+get_match_set(test_environment[1, "state"], iris_classifier)
+## Use 1 of the matches, then:
+print(iris_classifier[[9]])
+rlcs_rosetta_decode_rule(iris_classifier[[9]], rlcs_iris)
+
+head(print(iris_classifier), 9)
+rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)

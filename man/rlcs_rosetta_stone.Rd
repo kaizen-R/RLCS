@@ -2,8 +2,7 @@
 % Please edit documentation in R/rosetta_stone_lib.R
 \name{rlcs_rosetta_stone}
 \alias{rlcs_rosetta_stone}
-\title{Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding.
-THIS IS CURRENTLY Work In Progress and should not be used aside from the Iris example.}
+\title{Transforms numerical columns of a dataframe into RLCS compatible binary strings}
 \usage{
 rlcs_rosetta_stone(input_df, class_col = 1)
 }

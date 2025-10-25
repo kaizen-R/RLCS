@@ -369,3 +369,13 @@ rlcs_predict_sl(test_mnist_bin01_49b[5,], mnist01_par_classifier, verbose = T)
 print_mnist_number(test_mnist_bin01_49b$sharp_image[nrow(test_mnist_bin01_49b)-5])
 rlcs_predict_sl(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], mnist01_par_classifier, verbose = T)
 
+
+
+res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_par_classifier)
+res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_par_classifier)
+
+## Example wrong classification. Note number of disagreeing rules, though...
+## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
+disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
+res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[2],],
+                                       mnist01_par_classifier)
