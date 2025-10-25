@@ -96,17 +96,10 @@ for(example in c(1, 2, 3)) {
 
 ## Sorted by accuracy and generality, the LCS first few rules are informative:
 head(print(iris_classifier), 10)
+rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
 
 
-# ## DECODING RESULTS FOR INTERPRETATION
-# ## *Soon-to-be* function to reverse the Rosetta-Stone information to facilitate
-# ## Rules readability:
-# print(rlcs_iris$var_names)
-# print(RLCS:::.Gray_strings)
-# head(full_dataset, 1)
-# rlcs_iris$cuts
-# head(print(iris_classifier), 1)
-
+## DECODING RESULTS FOR INTERPRETATION
 test_environment[1,]
 
 get_match_set(test_environment[1, "state"], iris_classifier)
@@ -114,5 +107,3 @@ get_match_set(test_environment[1, "state"], iris_classifier)
 print(iris_classifier[[9]])
 rlcs_rosetta_decode_rule(iris_classifier[[9]], rlcs_iris)
 
-head(print(iris_classifier), 9)
-rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
