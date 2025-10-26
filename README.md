@@ -14,6 +14,7 @@ install_github("kaizen-R/RLCS")
 And then:
 
 ```R
+library(RLCS)
 demo_env1 <- rlcs_example_secret1()
 
 ## Have a look and try to find the secret rule in the data
