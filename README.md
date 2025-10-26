@@ -14,11 +14,20 @@ install_github("kaizen-R/RLCS")
 And then:
 
 ```R
-test_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
-test_env1 <- rlcs_secret1()
-# test_env1
-rlcs_model1 <- rlcs_train(test_env1, test_params, NULL, F)
+demo_env1 <- rlcs_example_secret1()
+
+## Have a look and try to find the secret rule in the data
+sample_of_rows <- sample(1:nrow(demo_env1), 10, replace=F)
+print(demo_env1[sample_of_rows,], row.names = F)
+
+## Defaults will work but make things a bit slow...
+## Tuning some hyper-parameters makes it faster:
+demo_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
+rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params, NULL, F)
+
+## That's it!
 print(rlcs_model1)
+plot(rlcs_model1)
 ```
 
 # DEMOS
