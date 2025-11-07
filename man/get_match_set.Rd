@@ -18,7 +18,7 @@ Numeric vector, of indices of the matching Classifiers
 Get the subset of a Population of Classifiers that matches a given State
 }
 \examples{
-demo_env1 <- rlcs_example_secret1()
+demo_env1 <- rlcs_demo_secret1()
 demo_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params)
 print(rlcs_model1)

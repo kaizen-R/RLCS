@@ -4,9 +4,7 @@
 \name{RLCS_hyperparameters-class}
 \alias{RLCS_hyperparameters-class}
 \alias{RLCS_hyperparameters}
-\title{Generates an object of Hyperparameters required to run RLCS training.
-All parameters have a default, although it is recommended each parameter is
-reviewed and set depending on the use-case}
+\title{RLCS Hyper-parameters preparatioin}
 \value{
 An RLCS Object with a set of hyperparameters for LCS Training.
 }

@@ -60,9 +60,24 @@ rlcs_mux6 <- function() {
 }
 
 
-rlcs_example_secret1 <- function() {
+#' A very simple demo dataset generator.
+#'
+#' @returns a data frame with a "state" and a "class", 32 entries
+#' @export
+#'
+#' @examples
+#' demo_dataset1 <- rlcs_demo_secret1()
+rlcs_demo_secret1 <- function() {
   .rlcs_not_bit_4()
 }
-rlcs_example_secret2 <- function() {
+
+#' Another very simple demo dataset generator.
+#'
+#' @returns a data frame with a "state" and a "class", 32 entries
+#' @export
+#'
+#' @examples
+#' demo_dataset2 <- rlcs_demo_secret2()
+rlcs_demo_secret2 <- function() {
   .rlcs_xor_bits_4_5()
 }

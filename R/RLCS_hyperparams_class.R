@@ -1,3 +1,5 @@
+#' RLCS Hyper-parameters preparatioin
+#'
 #' Generates an object of Hyperparameters required to run RLCS training.
 #' All parameters have a default, although it is recommended each parameter is
 #' reviewed and set depending on the use-case
@@ -36,14 +38,16 @@ RLCS_hyperparameters <- setRefClass(
       ## A tryCatch here would be perfect to control for invalid input.
 
       is_valid_probability_number <- function(t_num) {
-        if(class(t_num) == "numeric" && t_num <= 1 && t_num >= 0)
+        # if(class(t_num) == "numeric" && t_num <= 1 && t_num >= 0)
+        if(is.numeric(t_num) && t_num <= 1 && t_num >= 0)
           return(TRUE)
         FALSE
       }
 
       is_valid_parent_selection_mode <- function(sel_mode) {
         ## Just the one implemented thus far...
-        if(class(sel_mode) == "character" && sel_mode == "tournament")
+        # if(class(sel_mode) == "character" && sel_mode == "tournament")
+        if(is.character(sel_mode) && sel_mode == "tournament")
           return(TRUE)
         FALSE
       }

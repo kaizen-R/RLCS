@@ -32,7 +32,7 @@ Train a Learning Classifier System (LCS).
 ## Generate running hyperparameters
 demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
 ## One demo dataset for data mining scenario
-demo_env1 <- rlcs_example_secret1()
+demo_env1 <- rlcs_demo_secret1()
 ## Try to see for yourself what the dataset hides:
 demo_env1
 ## Generate the model with RLCS:

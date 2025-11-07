@@ -4,3 +4,4 @@
 ^WIP.*$
 ^auth.*$
 ^.*\.md
+^LICENSE\.md$

@@ -3,10 +3,11 @@
 # num_strings <- sapply(0:15, \(x) paste(rev(as.numeric(intToBits(x)))[-(1:28)], collapse=""))
 
 ## Instead, let's use Gray encoding
-.Gray_strings <- c('0000', '0001', '0011', '0010',
-                   '0110', '0111', '0101', '0100',
-                   '1100', '1101', '1111', '1110',
-                   '1010', '1011', '1001', '1000')
+.Gray_strings <- function()
+  c('0000', '0001', '0011', '0010',
+    '0110', '0111', '0101', '0100',
+    '1100', '1101', '1111', '1110',
+    '1010', '1011', '1001', '1000')
 
 
 ## TODO: Characters & Factors
@@ -49,11 +50,11 @@ rlcs_rosetta_stone <- function(input_df, class_col=1) {
   }
 
   quartiles_slicer_vals <- function(input_vec, summary_16) {
-
+    .Gray_strings <- .Gray_strings()
     sapply(input_vec, \(x) {
       new_val <- '0000'
       for(i in 1:length(summary_16)) {
-        if(x >= summary_16[i]) new_val <- RLCS:::.Gray_strings[i+1]
+        if(x >= summary_16[i]) new_val <- .Gray_strings[i+1]
       }
       return(new_val)
     })
@@ -62,7 +63,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1) {
   t_res <- list()
   for(t_col in 1:ncol(input_df)[-class_col]) {
     x <- input_df[,t_col]
-    if(class(x) == "numeric" || class(x) == "integer") {
+    if(is.numeric(x) || is.integer(x)) {
       if(length(unique(x)) < 16) stop("Current implementation of Rosetta Stone requires 16+ unique values per column")
       t_cuts <- quartiles_slicer_cuts(input_df[, t_col])
       t_vals <- quartiles_slicer_vals(input_df[, t_col], t_cuts)
@@ -101,6 +102,7 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
   rule_cond <- rule$condition_string
   print(paste("Rule Condition String:", rule_cond))
 
+  .Gray_strings <- .Gray_strings()
   print(.Gray_strings)
 
   tnbits <- 4
@@ -112,7 +114,7 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
 
     t_cuts <- rosetta_stone_obj$cuts[[i]]
     tbits_tcol <- tbits[(4*(i-1)+1):(4*i)]
-    candidates <- RLCS:::.Gray_strings
+    candidates <- .Gray_strings
     candidates_pos <- 1:length(candidates)
     # browser()
     for(j in 1:tnbits) {
