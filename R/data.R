@@ -8,6 +8,6 @@
 #'   \item{class}{class of the image, 0 or 1 only}
 #' }
 #'
-#' @source Famous MNIST data set by Yann Lecun
+#' @source http://yann.lecun.com/exdb/mnist/
 #'
 "mnist_bin01_49b"

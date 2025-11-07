@@ -14,7 +14,7 @@ A data frame with 12665 rows and 3 columns:
 }
 }
 \source{
-Famous MNIST data set by Yann Lecun
+http://yann.lecun.com/exdb/mnist/
 }
 \usage{
 mnist_bin01_49b
