@@ -78,7 +78,8 @@ Parallel processing (on CPU) for RLCS training is currently my area of "research
 ### Thanks note:
 
 The "simplified MNIST" data-set included with the RLCS package is a very limited 
-subset of compressed versions of the images in the original MNIST data.
+subset of compressed versions of the images in the original MNIST data (which as
+far as I could check, is under this license: https://creativecommons.org/licenses/by-sa/3.0/deed.en).
 
 This simplified example data set was created by leveraging the useful {dslabs} package by 
 Rafael A. Irizarry, Amy Gill. Said {dslabs} package is available on CRAN.
