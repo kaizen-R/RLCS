@@ -1,6 +1,6 @@
 library(RLCS)
 
-demo_env1 <- rlcs_example_secret1()
+demo_env1 <- rlcs_demo_secret1()
 sample_of_rows <- sample(1:nrow(demo_env1), 10, replace=F)
 print(demo_env1[sample_of_rows,], row.names = F)
 
@@ -25,7 +25,7 @@ demo_params <- RLCS_hyperparameters(
   n_epochs = 400,
   deletion_trigger = 40,
   deletion_threshold = 0.9)
-demo_env2 <- rlcs_example_secret2()
+demo_env2 <- rlcs_demo_secret2()
 ## Have a look at the exercise:
 print(demo_env2)
 
