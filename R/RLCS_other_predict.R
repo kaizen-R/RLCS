@@ -35,6 +35,17 @@
 # }
 #
 
+#' Predict a Class for a given input set of states
+#'
+#'
+#'
+#' @param test_env_df The dataset. Must contain a compatible state column.
+#' @param pop A trained RLCS model, consisting of a population of classifiers.
+#' @param verbose Detail or not the results? Defaults to FALSE.
+#'
+#' @returns A vector of values of classes.
+#' @export
+#'
 rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
   ret_set <- c()
   possible_classes <- unique(sapply(pop, \(x) x$action))
