@@ -38,7 +38,13 @@ rlcs_not_bit_4_10 <- function() {
   full_dataset
 }
 
-## Demo dataset: Fourth bit negated is the class
+#' 6-bits multiplexer as example dataset
+#'
+#' This example show-cases Epistasis. A genetic concept, points
+#' to interactions between features.
+#'
+#' @returns A multiplexer dataset, with states (6-bits strings) and a class.
+#' @export
 rlcs_mux6 <- function() {
   ## Modified from Help of intToBits()
   bitI_6b <- function(x) vapply(as.integer(x), function(x) {
