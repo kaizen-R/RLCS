@@ -5,3 +5,11 @@ get_match_set_cpp <- function(pop, ti_cond) {
     .Call(`_RLCS_get_match_set_cpp`, pop, ti_cond)
 }
 
+update_matched_accuracy_cpp <- function(pop) {
+    .Call(`_RLCS_update_matched_accuracy_cpp`, pop)
+}
+
+inc_param_count_cpp <- function(pop, param_name) {
+    .Call(`_RLCS_inc_param_count_cpp`, pop, param_name)
+}
+

@@ -97,13 +97,15 @@
 ## FUNCTION FACTORY!
 ## Often needed, is to update by increase of 1 one parameter of an LCS rule
 .inc_param_count <- function(param) {
-  param <- as.name(param)
+  # param <- as.name(param)
+  f_param <- param
 
   function(pop) {
-    lapply(pop, \(x) {
-      x[[param]] <- x[[param]] + 1
-      x
-    })
+    inc_param_count_cpp(pop, f_param)
+    # lapply(pop, \(x) {
+    #   x[[param]] <- x[[param]] + 1
+    #   x
+    # })
   }
 }
 
@@ -126,14 +128,16 @@
 
 ## Augment correct count of a set of classifiers
 .update_matched_accuracy <- function(match_pop) {
-  ## Still a bit inefficient this, but that's what comes with using lists...
-  lapply(match_pop, \(x) {
-    # x$accuracy <- round(x$correct_count / x$match_count, 5)
-    x$accuracy <- x$correct_count / x$match_count
-    ## TODO Could run in problems for VERY high numbers divisions...
-    ## Consider for next versions
-    x
-  })
+
+  # ## Still a bit inefficient this, but that's what comes with using lists...
+  # lapply(match_pop, \(x) {
+  #   # x$accuracy <- round(x$correct_count / x$match_count, 5)
+  #   x$accuracy <- x$correct_count / x$match_count
+  #   ## TODO Could run in problems for VERY high numbers divisions...
+  #   ## Consider for next versions
+  #   x
+  # })
+  update_matched_accuracy_cpp(match_pop)
 }
 
 #' Get the subset of a Population of Classifiers that matches a given State

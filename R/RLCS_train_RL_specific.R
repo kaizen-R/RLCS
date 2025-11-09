@@ -1,12 +1,5 @@
 ## Reinforcement Learning-specific versions of TRAINING functions
-inc_action_count <- .inc_param_count("action_count")
-## Was:
-# inc_action_count <- function(A_pop) {
-#   lapply(A_pop, \(x) {
-#     x$action_count <- x$action_count + 1
-#     x
-#   })
-# }
+.inc_action_count <- .inc_param_count("action_count")
 
 .mean_action_count <- function(pop) {
   sum(sapply(pop, \(x) x$action_count)) / length(pop)
@@ -19,8 +12,9 @@ inc_action_count <- .inc_param_count("action_count")
 .get_action_set <- function(chosen_action, match_pop) {
   if(length(match_pop) > 0)
     return(which(sapply(match_pop, \(item) {
-      if(item$action == chosen_action) return(T)
-      F
+      # if(item$action == chosen_action) return(T)
+      # F
+      return(item$action == chosen_action)
     })))
   NULL ## implicit return
 }
@@ -29,10 +23,12 @@ inc_action_count <- .inc_param_count("action_count")
 .get_rule_to_be_updated <- function(t_instance_string, chosen_action, pop) {
   which(sapply(pop, \(x) {
     ## Because there was an action, there was a t_instance_string
-    if(x$action == chosen_action &&
-       !is.null(get_match_set(t_instance_string, list(x))))
-      return(T)
-    F
+    # if(x$action == chosen_action &&
+    #    !is.null(get_match_set(t_instance_string, list(x))))
+    #   return(T)
+    # F
+    return(x$action == chosen_action &&
+             !is.null(get_match_set(t_instance_string, list(x))))
   }))
 }
 
@@ -74,26 +70,55 @@ inc_action_count <- .inc_param_count("action_count")
         t_rew <- pop[[item]]$total_reward
 
         pop_to_delete <-
-          which(sapply((item+1):length(pop),
-                       \(x, t_cond, t_lab, t_zero, t_one, t_rew, ref_num) {
+          which(sapply(pop[(item+1):length(pop)],
+                       # \(x, t_cond, t_lab, t_zero, t_one, t_rew, ref_num) {
+                       \(x, t_cond, t_lab, t_zero, t_one, t_rew) {
+                         if(x$numerosity > 0 &&
+                            x$action == t_lab &&
+                            x$total_reward < t_rew) {
+                           t_other_cond_0 <- x$condition_list$"0"
+                           t_other_cond_1 <- x$condition_list$"1"
 
-                         if(x != ref_num &&
-                            pop[[x]]$numerosity > 0 &&
-                            pop[[x]]$action == t_lab &&
-                            pop[[x]]$total_reward < t_rew) {
-                           t_other_cond_0 <- pop[[x]]$condition_list$"0"
-                           t_other_cond_1 <- pop[[x]]$condition_list$"1"
-                           if(pop[[x]]$condition_string == t_cond  ||
-                              all((length(t_zero) <= length(t_other_cond_0)) ||
-                                  (length(t_one) <= length(t_other_cond_1)),
-                                  t_zero %in% t_other_cond_0,
-                                  t_one %in% t_other_cond_1))
-                             return(T)
+                           # if(pop[[x]]$condition_string == t_cond  ||
+                           #    all((length(t_zero) <= length(t_other_cond_0)) ||
+                           #        (length(t_one) <= length(t_other_cond_1)),
+                           #        t_zero %in% t_other_cond_0,
+                           #        t_one %in% t_other_cond_1))
+                           #   return(T)
+                           return(x$condition_string == t_cond  ||
+                                    all((length(t_zero) <= length(t_other_cond_0)) ||
+                                          (length(t_one) <= length(t_other_cond_1)),
+                                        t_zero %in% t_other_cond_0,
+                                        t_one %in% t_other_cond_1))
                          }
 
                          return(F)
-                       }, cond_string, cond_lab, t_zero, t_one, t_rew, item
-          ))
+                       }, cond_string, cond_lab, t_zero, t_one, t_rew))
+
+
+        pop_to_delete <-
+          ## RELATIVE POSITIONS!! we need item as base.
+          which(sapply(pop[(item+1):length(pop)],
+                       \(x, t_cond, t_lab, t_zero, t_one) {
+
+                         if(x$numerosity > 0 && x$action == t_lab&&
+                            x$total_reward < t_rew) {
+                           t_other_cond_0 <- x$condition_list$"0"
+                           t_other_cond_1 <- x$condition_list$"1"
+
+                           # if(all((length(t_zero) <= length(t_other_cond_0)) ||
+                           #       (length(t_one) <= length(t_other_cond_1)),
+                           #       t_zero %in% t_other_cond_0,
+                           #       t_one %in% t_other_cond_1))
+                           #   return(T)
+                           return(all((length(t_zero) <= length(t_other_cond_0)) ||
+                                        (length(t_one) <= length(t_other_cond_1)),
+                                      t_zero %in% t_other_cond_0,
+                                      t_one %in% t_other_cond_1))
+                         }
+
+                         return(F)
+                       }, cond_string, cond_lab, t_zero, t_one))
 
         if(length(pop_to_delete) > 0) { ## Subsumption applied!
           print(pop[[item]]$action) ## For visual progress tracking

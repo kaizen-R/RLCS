@@ -3,12 +3,6 @@
 ## Note:
 ## Slowly replacing functions with hidden functions (.<name>)...
 
-# .inc_correct_count <- function(C_pop) {
-#   lapply(C_pop, \(x) {
-#     x$correct_count <- x$correct_count + 1
-#     x
-#   })
-# }
 .inc_correct_count <- .inc_param_count("correct_count") ## Factory
 
 .mean_correct_count <- function(pop) {
@@ -31,24 +25,6 @@
   }
   NULL ## implicit return
 }
-
-# lcs_best_sort_sl <- function(pop) {
-#   if(length(pop) == 0) return(NULL)
-#   # print(unclass(pop))
-#
-#   df <- plyr::rbind.fill(lapply(1:length(pop), \(i) {
-#     t_c <- pop[[i]]
-#     data.frame(correct_count = t_c$correct_count,
-#                accuracy = t_c$accuracy,
-#                n_wildcard = t_c$condition_length -
-#                  (length(t_c$condition_list$"0")+length(t_c$condition_list$"1")),
-#                numerosity = t_c$numerosity)
-#   }))
-#   t_sort <- order(df$accuracy, df$n_wildcard,
-#                   df$correct_count, df$numerosity, decreasing = T)
-#
-#   pop[t_sort]
-# }
 
 ## KEY function:
 ## Classifiers are better or worse. CHOOSING THE BEST ones is important
@@ -83,29 +59,26 @@
         pop_to_delete <- NULL
 
         pop_to_delete <-
-          # which(sapply(1:length(pop),  ## OPTIMIZATION HERE... Don't iterate all!
-          which(sapply((item+1):length(pop),
-                       \(x, t_cond, t_lab, t_zero, t_one, ref_num) {
-                         # print(x)
-                         if(x > ref_num &&
-                            pop[[x]]$numerosity > 0 && pop[[x]]$action == t_lab) {
-                           t_other_cond_0 <- pop[[x]]$condition_list$"0"
-                           t_other_cond_1 <- pop[[x]]$condition_list$"1"
+          ## RELATIVE POSITIONS!! we need item as base.
+          which(sapply(pop[(item+1):length(pop)],
+                       \(x, t_cond, t_lab, t_zero, t_one) {
 
-                           if(#pop[[x]]$condition_string == t_cond  ||
-                             all((length(t_zero) <= length(t_other_cond_0)) ||
+                         if(x$numerosity > 0 && x$action == t_lab) {
+                           t_other_cond_0 <- x$condition_list$"0"
+                           t_other_cond_1 <- x$condition_list$"1"
+
+                           return(all((length(t_zero) <= length(t_other_cond_0)) ||
                                  (length(t_one) <= length(t_other_cond_1)),
                                  t_zero %in% t_other_cond_0,
                                  t_one %in% t_other_cond_1))
-                             return(T)
                          }
 
                          return(F)
-                       }, cond_string, cond_lab, t_zero, t_one, item))
+                       }, cond_string, cond_lab, t_zero, t_one))
 
-        if(length(pop_to_delete) > 0) {
+        if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
 
-          pop_to_delete <- pop_to_delete + item ## Optimization
+          pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
 
           pop[[item]]$numerosity <- pop[[item]]$numerosity+length(pop_to_delete)
 
@@ -126,6 +99,7 @@
 .apply_deletion_sl <- function(pop, deletion_limit = 0.6, max_pop_size = 10000) {
 
   pop <- lapply(pop, \(x) {
+    # print(x$accuracy)
     if(x$accuracy < deletion_limit) x$numerosity <- 0
     x
   })

@@ -2,12 +2,39 @@
 ## Traditional binary is not optimum
 # num_strings <- sapply(0:15, \(x) paste(rev(as.numeric(intToBits(x)))[-(1:28)], collapse=""))
 
-## Instead, let's use Gray encoding
-.Gray_strings <- function()
-  c('0000', '0001', '0011', '0010',
-    '0110', '0111', '0101', '0100',
-    '1100', '1101', '1111', '1110',
-    '1010', '1011', '1001', '1000')
+## There are functions out there, see GA Package, but this removes a dependency
+.Gray_strings <- function(nbits=4) {
+  g_s <- list()
+
+  g_s[[1]] <- c('0','1')
+  g_s[[2]] <- c('00','01', '11', '10')
+  g_s[[3]] <- c('000', '001', '011', '010', '110', '111', '101', '100')
+  g_s[[4]] <- c('0000', '0001', '0011', '0010','0110', '0111', '0101',
+                '0100', '1100', '1101', '1111', '1110', '1010', '1011',
+                '1001', '1000')
+  g_s[[5]] <- c('00000', '00001', '00011', '00010', '00110', '00111',
+                '00101', '00100', '01100', '01101', '01111',
+                '01110', '01010', '01011', '01001', '01000', '11000',
+                '11001', '11011', '11010', '11110', '11111',
+                '11101', '11100', '10100', '10101', '10111', '10110',
+                '10010', '10011', '10001', '10000')
+  g_s[[6]] <- c('000000', '000001', '000011', '000010', '000110', '000111',
+                '000101', '000100', '001100', '001101',
+                '001111', '001110', '001010', '001011', '001001', '001000',
+                '011000', '011001', '011011', '011010',
+                '011110', '011111', '011101', '011100', '010100', '010101',
+                '010111', '010110', '010010', '010011',
+                '010001', '010000', '110000', '110001', '110011', '110010',
+                '110110', '110111', '110101', '110100',
+                '111100', '111101', '111111', '111110', '111010', '111011',
+                '111001', '111000', '101000', '101001',
+                '101011', '101010', '101110', '101111', '101101', '101100',
+                '100100', '100101', '100111', '100110',
+                '100010', '100011', '100001', '100000')
+
+  g_s[[nbits]]
+}
+
 
 
 ## TODO: Characters & Factors
@@ -27,7 +54,7 @@
 #' rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5) ## NOT part of the LCS Algorithm!
 #' head(rlcs_iris$model, n=3)
 rlcs_rosetta_stone <- function(input_df, class_col=1) {
-  quartiles_slicer_cuts <- function(input_vec, nbits = 2) {
+  quartiles_slicer_cuts <- function(input_vec, nbits = 4) {
 
     t_summary <- as.numeric(summary(input_vec)[c(2, 3, 5)])
 
@@ -103,14 +130,13 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
   print(paste("Rule Condition String:", rule_cond))
 
   .Gray_strings <- .Gray_strings()
-  print(.Gray_strings)
+  # print(.Gray_strings)
 
   tnbits <- 4
   tncols <- nchar(rule_cond)/tnbits
   tbits <- strsplit(rule_cond, "")[[1]]
   for(i in 1:tncols) {
-    print("****")
-    print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits[(4*(i-1)+1):(4*i)], collapse="")))
+    # print("****")
 
     t_cuts <- rosetta_stone_obj$cuts[[i]]
     tbits_tcol <- tbits[(4*(i-1)+1):(4*i)]
@@ -142,15 +168,28 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
     if(length(candidates) == 16) {
       print(paste(rosetta_stone_obj$var_names[i], "can take any value"))
     } else {
-      print("Cuts")
-      print(rosetta_stone_obj$cuts[[i]])
-      print(candidates_pos)
+      print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits[(4*(i-1)+1):(4*i)], collapse="")))
+      # print("Cuts")
+      # print(rosetta_stone_obj$cuts[[i]])
+      # print(candidates_pos)
 
-      sapply(candidates_pos, \(x) {
-        if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
-        if(x == 16) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[15]))
-        if(1 < x && x < 16) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
-      })
+      if(all(candidates_pos == (candidates_pos[1]:candidates_pos[length(candidates_pos)]))) {
+        text <- "-->"
+        if(candidates_pos[1] == 1 && candidates_pos[length(candidates_pos)] != 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "from less than", t_cuts[1]))
+        else if(candidates_pos[1] == 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be less than", t_cuts[1]))
+        else text <- paste(text, paste(rosetta_stone_obj$var_names[i], "between", t_cuts[candidates_pos[1]]))
+
+        if(candidates_pos[length(candidates_pos)] == 16 && candidates_pos[1] != 16) text <- paste(text, paste("up to greater than", t_cuts[15]))
+        else if(candidates_pos[length(candidates_pos)] == 16) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be greater than", t_cuts[15]))
+        else text <- paste(text, paste("and", t_cuts[candidates_pos[length(candidates_pos)]]))
+
+        print(text)
+      } else
+        sapply(candidates_pos, \(x) {
+          if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
+          if(x == 16) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[15]))
+          if(1 < x && x < 16) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
+        })
     }
 
   }

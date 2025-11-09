@@ -97,6 +97,8 @@ for(example in c(1, 2, 3)) {
 ## Sorted by accuracy and generality, the LCS first few rules are informative:
 head(print(iris_classifier), 10)
 rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[2]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[3]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION

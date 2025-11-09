@@ -22,9 +22,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_matched_accuracy_cpp
+Rcpp::List update_matched_accuracy_cpp(List pop);
+RcppExport SEXP _RLCS_update_matched_accuracy_cpp(SEXP popSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_matched_accuracy_cpp(pop));
+    return rcpp_result_gen;
+END_RCPP
+}
+// inc_param_count_cpp
+Rcpp::List inc_param_count_cpp(List pop, String param_name);
+RcppExport SEXP _RLCS_inc_param_count_cpp(SEXP popSEXP, SEXP param_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
+    Rcpp::traits::input_parameter< String >::type param_name(param_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(inc_param_count_cpp(pop, param_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_RLCS_get_match_set_cpp", (DL_FUNC) &_RLCS_get_match_set_cpp, 2},
+    {"_RLCS_update_matched_accuracy_cpp", (DL_FUNC) &_RLCS_update_matched_accuracy_cpp, 1},
+    {"_RLCS_inc_param_count_cpp", (DL_FUNC) &_RLCS_inc_param_count_cpp, 2},
     {NULL, NULL, 0}
 };
 

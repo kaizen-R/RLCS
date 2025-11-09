@@ -21,10 +21,38 @@ Rcpp::NumericVector get_match_set_cpp(List pop, NumericVector ti_cond) {
   int i;
   for(i = 0; i < pop.length(); i++) {
     if(element_matches(pop[i], ti_cond)) {
-      matches_indices.push_back(i+1);
+      matches_indices.push_back(i+1); // R index is +1
     }
   }
   return(matches_indices);
 }
 
 
+// [[Rcpp::export]]
+Rcpp::List update_matched_accuracy_cpp(List pop) {
+  int i;
+  Rcpp::List L = pop;
+
+  for(i = 0; i < L.length(); i++) {
+    Rcpp::List elem = L[i];
+    float accuracy = 0.0;
+    //x$accuracy <- x$correct_count / x$match_count
+    accuracy = float(elem["correct_count"]) / float(elem["match_count"]);
+    elem["accuracy"] = accuracy;
+    L[i] = elem;
+  }
+  return(L);
+}
+
+// [[Rcpp::export]]
+Rcpp::List inc_param_count_cpp(List pop, String param_name) {
+  int i;
+  Rcpp::List L = pop;
+
+  for(i = 0; i < L.length(); i++) {
+    Rcpp::List elem = L[i];
+    elem[param_name] = float(elem[param_name])+1;
+    L[i] = elem;
+  }
+  return(L);
+}
