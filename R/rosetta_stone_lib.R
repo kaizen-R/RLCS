@@ -35,8 +35,6 @@
   g_s[[nbits]]
 }
 
-
-
 ## TODO: Characters & Factors
 ## TODO: Allow variable length encoding, instead of 4 bits always
 #' Transforms numerical columns of a dataframe into RLCS compatible binary strings
@@ -53,69 +51,176 @@
 #' @examples
 #' rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5) ## NOT part of the LCS Algorithm!
 #' head(rlcs_iris$model, n=3)
-rlcs_rosetta_stone <- function(input_df, class_col=1) {
-  quartiles_slicer_cuts <- function(input_vec, nbits = 4) {
+# rlcs_rosetta_stone <- function(input_df, class_col=1) {
+#   quartiles_slicer_cuts <- function(input_vec, nbits = 4) {
+#
+#     t_summary <- as.numeric(summary(input_vec)[c(2, 3, 5)])
+#
+#     summary_16 <- c()
+#
+#     t_vec <- input_vec[which(input_vec < t_summary[1])]
+#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
+#     summary_16 <- c(summary_16, t_summary[1])
+#     t_vec <- input_vec[which(input_vec >= t_summary[1])]
+#     t_vec <- t_vec[which(t_vec < t_summary[2])]
+#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
+#     summary_16 <- c(summary_16, t_summary[2])
+#     t_vec <- input_vec[which(input_vec >= t_summary[2])]
+#     t_vec <- t_vec[which(t_vec < t_summary[3])]
+#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
+#     summary_16 <- c(summary_16, t_summary[3])
+#     t_vec <- input_vec[which(input_vec >= t_summary[3])]
+#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
+#     return(summary_16)
+#   }
+#
+#   quartiles_slicer_vals <- function(input_vec, summary_16) {
+#     .Gray_strings <- .Gray_strings()
+#     sapply(input_vec, \(x) {
+#       new_val <- '0000'
+#       for(i in 1:length(summary_16)) {
+#         if(x >= summary_16[i]) new_val <- .Gray_strings[i+1]
+#       }
+#       return(new_val)
+#     })
+#   }
+#
+#   t_res <- list()
+#   for(t_col in 1:ncol(input_df)[-class_col]) {
+#     x <- input_df[,t_col]
+#     if(is.numeric(x) || is.integer(x)) {
+#       if(length(unique(x)) < 16) stop("Current implementation of Rosetta Stone requires 16+ unique values per column")
+#       t_cuts <- quartiles_slicer_cuts(input_df[, t_col])
+#       t_vals <- quartiles_slicer_vals(input_df[, t_col], t_cuts)
+#       t_name <- names(input_df)[t_col]
+#       t_name <- paste0("rlcs_", t_name)
+#       t_res[[length(t_res)+1]] <- list(cuts=t_cuts, vals=t_vals, name=t_name)
+#     }
+#   }
+#
+#   output_df <- data.frame(lapply(t_res,\(x) x$vals))
+#   names(output_df) <- lapply(t_res,\(x) x$name)
+#
+#   output_df$class <- as.character(input_df[, class_col])
+#
+#   output_df$state <- sapply(1:nrow(output_df), \(i) {
+#     state_val <- paste(output_df[i, which(names(output_df) != "class")], collapse="")
+#     state_val
+#   })
+#   list(cuts=lapply(t_res, \(x) x$cuts),
+#        var_names = names(output_df)[grepl("^rlcs_.*$", names(output_df))],
+#        model=output_df)
+# }
+rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
-    t_summary <- as.numeric(summary(input_vec)[c(2, 3, 5)])
-
-    summary_16 <- c()
-
-    t_vec <- input_vec[which(input_vec < t_summary[1])]
-    summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-    summary_16 <- c(summary_16, t_summary[1])
-    t_vec <- input_vec[which(input_vec >= t_summary[1])]
-    t_vec <- t_vec[which(t_vec < t_summary[2])]
-    summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-    summary_16 <- c(summary_16, t_summary[2])
-    t_vec <- input_vec[which(input_vec >= t_summary[2])]
-    t_vec <- t_vec[which(t_vec < t_summary[3])]
-    summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-    summary_16 <- c(summary_16, t_summary[3])
-    t_vec <- input_vec[which(input_vec >= t_summary[3])]
-    summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-    return(summary_16)
+  if(max_bits > 6) {
+    print("Max bits encoding: 6, reverting to that.")
+    max_bits <- 6
   }
 
-  quartiles_slicer_vals <- function(input_vec, summary_16) {
-    .Gray_strings <- .Gray_strings()
-    sapply(input_vec, \(x) {
-      new_val <- '0000'
-      for(i in 1:length(summary_16)) {
-        if(x >= summary_16[i]) new_val <- .Gray_strings[i+1]
+  .split_nbits <- function(input_vec) {
+    if(length(input_vec) < 2) return(0) ## Only makes sense to encode if more than one value
+    else if(length(input_vec) <= 2) nbits <- 1
+    else if(length(input_vec) <= 4) nbits <- 2
+    else if(length(input_vec) <= 8) nbits <- 3
+    else if(length(input_vec) <= 16) nbits <- 4
+    else if(length(input_vec) <= 32) nbits <- 5
+    else nbits <- 6
+
+    return(nbits)
+  }
+
+  .split_by_median_to_list <- function(vals_vec, nbits=NULL) {
+    if(length(vals_vec) == 0) return(NULL)
+
+    if(is.null(nbits)) nbits <- .split_nbits(unique(vals_vec))
+
+    ## Recursion break cases:
+    ## One value or no more breaking requested:
+    if(nbits == 0) return(list(vec = vals_vec))
+
+    cut_point <- median(unique(vals_vec))
+
+    vec_1 <- vals_vec[which(vals_vec <= cut_point)]
+    vec_2 <- vals_vec[which(vals_vec > cut_point)]
+
+    return(c(.split_by_median_to_list(vec_1, nbits-1),
+             list(cut_point = cut_point),
+             .split_by_median_to_list(vec_2, nbits-1)))
+  }
+
+  .extract_cuts_and_sublists <- function(vals_vec, max_bits = 0) {
+    if(length(vals_vec) <= 1) return(NULL)
+
+    nbits <- .split_nbits(unique(vals_vec))
+    if(max_bits > 0 && max_bits <= nbits) nbits <- max_bits
+
+    print(nbits)
+    print(max_bits)
+    res_sublists <- .split_by_median_to_list(vals_vec, nbits)
+    # print(res_sublists)
+    # print(names(res_sublists[1]))
+    res_sublists_vecs <- which(sapply(1:length(res_sublists), \(i) { (names(res_sublists[i]) == "vec") }))
+    return(list(cut_points = as.numeric(res_sublists[-res_sublists_vecs]),
+                vecs = res_sublists[res_sublists_vecs]))
+  }
+
+  .apply_t_bin_strings <- function(orig_vals, cut_points, t_bin_strings) {
+
+    sapply(orig_vals, \(x) {
+      new_val <- t_bin_strings[1]
+
+      x <- as.numeric(x)
+      for(next_lim in 1:length(cut_points)) {
+        if(x >= cut_points[next_lim]) new_val <- t_bin_strings[next_lim+1]
       }
-      return(new_val)
+      new_val
     })
   }
 
   t_res <- list()
-  for(t_col in 1:ncol(input_df)[-class_col]) {
+  output_df <- NULL
+
+  for(t_col in which(1:ncol(iris) != class_col)) {
     x <- input_df[,t_col]
     if(is.numeric(x) || is.integer(x)) {
-      if(length(unique(x)) < 16) stop("Current implementation of Rosetta Stone requires 16+ unique values per column")
-      t_cuts <- quartiles_slicer_cuts(input_df[, t_col])
-      t_vals <- quartiles_slicer_vals(input_df[, t_col], t_cuts)
-      t_name <- names(input_df)[t_col]
-      t_name <- paste0("rlcs_", t_name)
-      t_res[[length(t_res)+1]] <- list(cuts=t_cuts, vals=t_vals, name=t_name)
+      nbits_Gray <- .split_nbits(unique(x))
+      vecs_cuts <- .extract_cuts_and_sublists(x, min(nbits_Gray, max_bits))
+
+      t_bin_strings <- .Gray_strings(min(nbits_Gray, max_bits))
+      t_name <- paste0("rlcs_", names(input_df)[t_col])
+
+      # browser()
+      Gray_vals_final_vec <- .apply_t_bin_strings(x, vecs_cuts$cut_points, t_bin_strings)
+      t_res[[length(t_res)+1]] <- list(
+        cuts = vecs_cuts$cut_points,
+        vals = Gray_vals_final_vec,
+        name = t_name,
+        nbits = nbits_Gray)
+      if(is.null(output_df)) {
+        output_df <- data.frame(Gray_vals_final_vec)
+        names(output_df) <- t_name
+      } else {
+        output_df[,t_name] <- Gray_vals_final_vec
+      }
     }
+
   }
 
-  output_df <- data.frame(lapply(t_res,\(x) x$vals))
-  names(output_df) <- lapply(t_res,\(x) x$name)
+  output_df$state <- sapply(1:nrow(output_df), \(row_num) {
+    paste(output_df[row_num, ], collapse="")
+  })
 
   output_df$class <- as.character(input_df[, class_col])
 
-  output_df$state <- sapply(1:nrow(output_df), \(i) {
-    state_val <- paste(output_df[i, which(names(output_df) != "class")], collapse="")
-    state_val
-  })
   list(cuts=lapply(t_res, \(x) x$cuts),
        var_names = names(output_df)[grepl("^rlcs_.*$", names(output_df))],
-       model=output_df)
+       model=output_df,
+       nbits=lapply(t_res, \(x) x$nbits))
 }
 
 
-#' To facilitate reading a rule in a decoded format.
+#' To facilitate reading a rule in a decoded format. UNDER REVIEW!
 #'
 #' Rosetta Stone encodes numerical data into binary strings for compatibility
 #' with RLCS. This helper function helps decode the generated model.
@@ -129,68 +234,74 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
   rule_cond <- rule$condition_string
   print(paste("Rule Condition String:", rule_cond))
 
-  .Gray_strings <- .Gray_strings()
-  # print(.Gray_strings)
-
-  tnbits <- 4
-  tncols <- nchar(rule_cond)/tnbits
+  tncols <- length(rosetta_stone_obj$nbits)
+  total_bits_covered <- 0
   tbits <- strsplit(rule_cond, "")[[1]]
-  for(i in 1:tncols) {
-    # print("****")
+
+  for(i in 1:length(rosetta_stone_obj$nbits)) {
+    tnbits <- rosetta_stone_obj$nbits[[i]]
+    tbits_tcol <- tbits[(total_bits_covered+1):(total_bits_covered + tnbits)]
+    total_bits_covered <- total_bits_covered + tnbits
+    .Gray_strings <- .Gray_strings(tnbits)
+
 
     t_cuts <- rosetta_stone_obj$cuts[[i]]
-    tbits_tcol <- tbits[(4*(i-1)+1):(4*i)]
+
     candidates <- .Gray_strings
     candidates_pos <- 1:length(candidates)
     # browser()
     for(j in 1:tnbits) {
       if(tbits_tcol[j] == 1) {
-        candidates_pos <- candidates_pos[which(sapply(candidates, \(x) {
+        t_pointers <- which(sapply(candidates, \(x) {
           strsplit(x, "")[[1]][j] == 1
-        }))]
-        candidates <- candidates[which(sapply(candidates, \(x) {
-          strsplit(x, "")[[1]][j] == 1
-        }))]
-
+        }))
+        candidates_pos <- candidates_pos[t_pointers]
+        candidates <- candidates[t_pointers]
       }
-      if(tbits_tcol[j] == 0) {
-        candidates_pos <- candidates_pos[which(sapply(candidates, \(x) {
-          strsplit(x, "")[[1]][j] == 0
-        }))]
-        candidates <- candidates[which(sapply(candidates, \(x) {
-          strsplit(x, "")[[1]][j] == 0
-        }))]
 
+      if(tbits_tcol[j] == 0) {
+        t_pointers <- which(sapply(candidates, \(x) {
+          strsplit(x, "")[[1]][j] == 0
+        }))
+        candidates_pos <- candidates_pos[t_pointers]
+        candidates <- candidates[t_pointers]
       }
 
     }
 
-    if(length(candidates) == 16) {
+    # browser()
+    if(length(candidates) == 2^tnbits) {
       print(paste(rosetta_stone_obj$var_names[i], "can take any value"))
     } else {
-      print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits[(4*(i-1)+1):(4*i)], collapse="")))
-      # print("Cuts")
-      # print(rosetta_stone_obj$cuts[[i]])
-      # print(candidates_pos)
+      print(.Gray_strings)
+      print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits_tcol, collapse="")))
+      print(rosetta_stone_obj$cuts[[i]])
+      print(candidates_pos)
+    #
+    #   if(all(candidates_pos == (candidates_pos[1]:candidates_pos[length(candidates_pos)]))) {
+    #     text <- "-->"
+    #     if(candidates_pos[1] == 1 && candidates_pos[length(candidates_pos)] != 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "from less than", t_cuts[1]))
+    #     else if(candidates_pos[1] == 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be less than", t_cuts[1]))
+    #     else text <- paste(text, paste(rosetta_stone_obj$var_names[i], "between", t_cuts[candidates_pos[1]]))
+    #
+    #     if(candidates_pos[length(candidates_pos)] == 16 && candidates_pos[1] != 16) text <- paste(text, paste("up to greater than", t_cuts[15]))
+    #     else if(candidates_pos[length(candidates_pos)] == 16) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be greater than", t_cuts[15]))
+    #     else text <- paste(text, paste("and", t_cuts[candidates_pos[length(candidates_pos)]]))
+    #
+    #     print(text)
+    #   } else
+    #     sapply(candidates_pos, \(x) {
+    #       if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
+    #       if(x == 16) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[15]))
+    #       if(1 < x && x < 16) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
+    #     })
 
-      if(all(candidates_pos == (candidates_pos[1]:candidates_pos[length(candidates_pos)]))) {
-        text <- "-->"
-        if(candidates_pos[1] == 1 && candidates_pos[length(candidates_pos)] != 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "from less than", t_cuts[1]))
-        else if(candidates_pos[1] == 1) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be less than", t_cuts[1]))
-        else text <- paste(text, paste(rosetta_stone_obj$var_names[i], "between", t_cuts[candidates_pos[1]]))
 
-        if(candidates_pos[length(candidates_pos)] == 16 && candidates_pos[1] != 16) text <- paste(text, paste("up to greater than", t_cuts[15]))
-        else if(candidates_pos[length(candidates_pos)] == 16) text <- paste(text, paste(rosetta_stone_obj$var_names[i], "must be greater than", t_cuts[15]))
-        else text <- paste(text, paste("and", t_cuts[candidates_pos[length(candidates_pos)]]))
-
-        print(text)
-      } else
-        sapply(candidates_pos, \(x) {
-          if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
-          if(x == 16) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[15]))
-          if(1 < x && x < 16) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
-        })
+      sapply(candidates_pos, \(x) {
+        if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
+        if(x == 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[2^tnbits-1]))
+        if(1 < x && x < 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
+      })
     }
-
   }
 }

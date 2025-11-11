@@ -2,7 +2,7 @@
 % Please edit documentation in R/rosetta_stone_lib.R
 \name{rlcs_rosetta_decode_rule}
 \alias{rlcs_rosetta_decode_rule}
-\title{To facilitate reading a rule in a decoded format.}
+\title{To facilitate reading a rule in a decoded format. UNDER REVIEW!}
 \usage{
 rlcs_rosetta_decode_rule(rule, rosetta_stone_obj)
 }

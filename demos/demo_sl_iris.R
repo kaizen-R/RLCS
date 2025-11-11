@@ -1,27 +1,27 @@
 library(RLCS) ## Assuming you've gotten the package installed by now...
 
 ## First let's review the base dataset Iris, just in case:
-head(iris, n=3)
+# head(iris, n=3)
 plot(iris, col=as.factor(iris$Species))
 
 ## The dataset needs encoding for RLCS input compatibility
 ## NOT part of the LCS Algorithm per-se, provided only for demo!
 rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5)
-head(rlcs_iris$model, n=3)
+# head(rlcs_iris$model, n=3)
 
 ## For later:
 full_dataset <- cbind(iris, rlcs_iris$model)
 
-set.seed(12345) ## Only for "reproducibility", as the algorithm is stochastic
+set.seed(123) ## Only for "reproducibility", as the algorithm is stochastic
 ## Let's shuffle the data a bit:
 full_dataset <- full_dataset[sample(1:nrow(full_dataset), nrow(full_dataset), replace = F), ]
-head(full_dataset)
+# head(full_dataset, n=3)
 
 ## Train-test separation:
 train_set <- sample(1:nrow(full_dataset),size = round(0.8*nrow(full_dataset)), replace = F)
 train_environment <- full_dataset[train_set,]
 test_environment <- full_dataset[-train_set,]
-head(test_environment)
+# head(test_environment, n=3)
 
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
@@ -31,9 +31,9 @@ iris_hyperparameters <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
-  n_epochs = 250, ## Epochs to repeat process on train set
-  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.9
+  n_epochs = 800, ## Epochs to repeat process on train set
+  deletion_trigger = 80, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.95
 )
 
 ## Doubling process with intermediate cleanup
@@ -49,7 +49,7 @@ iris_classifier <- rlcs_train_sl(train_environment,
 # iris_classifier <- RLCS:::.apply_deletion_sl(
 #   iris_classifier,
 #   deletion_limit = 0.95,
-#   max_pop_size = 100)
+#   max_pop_size = 400)
 
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
@@ -65,9 +65,13 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(iris_classifier)
 
+
+
+### Visualizing the Model ###
+
 ## So what does it all look like?
 print(iris_classifier[[1]])
-head(print(iris_classifier))
+head(print(iris_classifier), 10)
 plot(iris_classifier)
 
 ## Visualize how some of the generated rules correspond to the actual data:
@@ -75,7 +79,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 2, 3)) {
+for(example in c(6, 2, 10)) {
   sample_result_set <- reverse_match_set(iris_classifier[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -96,9 +100,11 @@ for(example in c(1, 2, 3)) {
 
 ## Sorted by accuracy and generality, the LCS first few rules are informative:
 head(print(iris_classifier), 10)
+
+## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[2]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[3]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[4]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[7]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
@@ -106,6 +112,7 @@ test_environment[1,]
 
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
-print(iris_classifier[[9]])
+# print(iris_classifier[[5]])
 rlcs_rosetta_decode_rule(iris_classifier[[9]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[6]], rlcs_iris)
 
