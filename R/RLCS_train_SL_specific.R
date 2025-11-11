@@ -9,8 +9,24 @@
   sum(sapply(pop, \(x) x$correct_count)) / length(pop)
 }
 
+.mean_match_count <- function(pop) {
+  # experienced_classifiers <- which(
+  #   sapply(pop, \(x) {
+  #     if(x$match_count > 5)
+  #       return(T)
+  #     return(F)
+  #   })
+  # )
+  # sum(sapply(pop[experienced_classifiers], \(x) x$match_count)) / length(pop[experienced_classifiers])
+  sum(sapply(pop, \(x) x$match_count)) / length(pop)
+}
+
 .min_correct_count <- function(pop) {
   min(sapply(pop, \(x) x$correct_count))
+}
+
+.min_match_count <- function(pop) {
+  min(sapply(pop, \(x) x$match_count))
 }
 
 .get_correct_set <- function(t_instance, match_pop) {
@@ -127,25 +143,6 @@
   .apply_deletion_no_threshold(pop)
 }
 
-## Support function for human-compatible printing:
-## Discarded in favor of S3 methods
-# make_pop_printable_sl <- function(pop) {
-#   if(length(pop) == 0) return(NULL)
-#
-#   pop <- .lcs_best_sort_sl(pop)
-#   plyr::rbind.fill(lapply(1:length(pop), \(i) {
-#     t_c <- pop[[i]]
-#     data.frame(condition = t_c$condition_string,
-#                action = t_c$action,
-#                match_count = t_c$match_count,
-#                correct_count = t_c$correct_count,
-#                accuracy = t_c$accuracy,
-#                numerosity = t_c$numerosity,
-#                first_seen = t_c$first_seen)
-#   }))
-# }
-#
-
 
 ######
 ## KEY FUNCTION: Train binary classifier LCS
@@ -190,7 +187,9 @@
       ## *Second* Rule Discovery HAPPENS HERE NOW
       ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
       # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-      if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+      # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+      # if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+      if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
         ## The GA, basically, happens here: Cross-over & Mutation:
         children <- correct_pop |>
           .cross_over_parents_strings_sl(run_params$get_sel_mode(),
