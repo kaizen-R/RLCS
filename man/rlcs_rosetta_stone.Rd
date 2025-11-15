@@ -4,12 +4,14 @@
 \alias{rlcs_rosetta_stone}
 \title{Transforms numerical columns of a dataframe into RLCS compatible binary strings}
 \usage{
-rlcs_rosetta_stone(input_df, class_col = 1)
+rlcs_rosetta_stone(input_df, class_col = 1, max_bits = 6)
 }
 \arguments{
 \item{input_df}{A dataframe with numeric or integers columns, and a "class" column}
 
 \item{class_col}{The "class" column which is not to be transformed}
+
+\item{max_bits}{Max number of bits allowed for variables encoding}
 }
 \value{
 a list with a vector of cut values per column, column names and assigned values per entry, per column

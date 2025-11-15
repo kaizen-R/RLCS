@@ -102,6 +102,18 @@
   list(zeros_matrix, ones_matrix)
 }
 
+.lengths_fixed_bits <- function(pop) {
+  sapply(pop, \(x) x$length_fixed_bits)
+}
+
+.lengths_fixed_bits_new_rule <- function(t_lengths, condition_string) {
+  zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
+  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
+  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+
+  c(t_lengths, length(which_zeros)+length(which_ones))
+}
+
 ## Function to add rule to a population.
 ## date_rule_born will be useful stat for future, setting as parameter for now.
 .add_valid_rule_to_pop <- function(pop, condition_string,

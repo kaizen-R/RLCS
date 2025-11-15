@@ -254,7 +254,7 @@
                                     t_instance$class, train_count)
 
       t_matrices <<- .recalculate_pop_matrices(pop)
-      t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+      t_lengths <<- .lengths_fixed_bits(pop)
 
       return(pop)
     }
@@ -271,7 +271,7 @@
                                       t_instance$class, train_count)
         ## I don't like doing this, but it's a temporary thing
         t_matrices <<- .recalculate_pop_matrices_new_rule(t_matrices, cover_rule)
-        t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+        t_lengths <<- .lengths_fixed_bits_new_rule(t_lengths, cover_rule)
       }
 
     } else {
@@ -303,7 +303,7 @@
                                           train_count)
             # t_matrices <<- .recalculate_pop_matrices(pop)
             t_matrices <<- .recalculate_pop_matrices_new_rule(t_matrices, child)
-            t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+            t_lengths <<- .lengths_fixed_bits_new_rule(t_lengths, child)
           }
 
         }
@@ -325,7 +325,7 @@
 
     ## I don't like doing this, but it's a temporary thing
     t_matrices <<- .recalculate_pop_matrices(pop)
-    t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+    t_lengths <<- .lengths_fixed_bits(pop)
 
     print(paste("Epoch:", n_epoch,
                 "Progress Exposure:", train_count,

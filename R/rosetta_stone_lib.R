@@ -44,6 +44,7 @@
 #'
 #' @param input_df A dataframe with numeric or integers columns, and a "class" column
 #' @param class_col The "class" column which is not to be transformed
+#' @param max_bits Max number of bits allowed for variables encoding
 #'
 #' @returns a list with a vector of cut values per column, column names and assigned values per entry, per column
 #' @export
@@ -51,66 +52,6 @@
 #' @examples
 #' rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5) ## NOT part of the LCS Algorithm!
 #' head(rlcs_iris$model, n=3)
-# rlcs_rosetta_stone <- function(input_df, class_col=1) {
-#   quartiles_slicer_cuts <- function(input_vec, nbits = 4) {
-#
-#     t_summary <- as.numeric(summary(input_vec)[c(2, 3, 5)])
-#
-#     summary_16 <- c()
-#
-#     t_vec <- input_vec[which(input_vec < t_summary[1])]
-#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-#     summary_16 <- c(summary_16, t_summary[1])
-#     t_vec <- input_vec[which(input_vec >= t_summary[1])]
-#     t_vec <- t_vec[which(t_vec < t_summary[2])]
-#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-#     summary_16 <- c(summary_16, t_summary[2])
-#     t_vec <- input_vec[which(input_vec >= t_summary[2])]
-#     t_vec <- t_vec[which(t_vec < t_summary[3])]
-#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-#     summary_16 <- c(summary_16, t_summary[3])
-#     t_vec <- input_vec[which(input_vec >= t_summary[3])]
-#     summary_16 <- c(summary_16, as.numeric(summary(t_vec)[c(2,3,5)]))
-#     return(summary_16)
-#   }
-#
-#   quartiles_slicer_vals <- function(input_vec, summary_16) {
-#     .Gray_strings <- .Gray_strings()
-#     sapply(input_vec, \(x) {
-#       new_val <- '0000'
-#       for(i in 1:length(summary_16)) {
-#         if(x >= summary_16[i]) new_val <- .Gray_strings[i+1]
-#       }
-#       return(new_val)
-#     })
-#   }
-#
-#   t_res <- list()
-#   for(t_col in 1:ncol(input_df)[-class_col]) {
-#     x <- input_df[,t_col]
-#     if(is.numeric(x) || is.integer(x)) {
-#       if(length(unique(x)) < 16) stop("Current implementation of Rosetta Stone requires 16+ unique values per column")
-#       t_cuts <- quartiles_slicer_cuts(input_df[, t_col])
-#       t_vals <- quartiles_slicer_vals(input_df[, t_col], t_cuts)
-#       t_name <- names(input_df)[t_col]
-#       t_name <- paste0("rlcs_", t_name)
-#       t_res[[length(t_res)+1]] <- list(cuts=t_cuts, vals=t_vals, name=t_name)
-#     }
-#   }
-#
-#   output_df <- data.frame(lapply(t_res,\(x) x$vals))
-#   names(output_df) <- lapply(t_res,\(x) x$name)
-#
-#   output_df$class <- as.character(input_df[, class_col])
-#
-#   output_df$state <- sapply(1:nrow(output_df), \(i) {
-#     state_val <- paste(output_df[i, which(names(output_df) != "class")], collapse="")
-#     state_val
-#   })
-#   list(cuts=lapply(t_res, \(x) x$cuts),
-#        var_names = names(output_df)[grepl("^rlcs_.*$", names(output_df))],
-#        model=output_df)
-# }
 rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
   if(max_bits > 6) {
