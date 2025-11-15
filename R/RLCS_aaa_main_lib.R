@@ -5,10 +5,24 @@
 
 ## Why not use S3 OO, as we want to use plot(), print()...
 .new_rlcs_rule <- function(condition_string, action) {
+  ## NEW!
+  zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
+  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
+  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+  zeros_vector[which_zeros] <- 1
+  ones_vector[which_ones] <- 1
+
+  length_fixed_bits <- length(which_zeros)+length(which_ones)
+
   t_rule <- list(condition_string = condition_string,
        condition_length = nchar(condition_string),
        condition_list = list("0" = which(strsplit(condition_string, "", fixed=T)[[1]] == "0"),
                              "1" = which(strsplit(condition_string, "", fixed=T)[[1]] == "1")),
+       ## NEW!
+       zeros_pos_vector = zeros_vector,
+       ones_pos_vector = ones_vector,
+       length_fixed_bits = length_fixed_bits,
+
        action = action,
        total_reward = 5, ## Force initial exploration
        action_count = 1, ## For Reinforcement Learning
@@ -66,6 +80,28 @@
   paste(state_vec, collapse='')
 }
 
+.recalculate_pop_matrices <- function(pop) {
+  # browser()
+  zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
+  ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
+  list(zeros_matrix, ones_matrix)
+}
+
+.recalculate_pop_matrices_new_rule <- function(t_matrices, condition_string) {
+  # browser()
+  ## I just will want to add a row to either matrices!!
+  zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
+  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
+  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+  zeros_vector[which_zeros] <- 1
+  ones_vector[which_ones] <- 1
+
+  zeros_matrix <- rbind(t_matrices[[1]], zeros_vector)
+  ones_matrix <- rbind(t_matrices[[2]], ones_vector)
+
+  list(zeros_matrix, ones_matrix)
+}
+
 ## Function to add rule to a population.
 ## date_rule_born will be useful stat for future, setting as parameter for now.
 .add_valid_rule_to_pop <- function(pop, condition_string,
@@ -90,6 +126,7 @@
   t_rule$first_seen <- date_rule_born
   pop[[length(pop)+1]] <- t_rule
 
+  # pop <- .recalculate_pop_matrices(pop)
   # class(pop) <- "rlcs_population"
   pop
 }
@@ -166,8 +203,48 @@ get_match_set <- function(instance_state, pop) {
     #     !(any(ti_cond[rule$'0'] != 0) || any(ti_cond[rule$'1'] != 1))
     # }, ti_cond))
 
-    ## EDIT FOR RCpp compatible. Quite a bit faster, this:
+
+    # ## Simple C++ version:
     match_set <- get_match_set_cpp(pop, ti_cond)
+
+    ## Tried to vectorize, no improvement...
+    # if(length(pop) < 8) {
+    ## EDIT FOR RCpp compatible. Quite a bit faster, this:
+    #   match_set <- get_match_set_cpp(pop, ti_cond)
+    # } else {
+    #
+    #   match_set <- unlist(sapply(0:3, \(i) {
+    #     indices <- which((1:length(pop)%%4) == i)
+    #     indices[get_match_set_cpp(pop[indices], ti_cond)]
+    #   }))
+    #
+    #   # print(new_match_set)
+    #   # match_set <- new_match_set
+    # }
+
+
+
+    if(length(match_set) > 0)
+      return(match_set)
+  }
+
+  NULL ## implicit return
+}
+
+.get_match_set_mat <- function(instance_state, pop, t_matrices, t_lengths) {
+  if(length(pop) > 0) {
+    # Only part relevant for matching
+    ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
+
+
+    ## Matrices approach?
+    ## THIS CAN BE MOVED TO REDUCE ITERATIONS A LOT!
+
+    matched_zeros <- t_matrices[[1]] %*% (1-ti_cond)
+    matched_ones <- t_matrices[[2]] %*% ti_cond
+    matched_lengths <- matched_zeros + matched_ones
+    match_set <- which(matched_lengths == t_lengths)
+    # browser()
 
     if(length(match_set) > 0)
       return(match_set)
@@ -221,7 +298,10 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   }))
   if(length(survivors_set) == 0) return(NULL)
   ## Ensure you keep class here.
-  structure(pop[c(survivors_set)], class = "rlcs_population")
+  pop <- pop[survivors_set]
+  # pop <- .recalculate_pop_matrices(pop)
+
+  structure(pop, class = "rlcs_population")
 }
 
 ## Bad: Old doesn't mean it should be discarded.

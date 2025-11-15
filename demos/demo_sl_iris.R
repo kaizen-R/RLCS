@@ -48,7 +48,7 @@ iris_classifier <- rlcs_train_sl(train_environment,
 # ## (IF you're willing to accept the cost on Accuracy...)
 # iris_classifier <- RLCS:::.apply_deletion_sl(
 #   iris_classifier,
-#   deletion_limit = 0.95,
+#   deletion_limit = 0.99,
 #   max_pop_size = 400)
 
 t_end <- Sys.time()
@@ -79,7 +79,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(6, 2, 10)) {
+for(example in c(1, 4, 9)) {
   sample_result_set <- reverse_match_set(iris_classifier[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -113,6 +113,6 @@ test_environment[1,]
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
 # print(iris_classifier[[5]])
-rlcs_rosetta_decode_rule(iris_classifier[[9]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[4]], rlcs_iris)
 rlcs_rosetta_decode_rule(iris_classifier[[6]], rlcs_iris)
 

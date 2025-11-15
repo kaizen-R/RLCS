@@ -27,14 +27,16 @@ RLCS_hyperparameters <- setRefClass(
                 rd_trigger = "numeric", mutation_probability = "numeric",
                 parents_selection_mode = "character", tournament_pressure = "numeric",
                 n_epochs = "numeric", deletion_trigger = "numeric",
-                deletion_threshold = "numeric"
+                deletion_threshold = "numeric",
+                max_pop_size = "numeric"
   ),
   methods = list(
     initialize = function(wildcard_prob = 0.2,
                           rd_trigger = 25, mutation_probability = 0.05,
                           parents_selection_mode = "tournament", tournament_pressure = 5,
                           n_epochs = 1000, deletion_trigger = 200,
-                          deletion_threshold = 0.75) {
+                          deletion_threshold = 0.75,
+                          max_pop_size = 10000) {
       ## A tryCatch here would be perfect to control for invalid input.
 
       is_valid_probability_number <- function(t_num) {
@@ -69,6 +71,10 @@ RLCS_hyperparameters <- setRefClass(
 
       if(is_valid_probability_number(deletion_threshold))
         .self$deletion_threshold <- deletion_threshold
+
+      if(is.numeric(max_pop_size) && max_pop_size > 1 && max_pop_size < 100000) {
+        .self$max_pop_size <- round(max_pop_size)
+      }
     },
 
     get_wildcard_prob = function() {
@@ -101,6 +107,10 @@ RLCS_hyperparameters <- setRefClass(
 
     get_deletion_threshold = function() {
       .self$deletion_threshold
+    },
+
+    get_max_pop_size = function() {
+      .self$max_pop_size
     }
   )
 )

@@ -13,12 +13,17 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
   ret_set <- c()
   possible_classes <- unique(sapply(pop, \(x) x$action))
 
+  t_matrices <<- .recalculate_pop_matrices(pop)
+  t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+
+
   for(i in 1:nrow(test_env_df)) {
     if(verbose) {
       print("-------------")
       print(test_env_df$state[i])
     }
-    match_set <- get_match_set(test_env_df$state[i], pop)
+    # match_set <- get_match_set(test_env_df$state[i], pop)
+    match_set <- .get_match_set_mat(test_env_df$state[i], pop, t_matrices, t_lengths)
     if(length(match_set) > 0) {
       t_recommendation <- c()
 
