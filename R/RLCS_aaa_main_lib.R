@@ -16,23 +16,26 @@
 
   t_rule <- list(condition_string = condition_string,
        condition_length = nchar(condition_string),
-       condition_list = list("0" = which(strsplit(condition_string, "", fixed=T)[[1]] == "0"),
-                             "1" = which(strsplit(condition_string, "", fixed=T)[[1]] == "1")),
+
+       condition_list = list("0" = which_zeros,
+                             "1" = which_ones),
        ## NEW!
        zeros_pos_vector = zeros_vector,
        ones_pos_vector = ones_vector,
        length_fixed_bits = length_fixed_bits,
+
+       coverage = 1,
 
        action = action,
        total_reward = 5, ## Force initial exploration
        action_count = 1, ## For Reinforcement Learning
 
        accuracy = 1,
-       match_count = 1,
-       correct_count = 1, ## For Supervised Learning/Data Mining
+       match_count = 1L,
+       correct_count = 1L, ## For Supervised Learning/Data Mining
 
-       numerosity = 1,
-       first_seen = 1)
+       numerosity = 1L,
+       first_seen = 1L)
   class(t_rule) <- "rlcs_rule"
   t_rule
 }
@@ -81,18 +84,18 @@
 }
 
 .recalculate_pop_matrices <- function(pop) {
-  # browser()
   zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
   ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
   list(zeros_matrix, ones_matrix)
 }
 
 .recalculate_pop_matrices_new_rule <- function(t_matrices, condition_string) {
-  # browser()
-  ## I just will want to add a row to either matrices!!
+  ## I just want to add a row to either matrices!!
+  t_cond <- strsplit(condition_string, "", fixed=T)[[1]]
+
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
-  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
-  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+  which_zeros <- which(t_cond == "0")
+  which_ones <- which(t_cond == "1")
   zeros_vector[which_zeros] <- 1
   ones_vector[which_ones] <- 1
 
@@ -115,9 +118,12 @@
 }
 
 .lengths_fixed_bits_new_rule <- function(t_lengths, condition_string) {
+  t_cond <- strsplit(condition_string, "", fixed=T)[[1]]
+
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
-  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
-  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+
+  which_zeros <- which(t_cond == "0")
+  which_ones <- which(t_cond == "1")
 
   c(t_lengths, length(which_zeros)+length(which_ones))
 }
@@ -167,13 +173,6 @@
 }
 
 ## Augment match count of a set of classifiers
-# .inc_match_count <- function(M_pop) {
-#   lapply(M_pop, \(x) {
-#     x$match_count <- x$match_count + 1
-#     # x$accuracy <- x$correct_count / x$match_count
-#     x
-#   })
-# }
 .inc_match_count <- .inc_param_count("match_count")
 
 .inc_numerosity_by_condition <- function(pop, item) {
@@ -185,15 +184,7 @@
 
 ## Augment correct count of a set of classifiers
 .update_matched_accuracy <- function(match_pop) {
-
-  # ## Still a bit inefficient this, but that's what comes with using lists...
-  # lapply(match_pop, \(x) {
-  #   # x$accuracy <- round(x$correct_count / x$match_count, 5)
-  #   x$accuracy <- x$correct_count / x$match_count
-  #   ## TODO Could run in problems for VERY high numbers divisions...
-  #   ## Consider for next versions
-  #   x
-  # })
+  ## TODO Could run in problems for VERY high numbers divisions...?
   update_matched_accuracy_cpp(match_pop)
 }
 
@@ -212,37 +203,17 @@
 #' print(rlcs_model1)
 #' get_match_set("00101", rlcs_model1)
 #'
+## Still works, mainly for end-user; but will eventually be discarded.
 get_match_set <- function(instance_state, pop) {
   if(length(pop) > 0) {
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
 
-    ## Former version, was bottleneck of the overall runtimes in several tests:
-    # match_set <- which(sapply(pop, \(item, ti_cond) {
-    #     rule <- item$condition_list
-    #     !(any(ti_cond[rule$'0'] != 0) || any(ti_cond[rule$'1'] != 1))
-    # }, ti_cond))
+    ## Former sapply version, was bottleneck of the overall runtimes in tests:
+    ## CLEANED.
 
-
-    # ## Simple C++ version:
+    ## Simple C++ version:
     match_set <- get_match_set_cpp(pop, ti_cond)
-
-    ## Tried to vectorize, no improvement...
-    # if(length(pop) < 8) {
-    ## EDIT FOR RCpp compatible. Quite a bit faster, this:
-    #   match_set <- get_match_set_cpp(pop, ti_cond)
-    # } else {
-    #
-    #   match_set <- unlist(sapply(0:3, \(i) {
-    #     indices <- which((1:length(pop)%%4) == i)
-    #     indices[get_match_set_cpp(pop[indices], ti_cond)]
-    #   }))
-    #
-    #   # print(new_match_set)
-    #   # match_set <- new_match_set
-    # }
-
-
 
     if(length(match_set) > 0)
       return(match_set)
@@ -257,9 +228,7 @@ get_match_set <- function(instance_state, pop) {
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
 
 
-    ## Matrices approach?
-    ## THIS CAN BE MOVED TO REDUCE ITERATIONS A LOT!
-
+    ## Matrices approach!
     matched_zeros <- t_matrices[[1]] %*% (1-ti_cond)
     matched_ones <- t_matrices[[2]] %*% ti_cond
     matched_lengths <- matched_zeros + matched_ones

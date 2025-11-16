@@ -423,8 +423,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
   ## NEW
   ## "Parent" env variables...
-  t_matrices <- .recalculate_pop_matrices(lcs)
-  t_lengths <- sapply(lcs, \(x) x$length_fixed_bits)
+  t_matrices <- .recalculate_pop_matrices(lcs) ## Poor naming...
+  t_lengths <- sapply(lcs, \(x) x$length_fixed_bits) ## Poor naming...
+  t_classes_counts <- table(train_env_df$class) ## Poor naming... For Coverage
 
   ## Expose algorithm to training set:
   for(epoch in 1:(run_params$get_n_epochs())) {
@@ -440,7 +441,8 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                         (epoch-1)*size_env+i, ## train_count
                         run_params)
       if(verbose) { ## Truly not recommended!
-        class(lcs) <- "rlcs_population"
+        if(!is.null(lcs))
+          class(lcs) <- "rlcs_population"
         message(print(lcs))
       }
     }

@@ -79,7 +79,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 4, 9)) {
+for(example in c(1, 3, 4)) {
   sample_result_set <- reverse_match_set(iris_classifier[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -103,8 +103,8 @@ head(print(iris_classifier), 10)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[3]], rlcs_iris)
 rlcs_rosetta_decode_rule(iris_classifier[[4]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[7]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
@@ -113,6 +113,6 @@ test_environment[1,]
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
 # print(iris_classifier[[5]])
-rlcs_rosetta_decode_rule(iris_classifier[[4]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
 rlcs_rosetta_decode_rule(iris_classifier[[6]], rlcs_iris)
 
