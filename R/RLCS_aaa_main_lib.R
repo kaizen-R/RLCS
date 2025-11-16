@@ -106,6 +106,14 @@
   sapply(pop, \(x) x$length_fixed_bits)
 }
 
+.lengths_fixed_zeros <- function(pop) {
+  sapply(pop, \(x) length(x$cond$condition_list$"0"))
+}
+
+.lengths_fixed_ones <- function(pop) {
+  sapply(pop, \(x) length(x$cond$condition_list$"1"))
+}
+
 .lengths_fixed_bits_new_rule <- function(t_lengths, condition_string) {
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
   which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")

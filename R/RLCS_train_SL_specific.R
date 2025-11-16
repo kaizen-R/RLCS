@@ -63,6 +63,10 @@
     pop <- .lcs_best_sort_sl(pop)
     pop <- .apply_deletion_no_threshold(pop)
 
+    ## Within this function in this case :)
+    t_matrices <- .recalculate_pop_matrices(pop)
+    t_labs <- sapply(pop, \(x) { x$action })
+
     for(item in 1:(length(pop)-1)) {
 
       if(pop[[item]]$numerosity > 0) {
@@ -74,23 +78,55 @@
 
         pop_to_delete <- NULL
 
-        pop_to_delete <-
-          ## RELATIVE POSITIONS!! we need item as base.
-          which(sapply(pop[(item+1):length(pop)],
-                       \(x, t_cond, t_lab, t_zero, t_one) {
+        # ## Quick and dirty. I don't need the length subsetting here! to be reviewed!
+        # all_ones_mat <- matrix(rep(1, nchar(pop[[1]]$condition_string)*length(pop[(item+1):length(pop)])),
+        #                        nrow=length(pop[(item+1):length(pop)]))
 
-                         if(x$numerosity > 0 && x$action == t_lab) {
-                           t_other_cond_0 <- x$condition_list$"0"
-                           t_other_cond_1 <- x$condition_list$"1"
+        ## The old ways were... Slower, by a lot!
+        # pop_to_delete <-
+        #   ## RELATIVE POSITIONS!! we need item as base.
+        #   which(sapply(pop[(item+1):length(pop)],
+        #                \(x, t_cond, t_lab, t_zero, t_one) {
+        #
+        #                  if(x$numerosity > 0 && x$action == t_lab) {
+        #                    t_other_cond_0 <- x$condition_list$"0"
+        #                    t_other_cond_1 <- x$condition_list$"1"
+        #
+        #                    return(all((length(t_zero) <= length(t_other_cond_0)) ||
+        #                          (length(t_one) <= length(t_other_cond_1)),
+        #                          t_zero %in% t_other_cond_0,
+        #                          t_one %in% t_other_cond_1))
+        #                  }
+        #
+        #                  return(F)
+        #                }, cond_string, cond_lab, t_zero, t_one))
 
-                           return(all((length(t_zero) <= length(t_other_cond_0)) ||
-                                 (length(t_one) <= length(t_other_cond_1)),
-                                 t_zero %in% t_other_cond_0,
-                                 t_one %in% t_other_cond_1))
-                         }
+        # ## Alternative approach now, let's see!
+        ti_cond <- strsplit(cond_string, "", fixed = T)[[1]]
+        ti_cond[which(ti_cond == "#")] <- -1
+        ti_cond <- as.integer(ti_cond)
+        ## To be cleaned here too:
+        zero_vec <- rep(0, length(ti_cond))
+        subsumer_must_be_zero <- zero_vec
+        subsumer_must_be_zero[which(ti_cond == 0)] <- 1
+        subsumer_must_be_one <- zero_vec
+        subsumer_must_be_one[which(ti_cond == 1)] <- 1
 
-                         return(F)
-                       }, cond_string, cond_lab, t_zero, t_one))
+        ## Remember the rules are sorted by accuracy and generality already!
+        subsumer_must_match_zeros <- t_matrices[[1]][(item+1):length(pop),]  %*% subsumer_must_be_zero
+        subsumer_must_match_ones <- t_matrices[[2]][(item+1):length(pop),]  %*% subsumer_must_be_one
+
+        subsumed_must_be_different_zero <-  t_matrices[[1]][(item+1):length(pop),] %*% subsumer_must_be_one
+        subsumed_must_be_different_one <- t_matrices[[2]][(item+1):length(pop),] %*% subsumer_must_be_zero
+
+        new_pop_to_delete <- which(
+          ((subsumer_must_match_zeros+subsumer_must_match_ones) == (length(t_zero)+length(t_one))) &
+            (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+            (t_labs[(item+1):length(pop)] == cond_lab)
+        )
+
+        pop_to_delete <- new_pop_to_delete
+        # browser()
 
         if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
 
@@ -147,89 +183,89 @@
 ######
 ## KEY FUNCTION: Train binary classifier LCS
 ######
-.rlcs_train_one_instance_one_epoch <- function(pop,
-                       t_instance,
-                       size_env, ## Used for Subsumption Freq.
-                       n_epoch, ## Used for Subsumption Freq.
-                       train_count, ## train_count
-                       run_params ## Algorithm Hyperparameters
-) {
-  ######
-  ## Main process for R LCS Training
-  ######
-
-  ## ADD ERROR CONTROL
-  match_set <- get_match_set(t_instance$state, pop)
-  if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
-    cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
-                                                             run_params$get_wildcard_prob())
-
-    if(!is.null(cover_rule)) {
-      pop <- .add_valid_rule_to_pop(pop, cover_rule,
-                                   t_instance$class, train_count)
-      return(pop)
-    }
-  } else {
-    ## Faster to work with only match population until need to review overall population
-    match_pop <- .inc_match_count(pop[c(match_set)])
-
-    correct_set <- .get_correct_set(t_instance, match_pop)
-    if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
-      cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
-                                                               run_params$get_wildcard_prob())
-      if(!is.null(cover_rule))
-        pop <- .add_valid_rule_to_pop(pop, cover_rule,
-                                     t_instance$class, train_count)
-    } else {
-      correct_pop <- match_pop[c(correct_set)]
-
-      match_pop[c(correct_set)] <- .inc_correct_count(correct_pop)
-
-      ## *Second* Rule Discovery HAPPENS HERE NOW
-      ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
-      # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-      # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-      if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-      # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-        ## The GA, basically, happens here: Cross-over & Mutation:
-        children <- correct_pop |>
-          .cross_over_parents_strings_sl(run_params$get_sel_mode(),
-                                        run_params$get_tournament_pressure()) |>
-          sapply(.mutate_condition_string, t_instance$state, run_params$get_mut_prob())
-
-        ## In some cases, we have only one child.
-        for(child in children) {
-          if(.found_same_condition(correct_pop, child)) ## Duplicate rule
-            match_pop <- .inc_numerosity_by_condition(match_pop, child)
-          else
-            pop <- .add_valid_rule_to_pop(pop,
-                                         child,
-                                         t_instance$class,
-                                         train_count)
-        }
-      }
-    }
-
-    ## Update Matched Population statistics into main population
-    pop[c(match_set)] <- .update_matched_accuracy(match_pop)
-  }
-
-  ## Apply Deletion by reducing numerosity
-
-  if((train_count %% (run_params$get_deletion_trigger()*size_env)) == 0) {
-    ## Subsumption is too important to skip, for speed reasons.
-    pop <- .apply_subsumption_whole_pop_sl(pop)
-    pop <- .apply_deletion_sl(pop,
-                              deletion_limit = run_params$get_deletion_threshold(),
-                              max_pop_size = run_params$get_max_pop_size())
-
-    print(paste("Epoch:", n_epoch,
-                "Progress Exposure:", train_count,
-                "Classifiers Count:", length(pop)))
-  }
-
-  pop
-}
+# .rlcs_train_one_instance_one_epoch <- function(pop,
+#                        t_instance,
+#                        size_env, ## Used for Subsumption Freq.
+#                        n_epoch, ## Used for Subsumption Freq.
+#                        train_count, ## train_count
+#                        run_params ## Algorithm Hyperparameters
+# ) {
+#   ######
+#   ## Main process for R LCS Training
+#   ######
+#
+#   ## ADD ERROR CONTROL
+#   match_set <- get_match_set(t_instance$state, pop)
+#   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
+#     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
+#                                                              run_params$get_wildcard_prob())
+#
+#     if(!is.null(cover_rule)) {
+#       pop <- .add_valid_rule_to_pop(pop, cover_rule,
+#                                    t_instance$class, train_count)
+#       return(pop)
+#     }
+#   } else {
+#     ## Faster to work with only match population until need to review overall population
+#     match_pop <- .inc_match_count(pop[c(match_set)])
+#
+#     correct_set <- .get_correct_set(t_instance, match_pop)
+#     if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
+#       cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
+#                                                                run_params$get_wildcard_prob())
+#       if(!is.null(cover_rule))
+#         pop <- .add_valid_rule_to_pop(pop, cover_rule,
+#                                      t_instance$class, train_count)
+#     } else {
+#       correct_pop <- match_pop[c(correct_set)]
+#
+#       match_pop[c(correct_set)] <- .inc_correct_count(correct_pop)
+#
+#       ## *Second* Rule Discovery HAPPENS HERE NOW
+#       ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
+#       # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+#       # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+#       if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+#       # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+#         ## The GA, basically, happens here: Cross-over & Mutation:
+#         children <- correct_pop |>
+#           .cross_over_parents_strings_sl(run_params$get_sel_mode(),
+#                                         run_params$get_tournament_pressure()) |>
+#           sapply(.mutate_condition_string, t_instance$state, run_params$get_mut_prob())
+#
+#         ## In some cases, we have only one child.
+#         for(child in children) {
+#           if(.found_same_condition(correct_pop, child)) ## Duplicate rule
+#             match_pop <- .inc_numerosity_by_condition(match_pop, child)
+#           else
+#             pop <- .add_valid_rule_to_pop(pop,
+#                                          child,
+#                                          t_instance$class,
+#                                          train_count)
+#         }
+#       }
+#     }
+#
+#     ## Update Matched Population statistics into main population
+#     pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+#   }
+#
+#   ## Apply Deletion by reducing numerosity
+#
+#   if((train_count %% (run_params$get_deletion_trigger()*size_env)) == 0) {
+#     ## Subsumption is too important to skip, for speed reasons.
+#     pop <- .apply_subsumption_whole_pop_sl(pop)
+#     pop <- .apply_deletion_sl(pop,
+#                               deletion_limit = run_params$get_deletion_threshold(),
+#                               max_pop_size = run_params$get_max_pop_size())
+#
+#     print(paste("Epoch:", n_epoch,
+#                 "Progress Exposure:", train_count,
+#                 "Classifiers Count:", length(pop)))
+#   }
+#
+#   pop
+# }
 
 
 .rlcs_train_one_instance_one_epoch_mat <- function(pop,
@@ -396,7 +432,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     for(i in 1:size_env) {
       ## Now this part of the algorithm is "necessarily" sequential...
       # lcs <- .rlcs_train_one_instance_one_epoch(lcs,
-      ## NEW
+      ## NEW!
       lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
                         train_env_df[i, ],
                         size_env,
