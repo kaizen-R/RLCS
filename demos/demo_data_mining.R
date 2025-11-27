@@ -21,21 +21,18 @@ plot(rlcs_model1)
 get_match_set("00101", rlcs_model1)
 
 ## Let's try a second example:
-demo_params <- RLCS_hyperparameters(
-  n_epochs = 400,
-  deletion_trigger = 40,
-  deletion_threshold = 0.9)
 demo_env2 <- rlcs_demo_secret2()
 ## Have a look at the exercise:
 print(demo_env2)
-
-rlcs_model2 <- rlcs_train_sl(demo_env2, demo_params)
+## Using defaults for Hyper parameters can work,
+## it's just not necessarily a great idea, either for speed or accuracy...
+rlcs_model2 <- rlcs_train_sl(demo_env2)
 print(rlcs_model2)
 plot(rlcs_model2)
 
 ## Last example - SLOWER, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = 0.6,
+  wildcard_prob = 0.5,
   n_epochs = 800,
   deletion_trigger = 80,
   deletion_threshold = 0.95)

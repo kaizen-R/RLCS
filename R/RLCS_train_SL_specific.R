@@ -151,7 +151,6 @@
 .apply_deletion_sl <- function(pop, deletion_limit = 0.6, max_pop_size = 10000) {
 
   pop <- lapply(pop, \(x) {
-    # print(x$accuracy)
     if(x$accuracy < deletion_limit) x$numerosity <- 0
     x
   })
@@ -164,18 +163,6 @@
     })
   }
 
-  # ## Works nicely with subsumption to remove unnecessary classifiers:
-  # survivors_bool <- sapply(pop, \(x) {
-  #   if(x$numerosity > 0) return(TRUE)
-  #   FALSE
-  # })
-  #
-  # if(any(survivors_bool)) {
-  #   survivors_set <- which(survivors_bool)
-  #   return(structure(pop[c(survivors_set)], class="rlcs_population"))
-  # }
-  # structure(list(), class="rlcs_population")
-
   .apply_deletion_no_threshold(pop)
 }
 
@@ -183,91 +170,6 @@
 ######
 ## KEY FUNCTION: Train binary classifier LCS
 ######
-# .rlcs_train_one_instance_one_epoch <- function(pop,
-#                        t_instance,
-#                        size_env, ## Used for Subsumption Freq.
-#                        n_epoch, ## Used for Subsumption Freq.
-#                        train_count, ## train_count
-#                        run_params ## Algorithm Hyperparameters
-# ) {
-#   ######
-#   ## Main process for R LCS Training
-#   ######
-#
-#   ## ADD ERROR CONTROL
-#   match_set <- get_match_set(t_instance$state, pop)
-#   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
-#     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
-#                                                              run_params$get_wildcard_prob())
-#
-#     if(!is.null(cover_rule)) {
-#       pop <- .add_valid_rule_to_pop(pop, cover_rule,
-#                                    t_instance$class, train_count)
-#       return(pop)
-#     }
-#   } else {
-#     ## Faster to work with only match population until need to review overall population
-#     match_pop <- .inc_match_count(pop[c(match_set)])
-#
-#     correct_set <- .get_correct_set(t_instance, match_pop)
-#     if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
-#       cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
-#                                                                run_params$get_wildcard_prob())
-#       if(!is.null(cover_rule))
-#         pop <- .add_valid_rule_to_pop(pop, cover_rule,
-#                                      t_instance$class, train_count)
-#     } else {
-#       correct_pop <- match_pop[c(correct_set)]
-#
-#       match_pop[c(correct_set)] <- .inc_correct_count(correct_pop)
-#
-#       ## *Second* Rule Discovery HAPPENS HERE NOW
-#       ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
-#       # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-#       # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-#       if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-#       # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
-#         ## The GA, basically, happens here: Cross-over & Mutation:
-#         children <- correct_pop |>
-#           .cross_over_parents_strings_sl(run_params$get_sel_mode(),
-#                                         run_params$get_tournament_pressure()) |>
-#           sapply(.mutate_condition_string, t_instance$state, run_params$get_mut_prob())
-#
-#         ## In some cases, we have only one child.
-#         for(child in children) {
-#           if(.found_same_condition(correct_pop, child)) ## Duplicate rule
-#             match_pop <- .inc_numerosity_by_condition(match_pop, child)
-#           else
-#             pop <- .add_valid_rule_to_pop(pop,
-#                                          child,
-#                                          t_instance$class,
-#                                          train_count)
-#         }
-#       }
-#     }
-#
-#     ## Update Matched Population statistics into main population
-#     pop[c(match_set)] <- .update_matched_accuracy(match_pop)
-#   }
-#
-#   ## Apply Deletion by reducing numerosity
-#
-#   if((train_count %% (run_params$get_deletion_trigger()*size_env)) == 0) {
-#     ## Subsumption is too important to skip, for speed reasons.
-#     pop <- .apply_subsumption_whole_pop_sl(pop)
-#     pop <- .apply_deletion_sl(pop,
-#                               deletion_limit = run_params$get_deletion_threshold(),
-#                               max_pop_size = run_params$get_max_pop_size())
-#
-#     print(paste("Epoch:", n_epoch,
-#                 "Progress Exposure:", train_count,
-#                 "Classifiers Count:", length(pop)))
-#   }
-#
-#   pop
-# }
-
-
 .rlcs_train_one_instance_one_epoch_mat <- function(pop,
                                                t_instance,
                                                size_env, ## Used for Subsumption Freq.
@@ -359,7 +261,7 @@
                               deletion_limit = run_params$get_deletion_threshold(),
                               max_pop_size = run_params$get_max_pop_size())
 
-    ## I don't like doing this, but it's a temporary thing
+    ## I don't like doing this, envs-wise, but it's a temporary thing
     t_matrices <<- .recalculate_pop_matrices(pop)
     t_lengths <<- .lengths_fixed_bits(pop)
 
@@ -387,7 +289,18 @@
 #' An RLCS_hyperparameters object, for which an object construction is provided.
 #' @param pre_trained_lcs
 #' Optional. Can be used to EVOLVE a pre-trained LCS.
-#' @param verbose Default is FALSE. I strongly suggest you do not use that parameter.
+#' @param verbose
+#' Default is FALSE. I strongly suggest you do not use that parameter.
+#' @param n_agents
+#' Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
+#' IF available, a number of parallel cores, as indicated PRIOR to calling RLCS
+#' like so: makeCluster() registerDoParallel()
+#' then RLCS will train n_agents parallel model and select the best one, by accuracy.
+#' @param use_validation
+#' Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+#' When training several models in parallel, this parameter modifies selection of best
+#' one by running a test in a validation set of 10 percent of samples, which is
+#' first removed from the training set.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -405,7 +318,8 @@
 #' print(rlcs_model)
 #' plot(rlcs_model)
 rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
-                       pre_trained_lcs = NULL, verbose=FALSE) {
+                       pre_trained_lcs = NULL, verbose=FALSE,
+                       n_agents = 0, use_validation=F) {
   ## Initialization:
   lcs <- .new_rlcs_population()
   # structure(list(), class = "rlcs_population")
@@ -419,34 +333,107 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   ## Re-training, or "online" updates
   if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
 
-  size_env <- nrow(train_env_df)
 
   ## NEW
   ## "Parent" env variables...
+  ## This should become part of the population
+  ## But that means changing a lot of code right now, so I'll take it slow...
   t_matrices <- .recalculate_pop_matrices(lcs) ## Poor naming...
   t_lengths <- sapply(lcs, \(x) x$length_fixed_bits) ## Poor naming...
+
   t_classes_counts <- table(train_env_df$class) ## Poor naming... For Coverage
 
-  ## Expose algorithm to training set:
-  for(epoch in 1:(run_params$get_n_epochs())) {
+  if(requireNamespace("foreach", quietly=T) &
+     requireNamespace("doParallel", quietly=T) &
+     n_agents > 1) { ## NEW!
 
-    for(i in 1:size_env) {
-      ## Now this part of the algorithm is "necessarily" sequential...
-      # lcs <- .rlcs_train_one_instance_one_epoch(lcs,
-      ## NEW!
-      lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
-                        train_env_df[i, ],
-                        size_env,
-                        epoch,
-                        (epoch-1)*size_env+i, ## train_count
-                        run_params)
-      if(verbose) { ## Truly not recommended!
-        if(!is.null(lcs))
-          class(lcs) <- "rlcs_population"
-        message(print(lcs))
+    print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
+    `%dopar%` <- foreach::`%dopar%`
+
+    if(use_validation) {
+      validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
+      sub_train_environment <- train_env_df[-validation_set,]
+    } else {
+      sub_train_environment <- train_env_df
+    }
+
+    agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
+
+      sub_train_environment_shuffle <- sub_train_environment[sample(1:nrow(sub_train_environment),
+                                                                    nrow(sub_train_environment),
+                                                                    replace = F), ]
+      library(RLCS) ## Assuming you've gotten the package installed by now...
+
+      size_env <- nrow(sub_train_environment)
+
+      for(epoch in 1:(run_params$get_n_epochs())) {
+        for(i in 1:size_env) {
+          lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
+                                                        sub_train_environment_shuffle[i, ],
+                                                        size_env,
+                                                        epoch,
+                                                        (epoch-1)*size_env+i, ## train_count
+                                                        run_params)
+        }
+      }
+      ## Sometimes, deletion removes all rules as none are good enough!
+      if(is.null(lcs)) return(NULL)
+      class(lcs) <- "rlcs_population"
+      return(lcs)
+    }
+
+
+    agents_quality <- list()
+    for(j in 1:n_agents) {
+      if(use_validation) { ## Let's see how we could do testing:
+        validation_environment <- train_env_df[validation_set,]
+      } else {
+        validation_environment <- train_env_df
+      }
+
+      validation_environment$predicted <- -1 ## Stands for not found
+
+      ## ADD CHECK HERE FOR !is.null(agents[[j]])
+      if(!is.null(agents[[j]])) {
+        validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+        agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
+          ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+        }))/nrow(validation_environment), 2)
+      } else
+        agents_quality[[j]] <- 0
+    }
+
+    best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
+    # print(unlist(agents_quality))
+    # print(best_agents)
+    return(agents[[best_agent]])
+  } else {
+    print("Running single-core/thread, sequential")
+    size_env <- nrow(train_env_df)
+    ## Expose algorithm to training set:
+    for(epoch in 1:(run_params$get_n_epochs())) {
+
+
+      for(i in 1:size_env) {
+        ## Now this part of the algorithm is "necessarily" sequential...
+        # lcs <- .rlcs_train_one_instance_one_epoch(lcs,
+        ## NEW!
+        lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
+                                                      train_env_df[i, ],
+                                                      size_env,
+                                                      epoch,
+                                                      (epoch-1)*size_env+i, ## train_count
+                                                      run_params)
+        if(verbose) { ## Truly not recommended!
+          if(!is.null(lcs))
+            class(lcs) <- "rlcs_population"
+          message(print(lcs))
+        }
       }
     }
   }
+
 
   ## Sometimes, deletion removes all rules as none are good enough!
   if(is.null(lcs)) return(NULL)

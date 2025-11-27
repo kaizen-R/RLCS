@@ -104,45 +104,6 @@ rlcs_SL_stats <- function(runtime, train_size, test_env_res) {
   print(class_1_numbers)
 }
 
-# rlcs_predict_mnist49b <- function(test_env_df, pop, verbose=T) {
-#   ret_set <- c()
-#   for(i in 1:nrow(test_env_df)) {
-#     if(verbose) {
-#       print("-------------")
-#       print_mnist_number_49b(test_env_df$state[i])
-#     }
-#     match_set <- get_match_set(test_env_df$state[i], pop)
-#     if(length(match_set) > 0) {
-#       rec_0 <- sum(sapply(pop[match_set], \(x) {
-#         if(x$action == 0)
-#           return(x$numerosity*x$accuracy)
-#         0
-#       }))
-#       rec_1 <- sum(sapply(pop[match_set], \(x) {
-#         if(x$action == 1)
-#           return(x$numerosity * x$accuracy)
-#         0
-#       }))
-#
-#       if(verbose) {
-#         print(test_env_df$class[i])
-#         print(make_pop_printable_sl(pop[match_set]))
-#         print(paste("Recommend 0: ", rec_0))
-#         print(paste("Recommend 1: ", rec_1))
-#       }
-#       ret_set <- c(ret_set, ifelse(rec_0 > rec_1, 0, 1))
-#     } else {
-#       if(verbose) print("NO suitable rule for this instance.")
-#       ret_set <- c(ret_set, -1)
-#     }
-#
-#   }
-#   return(ret_set)
-# }
-#
-
-
-
 # rlcs_predict_log <- function(test_env_df, pop, verbose=T) {
 #   ret_set <- c()
 #   for(i in 1:nrow(test_env_df)) {
@@ -197,37 +158,3 @@ rlcs_SL_stats <- function(runtime, train_size, test_env_res) {
 #   return(ret_set)
 # }
 #
-# rlcs_predict_yf <- function(test_env_df, pop, verbose=T) {
-#   ret_set <- c()
-#   for(i in 1:nrow(test_env_df)) {
-#     if(verbose) {
-#       print("-------------")
-#       cat(test_env_df$state[i])
-#       cat("\n")
-#     }
-#     match_set <- get_match_set(test_env_df$state[i], pop)
-#     if(length(match_set) > 0) {
-#       rec_0 <- sum(sapply(pop[match_set], \(x) {
-#         if(x$action == 0)
-#           return(x$numerosity*x$accuracy)
-#         0
-#       }))
-#       rec_1 <- sum(sapply(pop[match_set], \(x) {
-#         if(x$action == 1)
-#           return(x$numerosity * x$accuracy)
-#         0
-#       }))
-#
-#       if(verbose) {
-#         print(test_env_df$class[i])
-#         print(paste("Recommend 0: ", rec_0))
-#         print(paste("Recommend 1: ", rec_1))
-#       }
-#       ret_set <- c(ret_set, ifelse(rec_0 > rec_1, 0, 1))
-#     } else {
-#       if(verbose) print("NO suitable rule for this instance.")
-#       ret_set <- c(ret_set, -1)
-#     }
-#   }
-#   return(ret_set)
-# }

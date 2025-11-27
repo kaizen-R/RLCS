@@ -8,7 +8,9 @@ rlcs_train_sl(
   train_env_df,
   run_params = RLCS_hyperparameters(),
   pre_trained_lcs = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  n_agents = 0,
+  use_validation = F
 )
 }
 \arguments{
@@ -21,6 +23,16 @@ such as: "00110101". This is a requirement for the current RLCS implementation.}
 \item{pre_trained_lcs}{Optional. Can be used to EVOLVE a pre-trained LCS.}
 
 \item{verbose}{Default is FALSE. I strongly suggest you do not use that parameter.}
+
+\item{n_agents}{Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
+IF available, a number of parallel cores, as indicated PRIOR to calling RLCS
+like so: makeCluster() registerDoParallel()
+then RLCS will train n_agents parallel model and select the best one, by accuracy.}
+
+\item{use_validation}{Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+When training several models in parallel, this parameter modifies selection of best
+one by running a test in a validation set of 10 percent of samples, which is
+first removed from the training set.}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

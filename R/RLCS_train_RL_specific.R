@@ -12,9 +12,7 @@
 .get_action_set <- function(chosen_action, match_pop) {
   if(length(match_pop) > 0)
     return(which(sapply(match_pop, \(item) {
-      # if(item$action == chosen_action) return(T)
-      # F
-      return(item$action == chosen_action)
+      item$action == chosen_action
     })))
   NULL ## implicit return
 }
@@ -101,7 +99,7 @@
           which(sapply(pop[(item+1):length(pop)],
                        \(x, t_cond, t_lab, t_zero, t_one) {
 
-                         if(x$numerosity > 0 && x$action == t_lab&&
+                         if(x$numerosity > 0 && x$action == t_lab &&
                             x$total_reward < t_rew) {
                            t_other_cond_0 <- x$condition_list$"0"
                            t_other_cond_1 <- x$condition_list$"1"
@@ -155,8 +153,9 @@
 
   ## Works nicely with subsumption to remove unnecessary classifiers:
   survivors_set <- which(sapply(pop, \(x) {
-    if(x$numerosity > 0) return(TRUE)
-    FALSE
+    # if(x$numerosity > 0) return(TRUE)
+    # FALSE
+    x$numerosity > 0
   }))
 
   structure(pop[c(survivors_set)], class="rlcs_population")

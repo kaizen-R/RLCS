@@ -1,4 +1,3 @@
-## A more comprehensive example and hints at future work, too!
 
 library(RLCS) ## Well, yes...
 
@@ -155,80 +154,12 @@ test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
 ## Key to adapt to each problem...
-## Acceptable hyperparameters for this particular scenario:
-mnist_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = .4,
-  rd_trigger = 20,
-  mutation_probability = .1,
-  ## parents_selection_mode,
-  tournament_pressure = 5,
-  n_epochs = 50,
-  deletion_trigger = 10,
-  deletion_threshold = .9
-)
 
 ######
-## One-thread training - About
-######
-t_start <- Sys.time()
-
-mnist01_classifier <- structure(list(), class="rlcs_population")
-for(i in 1:1) { ## Can be double pass for example, but still sequential
-  mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
-                                      mnist_hyperparameters,
-                                      pre_trained_lcs = mnist01_classifier)
-}
-
-t_end <- Sys.time()
-
-print(t_end - t_start)
-
-## Check resulting model:
-
-## Let's run our trained Classifiers Set on test mnist_bin01_49b:
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, mnist01_classifier)
-
-table(test_mnist_bin01_49b[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
-  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
-}))/nrow(test_mnist_bin01_49b), 2)))
-
-length(mnist01_classifier)
-
-## This is tailored to this specific example, but hopefully it helps show
-## What the "model", as a set of rules, is actually "thinking"
-
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_classifier)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_classifier)
-
-## Example wrong classification. Note number of disagreeing rules, though...
-## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
-disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[1],],
-                                       mnist01_classifier)
-
-## Visualize LCS
-par(mfrow=c(1,1))
-plot(mnist01_classifier)
-
-# ## Visualize LCS per Class: 0
-# plot(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-# length(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-# print(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-#
-# ## Visualize LCS per Class: 1
-# plot(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-# length(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-# print(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-
-
-##
-## PART THREE
-##
-
-######
-## PARALLEL RUNNING
+## PARALLEL RUNNING in a DIFFERENT way!
+## Here we decide, instead of doing some boosting, we have enough
+## samples in the environment to work on ENVIRONMENT SUBSETS
+## in parallel.
 ######
 ## The MODEL is a set of Classifiers.
 ## It's easy to "merge" more than one model!
@@ -280,6 +211,8 @@ results <- foreach(i = 1:run_par_count
 
   ## dopar requires to reload context data:
   library(RLCS)
+
+  ## Key to adapt to each problem...
   mnist_hyperparameters <- RLCS_hyperparameters(
     wildcard_prob = .4,
     rd_trigger = 20,
@@ -347,35 +280,3 @@ table(test_mnist_bin01_49b[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
-
-
-
-##
-## BONUS
-##
-
-## OK, finally, let's see a bit about the LCS itself.
-## This would apply to either single-core/thread or parallel processing.
-
-## This is how one rule looks like, in a given classifier:
-print_mnist_number_49b(mnist01_par_classifier[[457]]$condition_string)
-## Can you tell what class it matches?
-## Hint: a 0 will have an empty middle across the central lines...
-mnist01_par_classifier[[457]]$action
-
-## We have seen a visual, but a less visual option is to ask for rules scoring:
-print_mnist_number(test_mnist_bin01_49b$sharp_image[5])
-rlcs_predict_sl(test_mnist_bin01_49b[5,], mnist01_par_classifier, verbose = T)
-print_mnist_number(test_mnist_bin01_49b$sharp_image[nrow(test_mnist_bin01_49b)-5])
-rlcs_predict_sl(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], mnist01_par_classifier, verbose = T)
-
-
-
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_par_classifier)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_par_classifier)
-
-## Example wrong classification. Note number of disagreeing rules, though...
-## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
-disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[2],],
-                                       mnist01_par_classifier)
