@@ -24,11 +24,11 @@ Description: A rather simple implementation of J. H. Holland's "Learning Classif
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: Rcpp (>= 1.0.14),methods (>= 4.5.0)
+Imports: Rcpp (>= 1.0.14),methods (>= 4.4.0)
 LinkingTo: Rcpp
 Suggests: 
     testthat (>= 3.0.0),foreach (>= 1.5.2),doParallel (>= 1.0.17)
 Config/testthat/edition: 3
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1.0)
 RoxygenNote: 7.3.2
