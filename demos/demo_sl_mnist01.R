@@ -231,24 +231,24 @@ plot(mnist01_classifier)
 ## This would apply to either single-core/thread or parallel processing.
 
 ## This is how one rule looks like, in a given classifier:
-print_mnist_number_49b(mnist01_par_classifier[[457]]$condition_string)
+print_mnist_number_49b(mnist01_classifier[[457]]$condition_string)
 ## Can you tell what class it matches?
 ## Hint: a 0 will have an empty middle across the central lines...
-mnist01_par_classifier[[457]]$action
+mnist01_classifier[[457]]$action
 
 ## We have seen a visual, but a less visual option is to ask for rules scoring:
 print_mnist_number(test_mnist_bin01_49b$sharp_image[5])
-rlcs_predict_sl(test_mnist_bin01_49b[5,], mnist01_par_classifier, verbose = T)
+rlcs_predict_sl(test_mnist_bin01_49b[5,], mnist01_classifier, verbose = T)
 print_mnist_number(test_mnist_bin01_49b$sharp_image[nrow(test_mnist_bin01_49b)-5])
-rlcs_predict_sl(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], mnist01_par_classifier, verbose = T)
+rlcs_predict_sl(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], mnist01_classifier, verbose = T)
 
 
 
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_par_classifier)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_par_classifier)
+res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_classifier)
+res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_classifier)
 
 ## Example wrong classification. Note number of disagreeing rules, though...
 ## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
 disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
 res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[2],],
-                                       mnist01_par_classifier)
+                                       mnist01_classifier)

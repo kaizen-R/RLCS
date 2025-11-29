@@ -19,20 +19,30 @@
 
        condition_list = list("0" = which_zeros,
                              "1" = which_ones),
-       ## NEW!
-       zeros_pos_vector = zeros_vector,
-       ones_pos_vector = ones_vector,
-       length_fixed_bits = length_fixed_bits,
 
-       coverage = 1,
-
-       action = action,
-       total_reward = 5, ## Force initial exploration
-       action_count = 1, ## For Reinforcement Learning
+       action = action, ## Equivalent to Class in SL
 
        accuracy = 1,
        match_count = 1L,
        correct_count = 1L, ## For Supervised Learning/Data Mining
+
+       total_reward = 5, ## Force initial exploration
+       action_count = 1, ## For Reinforcement Learning
+
+       ## NEW! To use Matrix matching!
+       zeros_pos_vector = zeros_vector,
+       ones_pos_vector = ones_vector,
+       length_fixed_bits = length_fixed_bits,
+
+       ## New. Found in some LCS explanations out there... Just wasn't in RLCS
+       ## yet.
+       coverage_epoch_correct_count = 1L,
+       ## -> coverage = epoch_correct_count/class_size==1 and accuracy==1
+       ## would mean, "perfect rule". IF there is a PERFECT rule...
+       ## In SL, if we keep track per-epoch somehow of coverage of a rule, per
+       ## class, we could somehow influence the retention on rules not only
+       ## on Accuracy, but also on Coverage.
+       ## Great for improved Subsumption?
 
        numerosity = 1L,
        first_seen = 1L)
@@ -151,6 +161,14 @@
 
   t_rule$first_seen <- date_rule_born
   pop[[length(pop)+1]] <- t_rule
+
+
+  # memory_surprise_and_dreams = list(), ## TBD.
+  # ## In SL, we could use samples not matched to re-train on these
+  # ## thereby effectively "dreaming on episodic memory"
+  # memory_explored_hashes = list(), ## TBD.
+  # ## In RL, we could use this to prefer directions which look new.
+
 
   # pop <- .recalculate_pop_matrices(pop)
   # class(pop) <- "rlcs_population"
