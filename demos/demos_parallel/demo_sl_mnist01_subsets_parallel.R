@@ -169,44 +169,114 @@ library(foreach)
 library(doParallel) ## could be mirai, this is just one example
 n_cores <- detectCores()
 ## More cores would only make sense with more data!
-run_par_count <- max(1, n_cores-1)
+run_par_count <- min(8, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 
-mnist_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = .4,
-  rd_trigger = 20,
-  mutation_probability = .1,
-  ## parents_selection_mode,
-  tournament_pressure = 5,
-  n_epochs = 50,
-  deletion_trigger = 10,
-  deletion_threshold = .9
-)
+## We will repeat this here JUST TO facilitate running the parallel example
+## Separately from the simpler mono-core/thread run
+
+library(RLCS)
+## Seeding is the same as above, for results comparison.
+set.seed(12345)
+train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
+train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
+test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
+
+## IF YOU HAVE LOTS OF CPU Cores... You could try this:
+# train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.25*nrow(mnist_bin01_49b)), replace = F)
+# train_mnist_bin01_49b <- mnist_bin01_49b[train_set,] ## !!TRAIN << TEST!!
+# test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,]
+
+test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
 t_start_par <- Sys.time()
-## Parallel processing has a few options of its own...
-mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,mnist_hyperparameters,
-                                    n_agents=run_par_count,
-                                    use_validation = F,
-                                    merge_best_n = 2)
+sets_size <- floor(nrow(train_mnist_bin01_49b) / run_par_count)
+results <- list()
+
+mnist01_par_classifier <- list() ## COULD be pre-trained already...
+## This is superfluous here, but just making a point...
+
+results <- foreach(i = 1:run_par_count
+                   # , .verbose=T
+                   # , .combine=cbind
+) %dopar% {
+  ## Let's take a SUBSET of the training data
+  ## NOTE: You could imagine more complex subsetting, with overlaps, etc.
+  ## That might greatly help quality!
+  ## But here we're demo-ing speed comparisons only.
+  sets_size <- floor(nrow(train_mnist_bin01_49b) / run_par_count)
+  sub_start <- (i-1)*sets_size+1
+  sub_end <- i*sets_size
+
+  ## dopar requires to reload context data:
+  library(RLCS)
+
+  ## Key to adapt to each problem...
+  mnist_hyperparameters <- RLCS_hyperparameters(
+    wildcard_prob = .4,
+    rd_trigger = 20,
+    mutation_probability = .1,
+    ## parents_selection_mode,
+    tournament_pressure = 5,
+    n_epochs = 50,
+    deletion_trigger = 10,
+    deletion_threshold = .9
+  ) ## Same a single-core run, only to compare speed
+  ## But you could imagine running much more comprehensive training per-subset!
+
+  # Now do the actual training
+  set.seed(12345)
+  par_pop <- rlcs_train_sl(train_mnist_bin01_49b[sub_start:sub_end,],
+             mnist_hyperparameters,
+             pre_trained_lcs = mnist01_par_classifier) ## Optional pre-trained
+
+  ## Implicit return of the following in the results list:
+  ## Keep only the very best of each population of classifier
+  ##  for later compaction, which will keep things running a bit faster...
+  RLCS:::.apply_deletion_sl(par_pop, deletion_limit = 0.95, max_pop_size = 700)
+
+  ## !! If you use LOTS of CPU cores, and work on large enough sub-datasets...
+  ## You could be more aggressive with shortening the sub-models, like so:
+  # RLCS:::.apply_deletion_sl(par_pop, deletion_limit = 0.95, max_pop_size = 100)
+}
+
+
+## Back to main processing:
+## Recollect all sub-lcs
+mnist01_par_classifier <- list()
+for(j in 1:length(results)) {
+  print(paste("result set", j, "length", length(results[[j]])))
+  for(i in 1:length(results[[j]])) {
+    mnist01_par_classifier[[length(mnist01_par_classifier)+1]] <- results[[j]][[i]]
+  }
+}
+
+## Compaction of sorts:
+## Now that only is more useful if there was a better overlap among the training
+## subsets!
+## If no overlap, the resulting LCS will have more rules than a single-core
+## approach because each ruleset will be tailored to each subset of the training
+## data
+print(length(mnist01_par_classifier))
+## Unnecessary:
+# mnist01_par_classifier <- RLCS:::.remove_duplicate_rules(mnist01_par_classifier)
+# print(length(mnist01_par_classifier))
+## Barely useful:
+mnist01_par_classifier <- RLCS:::.apply_subsumption_whole_pop_sl(mnist01_par_classifier)
+print(length(mnist01_par_classifier))
+
+stopCluster(cluster) ## Don't forget that :)
 
 t_end_par <- Sys.time() ## Let's compare with single-core runtime:
 print(t_end_par - t_start_par)
 
-stopCluster(cluster) ## Don't forget that :)
+## Now how does this new approach for the LCS fare...?
 
-## Check resulting model:
-
-## Let's run our trained Classifiers Set on test mnist_bin01_49b:
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, mnist01_classifier)
+test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, mnist01_par_classifier)
 
 table(test_mnist_bin01_49b[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
-
-length(mnist01_classifier)
-
-

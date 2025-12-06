@@ -82,21 +82,13 @@ rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
                                      n_agents=run_par_count)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
-t_stop_parallel <- Sys.time()
-
-stopCluster(cluster) ## Don't forget that :)
 
 ## Use a validation set, now.
-## More cores would only make sense with more data!
-cluster <- makeCluster(run_par_count)
-registerDoParallel(cluster)
-
 rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
                                      n_agents=run_par_count,
                                      use_validation=T)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
-t_stop_parallel <- Sys.time()
 
 # ## Impossible mining
 # ## This should return NULL instead of a model, parallel or not...

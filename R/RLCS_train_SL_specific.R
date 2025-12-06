@@ -301,6 +301,11 @@
 #' When training several models in parallel, this parameter modifies selection of best
 #' one by running a test in a validation set of 10 percent of samples, which is
 #' first removed from the training set.
+#' @param merge_best_n
+#' Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+#' Choose to merge and compact the best n (1 < n < n_agents) of your parallelly trained
+#' agents. This includes a compaction previous to returning results, but will most
+#' probably return a larger population as a trade-off for expecting better accuracy.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -319,7 +324,8 @@
 #' plot(rlcs_model)
 rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                        pre_trained_lcs = NULL, verbose=FALSE,
-                       n_agents = 0, use_validation=F) {
+                       n_agents = 0, use_validation=F,
+                       merge_best_n = 0) {
   ## Initialization:
   lcs <- .new_rlcs_population()
   # structure(list(), class = "rlcs_population")
@@ -332,6 +338,11 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
   ## Re-training, or "online" updates
   if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## Shuffling population, just in case...
+  train_env_df <- train_env_df[sample(1:nrow(train_env_df),
+                                      nrow(train_env_df),
+                                      replace = F), ]
 
 
   ## NEW
@@ -385,29 +396,72 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
     agents_quality <- list()
     for(j in 1:n_agents) {
-      if(use_validation) { ## Let's see how we could do testing:
-        validation_environment <- train_env_df[validation_set,]
-      } else {
-        validation_environment <- train_env_df
-      }
-
-      validation_environment$predicted <- -1 ## Stands for not found
 
       ## ADD CHECK HERE FOR !is.null(agents[[j]])
       if(!is.null(agents[[j]])) {
-        validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+        if(use_validation) { ## Let's see how we could do testing:
 
-        agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
-          ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
-        }))/nrow(validation_environment), 2)
+          ## We calculate accuracy BOTH for training...
+          validation_environment <- train_env_df
+          validation_environment$predicted <- -1 ## Stands for not found
+          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+          agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
+            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+          }))/nrow(validation_environment), 4)
+
+          ## AND validation:
+          validation_environment <- train_env_df[validation_set,]
+          validation_environment$predicted <- -1 ## Stands for not found
+          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+          agents_quality[[j]] <- (agents_quality[[j]] + round(sum(sapply(1:nrow(validation_environment), \(i) {
+            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+          }))/nrow(validation_environment), 4))/2
+        } else {
+          ## Otherwise just training env:
+          validation_environment <- train_env_df
+          validation_environment$predicted <- -1 ## Stands for not found
+          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+          agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
+            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+          }))/nrow(validation_environment), 4)
+        }
+
+
+
+
+
+
       } else
         agents_quality[[j]] <- 0
+    }
+
+    if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
+
+      best_agents <- order(unlist(agents_quality), decreasing = TRUE)[1:merge_best_n]
+      print(unlist(agents_quality))
+      print(best_agents)
+
+      ## Recollect all sub-lcs
+      compacted_classifier <- list()
+      agents <- agents[best_agents]
+      for(j in 1:length(agents)) {
+        for(k in 1:length(agents[[j]])) {
+          compacted_classifier[[length(compacted_classifier)+1]] <- agents[[j]][[k]]
+        }
+      }
+
+      compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
+      return(compacted_classifier)
     }
 
     best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
     # print(unlist(agents_quality))
     # print(best_agents)
     return(agents[[best_agent]])
+
   } else {
     print("Running single-core/thread, sequential")
     size_env <- nrow(train_env_df)

@@ -10,7 +10,8 @@ rlcs_train_sl(
   pre_trained_lcs = NULL,
   verbose = FALSE,
   n_agents = 0,
-  use_validation = F
+  use_validation = F,
+  merge_best_n = 0
 )
 }
 \arguments{
@@ -33,6 +34,11 @@ then RLCS will train n_agents parallel model and select the best one, by accurac
 When training several models in parallel, this parameter modifies selection of best
 one by running a test in a validation set of 10 percent of samples, which is
 first removed from the training set.}
+
+\item{merge_best_n}{Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+Choose to merge and compact the best n (1 < n < n_agents) of your parallelly trained
+agents. This includes a compaction previous to returning results, but will most
+probably return a larger population as a trade-off for expecting better accuracy.}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
