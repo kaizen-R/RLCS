@@ -11,7 +11,9 @@ rlcs_train_sl(
   verbose = FALSE,
   n_agents = 0,
   use_validation = F,
-  merge_best_n = 0
+  merge_best_n = 0,
+  second_evolution_iterations = 1,
+  second_evolution_run_params = NULL
 )
 }
 \arguments{
@@ -35,10 +37,18 @@ When training several models in parallel, this parameter modifies selection of b
 one by running a test in a validation set of 10 percent of samples, which is
 first removed from the training set.}
 
-\item{merge_best_n}{Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+\item{merge_best_n}{Default is 0. OPTIONAL.ONLY USED if foreach and doParallel are available.
 Choose to merge and compact the best n (1 < n < n_agents) of your parallelly trained
 agents. This includes a compaction previous to returning results, but will most
 probably return a larger population as a trade-off for expecting better accuracy.}
+
+\item{second_evolution_iterations}{Defaults to 1. OPTIONAL.ONLY USED if foreach and doParallel are available and
+used. On top of the above, it will run a second "era", whereby only best agents
+are surviving and competing again, only to then be merged.}
+
+\item{second_evolution_run_params}{Defaults to NULL. OPTIONAL. ONLY USED if second_evolution_iterations is bigger
+than 1. The idea here is that after a slower, more exploratory first era, a
+second (and more) era(s) can be used to push more generalization.}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

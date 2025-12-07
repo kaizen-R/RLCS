@@ -302,10 +302,18 @@
 #' one by running a test in a validation set of 10 percent of samples, which is
 #' first removed from the training set.
 #' @param merge_best_n
-#' Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+#' Default is 0. OPTIONAL.ONLY USED if foreach and doParallel are available.
 #' Choose to merge and compact the best n (1 < n < n_agents) of your parallelly trained
 #' agents. This includes a compaction previous to returning results, but will most
 #' probably return a larger population as a trade-off for expecting better accuracy.
+#' @param second_evolution_iterations
+#' Defaults to 1. OPTIONAL.ONLY USED if foreach and doParallel are available and
+#' used. On top of the above, it will run a second "era", whereby only best agents
+#' are surviving and competing again, only to then be merged.
+#' @param second_evolution_run_params
+#' Defaults to NULL. OPTIONAL. ONLY USED if second_evolution_iterations is bigger
+#' than 1. The idea here is that after a slower, more exploratory first era, a
+#' second (and more) era(s) can be used to push more generalization.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

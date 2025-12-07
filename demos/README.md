@@ -4,6 +4,10 @@ RLCS Examples on demo datasets.
 
 Current focus of the demos is on Data Mining and Supervised Learning.
 
+A sub-folder includes more complex setups with parallel processing, second-layer
+of selection pressure, etc. Not for the faint (or those in a hurry, some examples
+if run as-is can take an hour...)
+
 ----
 
 # The Examples
