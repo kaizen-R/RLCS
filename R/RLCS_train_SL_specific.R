@@ -325,7 +325,9 @@
 rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                        pre_trained_lcs = NULL, verbose=FALSE,
                        n_agents = 0, use_validation=F,
-                       merge_best_n = 0) {
+                       merge_best_n = 0,
+                       second_evolution_iterations = 1,
+                       second_evolution_run_params = NULL) {
   ## Initialization:
   lcs <- .new_rlcs_population()
   # structure(list(), class = "rlcs_population")
@@ -358,110 +360,114 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
      requireNamespace("doParallel", quietly=T) &
      n_agents > 1) { ## NEW!
 
-    print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
-    `%dopar%` <- foreach::`%dopar%`
+    for(second_evol_iter in 1:second_evolution_iterations) {
 
-    if(use_validation) {
-      validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
-      sub_train_environment <- train_env_df[-validation_set,]
-    } else {
-      sub_train_environment <- train_env_df
-    }
+      if(second_evol_iter > 1 && !is.null(second_evolution_run_params))
+        run_params <- second_evolution_run_params
 
-    agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
+      print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
+      `%dopar%` <- foreach::`%dopar%`
 
-      sub_train_environment_shuffle <- sub_train_environment[sample(1:nrow(sub_train_environment),
-                                                                    nrow(sub_train_environment),
-                                                                    replace = F), ]
-      library(RLCS) ## Assuming you've gotten the package installed by now...
-
-      size_env <- nrow(sub_train_environment)
-
-      for(epoch in 1:(run_params$get_n_epochs())) {
-        for(i in 1:size_env) {
-          lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
-                                                        sub_train_environment_shuffle[i, ],
-                                                        size_env,
-                                                        epoch,
-                                                        (epoch-1)*size_env+i, ## train_count
-                                                        run_params)
-        }
-      }
-      ## Sometimes, deletion removes all rules as none are good enough!
-      if(is.null(lcs)) return(NULL)
-      class(lcs) <- "rlcs_population"
-      return(lcs)
-    }
-
-
-    agents_quality <- list()
-    for(j in 1:n_agents) {
-
-      ## ADD CHECK HERE FOR !is.null(agents[[j]])
-      if(!is.null(agents[[j]])) {
-        if(use_validation) { ## Let's see how we could do testing:
-
-          ## We calculate accuracy BOTH for training...
-          validation_environment <- train_env_df
-          validation_environment$predicted <- -1 ## Stands for not found
-          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
-
-          agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
-            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
-          }))/nrow(validation_environment), 4)
-
-          ## AND validation:
-          validation_environment <- train_env_df[validation_set,]
-          validation_environment$predicted <- -1 ## Stands for not found
-          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
-
-          agents_quality[[j]] <- (agents_quality[[j]] + round(sum(sapply(1:nrow(validation_environment), \(i) {
-            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
-          }))/nrow(validation_environment), 4))/2
-        } else {
-          ## Otherwise just training env:
-          validation_environment <- train_env_df
-          validation_environment$predicted <- -1 ## Stands for not found
-          validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
-
-          agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
-            ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
-          }))/nrow(validation_environment), 4)
-        }
-
-
-
-
-
-
-      } else
-        agents_quality[[j]] <- 0
-    }
-
-    if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
-
-      best_agents <- order(unlist(agents_quality), decreasing = TRUE)[1:merge_best_n]
-      print(unlist(agents_quality))
-      print(best_agents)
-
-      ## Recollect all sub-lcs
-      compacted_classifier <- list()
-      agents <- agents[best_agents]
-      for(j in 1:length(agents)) {
-        for(k in 1:length(agents[[j]])) {
-          compacted_classifier[[length(compacted_classifier)+1]] <- agents[[j]][[k]]
-        }
+      if(use_validation) {
+        validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
+        sub_train_environment <- train_env_df[-validation_set,]
+      } else {
+        sub_train_environment <- train_env_df
       }
 
-      compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
-      return(compacted_classifier)
+      agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
+
+        sub_train_environment_shuffle <- sub_train_environment[sample(1:nrow(sub_train_environment),
+                                                                      nrow(sub_train_environment),
+                                                                      replace = F), ]
+        library(RLCS) ## Assuming you've gotten the package installed by now...
+
+        size_env <- nrow(sub_train_environment)
+
+        for(epoch in 1:(run_params$get_n_epochs())) {
+          for(i in 1:size_env) {
+            lcs <- .rlcs_train_one_instance_one_epoch_mat(lcs,
+                                                          sub_train_environment_shuffle[i, ],
+                                                          size_env,
+                                                          epoch,
+                                                          (epoch-1)*size_env+i, ## train_count
+                                                          run_params)
+          }
+        }
+        ## Sometimes, deletion removes all rules as none are good enough!
+        if(is.null(lcs)) return(NULL)
+        class(lcs) <- "rlcs_population"
+        return(lcs)
+      }
+
+
+      agents_quality <- list()
+      for(j in 1:n_agents) {
+
+        ## ADD CHECK HERE FOR !is.null(agents[[j]])
+        if(!is.null(agents[[j]])) {
+          if(use_validation) { ## Let's see how we could do testing:
+
+            ## We calculate accuracy BOTH for training...
+            validation_environment <- train_env_df
+            validation_environment$predicted <- -1 ## Stands for not found
+            validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+            agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
+              ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+            }))/nrow(validation_environment), 4)
+
+            ## AND validation:
+            validation_environment <- train_env_df[validation_set,]
+            validation_environment$predicted <- -1 ## Stands for not found
+            validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+            agents_quality[[j]] <- (agents_quality[[j]] + round(sum(sapply(1:nrow(validation_environment), \(i) {
+              ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+            }))/nrow(validation_environment), 4))/2
+          } else {
+            ## Otherwise just training env:
+            validation_environment <- train_env_df
+            validation_environment$predicted <- -1 ## Stands for not found
+            validation_environment$predicted <- rlcs_predict_sl(validation_environment, agents[[j]], verbose=F)
+
+            agents_quality[[j]] <- round(sum(sapply(1:nrow(validation_environment), \(i) {
+              ifelse(validation_environment[i, "class"] == validation_environment[i, "predicted"], 1, 0)
+            }))/nrow(validation_environment), 4)
+          }
+
+        } else
+          agents_quality[[j]] <- 0
+      }
+
+      if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
+
+        best_agents <- order(unlist(agents_quality), decreasing = TRUE)[1:merge_best_n]
+        print(unlist(agents_quality))
+        print(best_agents)
+
+        ## Recollect all sub-lcs
+        compacted_classifier <- list()
+        agents <- agents[best_agents]
+        for(j in 1:length(agents)) {
+          for(k in 1:length(agents[[j]])) {
+            compacted_classifier[[length(compacted_classifier)+1]] <- agents[[j]][[k]]
+          }
+        }
+
+        compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
+        lcs <- compacted_classifier
+        # return(compacted_classifier)
+      } else {
+        best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
+        # print(unlist(agents_quality))
+        # print(best_agents)
+        lcs <- agents[[best_agent]]
+        # return(agents[[best_agent]])
+      }
     }
 
-    best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
-    # print(unlist(agents_quality))
-    # print(best_agents)
-    return(agents[[best_agent]])
-
+    return(lcs)
   } else {
     print("Running single-core/thread, sequential")
     size_env <- nrow(train_env_df)
