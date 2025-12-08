@@ -250,7 +250,24 @@
 
     ## Update Matched Population statistics into main population
     pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+
+    ## NEW: More rule-discovery
+    ## OK, matched, correct set, but what if there is not enough correctset?
+    if(length(correct_set) < 2) { ## COVERING enforced
+      cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance$state,
+                                                                run_params$get_wildcard_prob())
+      if(!is.null(cover_rule)) {
+        pop <- .add_valid_rule_to_pop(pop, cover_rule,
+                                      t_instance$class, train_count)
+        ## I don't like doing this, but it's a temporary thing
+        t_matrices <<- .recalculate_pop_matrices_new_rule(t_matrices, cover_rule)
+        t_lengths <<- .lengths_fixed_bits_new_rule(t_lengths, cover_rule)
+      }
+
+    }
+
   }
+
 
   ## Apply Deletion by reducing numerosity
 

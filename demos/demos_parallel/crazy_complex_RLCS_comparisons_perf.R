@@ -31,7 +31,7 @@ run_par_count <- min(8, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 
-temp_seeds <- sample(1:1000, 1, replace = F)
+temp_seeds <- sample(1:1000, 5, replace = F)
 
 
 
@@ -40,15 +40,15 @@ temp_seeds <- sample(1:1000, 1, replace = F)
 ## We make it particularly... Short, this time, see next:
 iris_hyperparameters_1 <- RLCS_hyperparameters(
   wildcard_prob = 0.2, ## Probability that covering will choose a wildcard char
-  rd_trigger = 20, ## Smaller means more rules generated through GA tournament
+  rd_trigger = 10, ## Smaller means more rules generated through GA tournament
   mutation_probability = 0.2,
   parents_selection_mode <- "tournament",
   tournament_pressure = 10,
   ## Most important parameters to vary so far:
-  n_epochs = 600, ## Epochs to repeat process on train set
-  deletion_trigger = 150, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.85,
-  max_pop_size=1000
+  n_epochs = 400, ## Epochs to repeat process on train set
+  deletion_trigger = 200, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.75,
+  max_pop_size=1200
 )
 ## Then make it faster
 iris_hyperparameters_2 <- RLCS_hyperparameters(
@@ -58,10 +58,10 @@ iris_hyperparameters_2 <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 5,
   ## Most important parameters to vary so far:
-  n_epochs = 160, ## Epochs to repeat process on train set
-  deletion_trigger = 40, ## Number of epochs in between subsumption & deletion
+  n_epochs = 40, ## Epochs to repeat process on train set
+  deletion_trigger = 20, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.95,
-  max_pop_size=800
+  max_pop_size=400
 )
 
 
@@ -96,7 +96,7 @@ for(i in temp_seeds) {
       run_params = iris_hyperparameters_1,
       pre_trained_lcs = iris_classifier,
       verbose = FALSE,
-      n_agents = 7, use_validation = T, merge_best_n = 4,
+      n_agents = run_par_count, use_validation = T, merge_best_n = min(4, run_par_count),
       second_evolution_iterations = 2,
       second_evolution_run_params = iris_hyperparameters_2
     )

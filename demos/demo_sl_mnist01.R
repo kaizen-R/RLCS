@@ -252,3 +252,4 @@ res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin0
 disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
 res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[2],],
                                        mnist01_classifier)
+
