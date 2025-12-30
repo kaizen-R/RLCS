@@ -7,7 +7,7 @@
 rlcs_predict_rl(pop, verbose = F)
 }
 \arguments{
-\item{pop}{A trained RLCS model, consisting of a population of classifiers.}
+\item{pop}{A trained RLCS model population, consisting of a population of classifiers.}
 
 \item{verbose}{Detail or not the results? Defaults to FALSE.}
 }

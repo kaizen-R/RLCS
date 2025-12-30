@@ -4,12 +4,12 @@
 \alias{get_match_set}
 \title{Get the subset of a Population of Classifiers that matches a given State}
 \usage{
-get_match_set(instance_state, pop)
+get_match_set(instance_state, lcs)
 }
 \arguments{
 \item{instance_state}{A state from the RLCS environment}
 
-\item{pop}{A population of Classifiers}
+\item{lcs}{A population of Classifiers}
 }
 \value{
 Numeric vector, of indices of the matching Classifiers

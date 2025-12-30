@@ -3,18 +3,19 @@
 #'
 #'
 #' @param test_env_df The dataset. Must contain a compatible state column.
-#' @param pop A trained RLCS model, consisting of a population of classifiers.
+#' @param lcs A trained RLCS model, consisting of a population of classifiers.
 #' @param verbose Detail or not the results? Defaults to FALSE.
 #'
 #' @returns A vector of values of classes.
 #' @export
 #'
-rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
+rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
+  pop <- lcs$pop
   ret_set <- c()
   possible_classes <- unique(sapply(pop, \(x) x$action))
 
-  t_matrices <<- .recalculate_pop_matrices(pop)
-  t_lengths <<- sapply(pop, \(x) x$length_fixed_bits)
+  # lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
+  # lcs$lengths <- sapply(lcs$pop, \(x) x$length_fixed_bits)
 
 
   for(i in 1:nrow(test_env_df)) {
@@ -23,7 +24,7 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
       print(test_env_df$state[i])
     }
     # match_set <- get_match_set(test_env_df$state[i], pop)
-    match_set <- .get_match_set_mat(test_env_df$state[i], pop, t_matrices, t_lengths)
+    match_set <- .get_match_set_mat(test_env_df$state[i], lcs)
     if(length(match_set) > 0) {
       t_recommendation <- c()
 
@@ -62,7 +63,7 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
 
 #' Predict an Action for a given input set of states
 #'
-#' @param pop A trained RLCS model, consisting of a population of classifiers.
+#' @param pop A trained RLCS model population, consisting of a population of classifiers.
 #' @param verbose Detail or not the results? Defaults to FALSE.
 #'
 #' @returns A vector of values of actions.
@@ -70,6 +71,7 @@ rlcs_predict_sl <- function(test_env_df, pop, verbose=F) {
 #'
 rlcs_predict_rl <- function(pop, verbose=F) {
 
+  # pop <- lcs$pop
   ## Simple version that *only* works for our demo for RL!!
   t_df <- data.frame(action=c("left", "right", "up", "down"),
                      total_reward = 0,

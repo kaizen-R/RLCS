@@ -17,14 +17,14 @@ print.rlcs_rule <- function(x, ...) {
 #' @export
 plot.rlcs_population <- function(x, ...) {
 
-  nbits <- x[[1]]$condition_length
+  nbits <- x$pop[[1]]$condition_length
 
   t_m <- matrix(rep(0, nbits^2), byrow = T, nrow=nbits)
 
-  for(i in 1:length(x)) {
-    filled_bits <- length(x[[i]]$condition_list$"0")+length(x[[i]]$condition_list$"1")
+  for(i in 1:length(x$pop)) {
+    filled_bits <- length(x$pop[[i]]$condition_list$"0")+length(x$pop[[i]]$condition_list$"1")
     for(j in 1:nbits) {
-      if(j %in% c(x[[i]]$condition_list$"0", x[[i]]$condition_list$"1"))
+      if(j %in% c(x$pop[[i]]$condition_list$"0", x$pop[[i]]$condition_list$"1"))
         t_m[filled_bits, j] <- t_m[filled_bits, j]+1
     }
   }
@@ -44,6 +44,9 @@ plot.rlcs_population <- function(x, ...) {
 
 #' @export
 print.rlcs_population <- function(x, ...) {
+  ## x here is an rlcs LCS, which contains a population
+
+  x <- x$pop
   if(length(x) == 0) return(NULL)
   if(any(sapply(x, \(elem) elem$total_reward != 5))) {
     x <- .lcs_best_sort_rl(x)
@@ -68,8 +71,11 @@ print.rlcs_population <- function(x, ...) {
   else {
     x <- .lcs_best_sort_sl(x)
     x <- unclass(x)
+
+    # print(length(x))
     l <- lapply(1:length(x), \(i) {
       t_c <- x[[i]]
+      # print(t_c)
       data.frame(condition = t_c$condition_string,
                  action = t_c$action,
                  match_count = t_c$match_count,
@@ -80,8 +86,9 @@ print.rlcs_population <- function(x, ...) {
     })
     # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
     ## Slower, but no dependency:
+    # print(l)
     df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
-    names(df) <- c("condition", "action", "match_count", "correct_count", "accuracy", "numerosity", "first_seeen")
+    names(df) <- c("condition", "action", "match_count", "correct_count", "accuracy", "numerosity", "first_seen")
   }
 
   df

@@ -63,14 +63,14 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier)
+length(iris_classifier$pop)
 
 
 
 ### Visualizing the Model ###
 
 ## So what does it all look like?
-print(iris_classifier[[1]])
+print(iris_classifier$pop[[1]])
 head(print(iris_classifier), 10)
 plot(iris_classifier)
 
@@ -79,8 +79,8 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 2, 3)) {
-  sample_result_set <- reverse_match_set(iris_classifier[[example]], full_dataset)
+for(example in c(1, 4, 7)) {
+  sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
 
@@ -102,9 +102,9 @@ for(example in c(1, 2, 3)) {
 head(print(iris_classifier), 10)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
-rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[2]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[3]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[4]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[7]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
@@ -113,6 +113,6 @@ test_environment[1,]
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
 # print(iris_classifier[[5]])
-rlcs_rosetta_decode_rule(iris_classifier[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier[[6]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
 

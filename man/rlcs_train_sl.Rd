@@ -10,10 +10,12 @@ rlcs_train_sl(
   pre_trained_lcs = NULL,
   verbose = FALSE,
   n_agents = 0,
+  split_horizontal = F,
   use_validation = F,
   merge_best_n = 0,
   second_evolution_iterations = 1,
-  second_evolution_run_params = NULL
+  second_evolution_run_params = NULL,
+  max_pop_size_parallel = 10000
 )
 }
 \arguments{
@@ -30,9 +32,16 @@ such as: "00110101". This is a requirement for the current RLCS implementation.}
 \item{n_agents}{Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
 IF available, a number of parallel cores, as indicated PRIOR to calling RLCS
 like so: makeCluster() registerDoParallel()
-then RLCS will train n_agents parallel model and select the best one, by accuracy.}
+then RLCS will train n_agents in parallel.}
 
-\item{use_validation}{Default is FALSE. OPTIONAL.ONLY USED if foreach and doParallel are available.
+\item{split_horizontal}{Defaults to FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
+WARNING: If used, EXCLUDES OTHER Parallelizing options!!
+Splits evenly across N agents (N number of cores/threads) the input dataset.
+Then trains N agents, and then merges the resulting data.
+This can potentially speed-up the process, but will probably over-fit for each
+subset, hence probably reducing overall model accuracy.}
+
+\item{use_validation}{Default is FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
 When training several models in parallel, this parameter modifies selection of best
 one by running a test in a validation set of 10 percent of samples, which is
 first removed from the training set.}
@@ -49,6 +58,9 @@ are surviving and competing again, only to then be merged.}
 \item{second_evolution_run_params}{Defaults to NULL. OPTIONAL. ONLY USED if second_evolution_iterations is bigger
 than 1. The idea here is that after a slower, more exploratory first era, a
 second (and more) era(s) can be used to push more generalization.}
+
+\item{max_pop_size_parallel}{Defaults to 10000. OPTIONAL. ONLY USED if foreach and doParallel are available
+Applies as last step: additional deletion to contain population sizes after merging.}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

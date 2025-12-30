@@ -50,8 +50,10 @@
   t_rule
 }
 
-.new_rlcs_population <- function(x = list()) {
+.new_rlcs_population <- function(x = list(pop = list(), matrices = list(), lengths = 0)) {
+  # x$pop <- structure(list(), class="rlcs_population")
   structure(x, class = "rlcs_population")
+  # x
 }
 
 ## VERY basic error generation and processing stop.
@@ -169,8 +171,6 @@
   # memory_explored_hashes = list(), ## TBD.
   # ## In RL, we could use this to prefer directions which look new.
 
-
-  # pop <- .recalculate_pop_matrices(pop)
   # class(pop) <- "rlcs_population"
   pop
 }
@@ -178,15 +178,20 @@
 ## FUNCTION FACTORY!
 ## Often needed, is to update by increase of 1 one parameter of an LCS rule
 .inc_param_count <- function(param) {
-  # param <- as.name(param)
   f_param <- param
+  # param <- as.name(param)
+
 
   function(pop) {
     inc_param_count_cpp(pop, f_param)
-    # lapply(pop, \(x) {
+    # print(str(inc_param_count_cpp(pop, f_param)))
+
+    # res <- lapply(pop, \(x) {
     #   x[[param]] <- x[[param]] + 1
     #   x
     # })
+    # res <- structure(res, class="rlcs_population")
+    # res
   }
 }
 
@@ -203,13 +208,17 @@
 ## Augment correct count of a set of classifiers
 .update_matched_accuracy <- function(match_pop) {
   ## TODO Could run in problems for VERY high numbers divisions...?
-  update_matched_accuracy_cpp(match_pop)
+  # update_matched_accuracy_cpp(match_pop)
+  lapply(match_pop, \(x, item) {
+    x$accuracy <- x$correct_count / x$match_count
+    x
+  })
 }
 
 #' Get the subset of a Population of Classifiers that matches a given State
 #'
 #' @param instance_state A state from the RLCS environment
-#' @param pop A population of Classifiers
+#' @param lcs A population of Classifiers
 #'
 #' @returns Numeric vector, of indices of the matching Classifiers
 #' @export
@@ -222,7 +231,8 @@
 #' get_match_set("00101", rlcs_model1)
 #'
 ## Still works, mainly for end-user; but will eventually be discarded.
-get_match_set <- function(instance_state, pop) {
+get_match_set <- function(instance_state, lcs) {
+  pop <- lcs$pop
   if(length(pop) > 0) {
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
@@ -240,7 +250,12 @@ get_match_set <- function(instance_state, pop) {
   NULL ## implicit return
 }
 
-.get_match_set_mat <- function(instance_state, pop, t_matrices, t_lengths) {
+.get_match_set_mat <- function(instance_state, lcs) {
+  pop <- lcs$pop
+  t_matrices <- lcs$matrices
+  t_lengths <- lcs$lengths
+
+  # print(length(pop))
   if(length(pop) > 0) {
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
@@ -308,7 +323,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   pop <- pop[survivors_set]
   # pop <- .recalculate_pop_matrices(pop)
 
-  structure(pop, class = "rlcs_population")
+  structure(pop, class = "rlcs")
 }
 
 ## Bad: Old doesn't mean it should be discarded.

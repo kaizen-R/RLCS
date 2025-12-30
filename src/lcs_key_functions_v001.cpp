@@ -54,5 +54,6 @@ Rcpp::List inc_param_count_cpp(List pop, String param_name) {
     elem[param_name] = float(elem[param_name])+1;
     L[i] = elem;
   }
+  // print(L);
   return(L);
 }

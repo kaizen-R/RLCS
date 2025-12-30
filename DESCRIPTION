@@ -1,7 +1,7 @@
 Package: RLCS
 Type: Package
 Title: Learning Classifier System for Binary Input Strings
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: c(
     person(
       "Nicolas", "Leconte-Demarsy",
@@ -16,11 +16,8 @@ Description: A rather simple implementation of J. H. Holland's "Learning Classif
     This implementation accepts only binary strings as "state" for input, and any set of classes.
     It is also a somewhat slow algorithm to be trained.
     However, said drawbacks are compensated by an interpretable output, and given enough time (depending on training data), it can be used to do Supervised Learning.
-    The same package can be used to do data mining, as some examples (included) demonstrate.
-    Moreover, although not included in the published v0.1.2, the RLCS package allows for Reinforcement Learning scenarios as well.
-    Version v0.1.2 now supports (where available) foreach/doParallel, using validation sets to compare several agents trained in parallel, and more demos. It also
-    includes a much (much) faster matching step, which has a true positive impact on speed. The RLCS "rosetta stone" functionality also
-    makes it much easier to leverage RLCS on numerical data.
+    The same package can be used to do data mining, as some examples (included) demonstrate. 
+    Although not demonstrated/included in demos, the RLCS package allows for Reinforcement Learning scenarios as well.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

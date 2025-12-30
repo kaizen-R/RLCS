@@ -122,7 +122,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
   t_res <- list()
   output_df <- NULL
 
-  for(t_col in which(1:ncol(iris) != class_col)) {
+  for(t_col in which(1:ncol(input_df) != class_col)) {
     x <- input_df[,t_col]
     if(is.numeric(x) || is.integer(x)) {
       nbits_Gray <- .split_nbits(unique(x))

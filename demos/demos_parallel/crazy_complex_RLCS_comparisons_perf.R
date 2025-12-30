@@ -31,7 +31,7 @@ run_par_count <- min(8, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 
-temp_seeds <- sample(1:1000, 5, replace = F)
+temp_seeds <- sample(1:1000, 2, replace = F)
 
 
 

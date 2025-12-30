@@ -13,14 +13,16 @@ library(RLCS) ## Well, yes...
 ##
 
 ## Poorly put together, quick and dirty
-rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
+rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
+  pop <- lcs$pop
+
   example_visual <- test_env_df
   example_visual_v <- strsplit(example_visual$sharp_image, "", fixed=T)[[1]]
   example_visual_m <- matrix(1-as.integer(example_visual_v), nrow=28, byrow = F)
 
-  correct_class <- rlcs_predict_sl(test_env_df, pop, verbose=F)
+  correct_class <- rlcs_predict_sl(test_env_df, lcs, verbose=F)
 
-  match_set <- get_match_set(test_env_df$state, pop)
+  match_set <- get_match_set(test_env_df$state, lcs)
   res_pos <- sapply(match_set, \(i) {
     if(pop[[i]]$action == correct_class) return(T)
     F
@@ -194,7 +196,7 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
 
-length(mnist01_classifier)
+length(mnist01_classifier$pop)
 
 ## This is tailored to this specific example, but hopefully it helps show
 ## What the "model", as a set of rules, is actually "thinking"
@@ -231,10 +233,10 @@ plot(mnist01_classifier)
 ## This would apply to either single-core/thread or parallel processing.
 
 ## This is how one rule looks like, in a given classifier:
-print_mnist_number_49b(mnist01_classifier[[457]]$condition_string)
+print_mnist_number_49b(mnist01_classifier$pop[[457]]$condition_string)
 ## Can you tell what class it matches?
 ## Hint: a 0 will have an empty middle across the central lines...
-mnist01_classifier[[457]]$action
+mnist01_classifier$pop[[457]]$action
 
 ## We have seen a visual, but a less visual option is to ask for rules scoring:
 print_mnist_number(test_mnist_bin01_49b$sharp_image[5])

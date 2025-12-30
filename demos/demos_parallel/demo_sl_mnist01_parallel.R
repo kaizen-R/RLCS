@@ -189,7 +189,8 @@ t_start_par <- Sys.time()
 mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,mnist_hyperparameters,
                                     n_agents=run_par_count,
                                     use_validation = F,
-                                    merge_best_n = 2)
+                                    merge_best_n = 2,
+                                    second_evolution_iterations = 2)
 
 t_end_par <- Sys.time() ## Let's compare with single-core runtime:
 print(t_end_par - t_start_par)
@@ -207,6 +208,6 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
 
-length(mnist01_classifier)
+length(mnist01_classifier$pop)
 
 

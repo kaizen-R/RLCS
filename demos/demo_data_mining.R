@@ -11,7 +11,9 @@ demo_params <- RLCS_hyperparameters(
   deletion_trigger = 100,
   deletion_threshold = 0.9)
 
-rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params, pre_trained_lcs = NULL, verbose = F)
+rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
+                             pre_trained_lcs = NULL,
+                             verbose = F)
 
 ## That's it!
 print(rlcs_model1)

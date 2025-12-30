@@ -4,12 +4,12 @@
 \alias{rlcs_predict_sl}
 \title{Predict a Class for a given input set of states}
 \usage{
-rlcs_predict_sl(test_env_df, pop, verbose = F)
+rlcs_predict_sl(test_env_df, lcs, verbose = F)
 }
 \arguments{
 \item{test_env_df}{The dataset. Must contain a compatible state column.}
 
-\item{pop}{A trained RLCS model, consisting of a population of classifiers.}
+\item{lcs}{A trained RLCS model, consisting of a population of classifiers.}
 
 \item{verbose}{Detail or not the results? Defaults to FALSE.}
 }
