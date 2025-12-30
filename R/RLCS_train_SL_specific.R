@@ -466,10 +466,10 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
       lcs$pop <- .apply_subsumption_whole_pop_sl(lcs$pop)
       print(length(lcs$pop))
+      lcs$pop <- .apply_deletion_sl(lcs$pop, max_pop_size = max_pop_size_parallel)
       lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
       lcs$lengths <- sapply(lcs$pop, \(x) x$length_fixed_bits) ## Poor naming...
 
-      lcs$pop <- .apply_deletion_sl(lcs$pop, max_pop_size = max_pop_size_parallel)
       return(lcs)
 
 
