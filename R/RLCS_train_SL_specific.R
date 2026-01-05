@@ -59,6 +59,175 @@
 }
 
 ## Another key function here.
+# .apply_subsumption_whole_pop_sl <- function(pop) {
+#
+#   if(length(pop) > 1) {
+#     pop <- .lcs_best_sort_sl(pop)
+#     # print(pop)
+#     pop <- .apply_deletion_no_threshold(pop)
+#
+#     ## Within this function in this case :)
+#     t_matrices <- .recalculate_pop_matrices(pop)
+#
+#     # browser()
+#     t_labs <- sapply(pop, \(x) { x$action })
+#
+#     for(item in 1:(length(pop)-1)) {
+#
+#       if(pop[[item]]$numerosity > 0) {
+#
+#         t_zero <- pop[[item]]$condition_list$"0"
+#         t_one <- pop[[item]]$condition_list$"1"
+#         cond_string <- pop[[item]]$condition_string
+#         cond_lab <- pop[[item]]$action
+#
+#         pop_to_delete <- NULL
+#
+#         # ## Quick and dirty. I don't need the length subsetting here! to be reviewed!
+#         # all_ones_mat <- matrix(rep(1, nchar(pop[[1]]$condition_string)*length(pop[(item+1):length(pop)])),
+#         #                        nrow=length(pop[(item+1):length(pop)]))
+#
+#         ## The old ways were... Slower, by a lot!
+#         # pop_to_delete <-
+#         #   ## RELATIVE POSITIONS!! we need item as base.
+#         #   which(sapply(pop[(item+1):length(pop)],
+#         #                \(x, t_cond, t_lab, t_zero, t_one) {
+#         #
+#         #                  if(x$numerosity > 0 && x$action == t_lab) {
+#         #                    t_other_cond_0 <- x$condition_list$"0"
+#         #                    t_other_cond_1 <- x$condition_list$"1"
+#         #
+#         #                    return(all((length(t_zero) <= length(t_other_cond_0)) ||
+#         #                          (length(t_one) <= length(t_other_cond_1)),
+#         #                          t_zero %in% t_other_cond_0,
+#         #                          t_one %in% t_other_cond_1))
+#         #                  }
+#         #
+#         #                  return(F)
+#         #                }, cond_string, cond_lab, t_zero, t_one))
+#
+#         # ## Alternative approach now, let's see!
+#         ti_cond <- strsplit(cond_string, "", fixed = T)[[1]]
+#         ti_cond[which(ti_cond == "#")] <- -1
+#         ti_cond <- as.integer(ti_cond)
+#         ## To be cleaned here too:
+#         zero_vec <- rep(0, length(ti_cond))
+#         subsumer_must_be_zero <- zero_vec
+#         subsumer_must_be_zero[which(ti_cond == 0)] <- 1
+#         subsumer_must_be_one <- zero_vec
+#         subsumer_must_be_one[which(ti_cond == 1)] <- 1
+#
+#         ## Remember the rules are sorted by accuracy and generality already!
+#         subsumer_must_match_zeros <- t_matrices[[1]][(item+1):length(pop),]  %*% subsumer_must_be_zero
+#         subsumer_must_match_ones <- t_matrices[[2]][(item+1):length(pop),]  %*% subsumer_must_be_one
+#
+#         subsumed_must_be_different_zero <-  t_matrices[[1]][(item+1):length(pop),] %*% subsumer_must_be_one
+#         subsumed_must_be_different_one <- t_matrices[[2]][(item+1):length(pop),] %*% subsumer_must_be_zero
+#
+#         new_pop_to_delete <- which(
+#           ((subsumer_must_match_zeros+subsumer_must_match_ones) == (length(t_zero)+length(t_one))) &
+#             (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+#             (t_labs[(item+1):length(pop)] == cond_lab)
+#         )
+#
+#         pop_to_delete <- new_pop_to_delete
+#         # browser()
+#
+#         if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+#
+#           pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
+#
+#           pop[[item]]$numerosity <- pop[[item]]$numerosity+length(pop_to_delete)
+#
+#           pop[pop_to_delete] <- lapply(pop[pop_to_delete], \(item_to_clean) {
+#             item_to_clean$numerosity <- 0
+#             item_to_clean
+#           })
+#           # print(sapply(pop[pop_to_delete], \(x) x$numerosity))
+#         }
+#       }
+#     }
+#
+#     pop <- .apply_deletion_no_threshold(pop)
+#   }
+#
+#   pop
+# }
+
+
+
+# .apply_subsumption_whole_pop_sl <- function(pop) {
+#
+#   if(length(pop) > 1) {
+#     pop <- .lcs_best_sort_sl(pop)
+#     # print(pop)
+#     pop <- .apply_deletion_no_threshold(pop)
+#
+#     ## Within this function in this case :)
+#     t_matrices <- .recalculate_pop_matrices(pop)
+#
+#     # browser()
+#     t_labs <- sapply(pop, \(x) { x$action })
+#
+#     for(item in 1:(length(pop)-1)) {
+#
+#       if(pop[[item]]$numerosity > 0) {
+#
+#         t_zero <- pop[[item]]$condition_list$"0"
+#         t_one <- pop[[item]]$condition_list$"1"
+#         cond_string <- pop[[item]]$condition_string
+#         cond_lab <- pop[[item]]$action
+#
+#         pop_to_delete <- NULL
+#
+#         # # ## Alternative approach now, let's see!
+#         # ti_cond <- strsplit(cond_string, "", fixed = T)[[1]]
+#         # ti_cond[which(ti_cond == "#")] <- -1
+#         # ti_cond <- as.integer(ti_cond)
+#         # ## To be cleaned here too:
+#         # zero_vec <- rep(0, length(ti_cond))
+#         # subsumer_must_be_zero <- zero_vec
+#         # subsumer_must_be_zero[which(ti_cond == 0)] <- 1
+#         # subsumer_must_be_one <- zero_vec
+#         # subsumer_must_be_one[which(ti_cond == 1)] <- 1
+#
+#         ## Remember the rules are sorted by accuracy and generality already!
+#         subsumer_must_match_zeros <- t_matrices[[1]][(item+1):length(pop),]  %*% t_matrices[[1]][item,]
+#         subsumer_must_match_ones <- t_matrices[[2]][(item+1):length(pop),]  %*% t_matrices[[2]][item,]
+#
+#         subsumed_must_be_different_zero <-  t_matrices[[1]][(item+1):length(pop),] %*% t_matrices[[2]][item,]
+#         subsumed_must_be_different_one <- t_matrices[[2]][(item+1):length(pop),] %*% t_matrices[[1]][item,]
+#
+#         pop_to_delete <- which(
+#           ((subsumer_must_match_zeros+subsumer_must_match_ones) == (length(t_zero)+length(t_one))) &
+#             (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+#             (t_labs[(item+1):length(pop)] == cond_lab)
+#         )
+#
+#         # pop_to_delete <- new_pop_to_delete
+#         # browser()
+#
+#         if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+#
+#           pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
+#
+#           pop[[item]]$numerosity <- pop[[item]]$numerosity+length(pop_to_delete)
+#
+#           pop[pop_to_delete] <- lapply(pop[pop_to_delete], \(item_to_clean) {
+#             item_to_clean$numerosity <- 0
+#             item_to_clean
+#           })
+#           # print(sapply(pop[pop_to_delete], \(x) x$numerosity))
+#         }
+#       }
+#     }
+#
+#     pop <- .apply_deletion_no_threshold(pop)
+#   }
+#
+#   pop
+# }
+
 .apply_subsumption_whole_pop_sl <- function(pop) {
 
   if(length(pop) > 1) {
@@ -72,87 +241,62 @@
     # browser()
     t_labs <- sapply(pop, \(x) { x$action })
 
-    for(item in 1:(length(pop)-1)) {
+    subsumers_list <- lapply(1:(length(pop)-1), \(item) {
 
-      if(pop[[item]]$numerosity > 0) {
+      # if(pop[[item]]$numerosity > 0) { ## Now superfluous in vectorized approach
 
-        t_zero <- pop[[item]]$condition_list$"0"
-        t_one <- pop[[item]]$condition_list$"1"
-        cond_string <- pop[[item]]$condition_string
-        cond_lab <- pop[[item]]$action
+      t_zero <- pop[[item]]$condition_list$"0"
+      t_one <- pop[[item]]$condition_list$"1"
+      # cond_string <- pop[[item]]$condition_string
+      # cond_lab <- pop[[item]]$action
 
-        pop_to_delete <- NULL
+      pop_to_delete <- NULL
 
-        # ## Quick and dirty. I don't need the length subsetting here! to be reviewed!
-        # all_ones_mat <- matrix(rep(1, nchar(pop[[1]]$condition_string)*length(pop[(item+1):length(pop)])),
-        #                        nrow=length(pop[(item+1):length(pop)]))
+      # # ## Alternative approach now, let's see!
 
-        ## The old ways were... Slower, by a lot!
-        # pop_to_delete <-
-        #   ## RELATIVE POSITIONS!! we need item as base.
-        #   which(sapply(pop[(item+1):length(pop)],
-        #                \(x, t_cond, t_lab, t_zero, t_one) {
-        #
-        #                  if(x$numerosity > 0 && x$action == t_lab) {
-        #                    t_other_cond_0 <- x$condition_list$"0"
-        #                    t_other_cond_1 <- x$condition_list$"1"
-        #
-        #                    return(all((length(t_zero) <= length(t_other_cond_0)) ||
-        #                          (length(t_one) <= length(t_other_cond_1)),
-        #                          t_zero %in% t_other_cond_0,
-        #                          t_one %in% t_other_cond_1))
-        #                  }
-        #
-        #                  return(F)
-        #                }, cond_string, cond_lab, t_zero, t_one))
 
-        # ## Alternative approach now, let's see!
-        ti_cond <- strsplit(cond_string, "", fixed = T)[[1]]
-        ti_cond[which(ti_cond == "#")] <- -1
-        ti_cond <- as.integer(ti_cond)
-        ## To be cleaned here too:
-        zero_vec <- rep(0, length(ti_cond))
-        subsumer_must_be_zero <- zero_vec
-        subsumer_must_be_zero[which(ti_cond == 0)] <- 1
-        subsumer_must_be_one <- zero_vec
-        subsumer_must_be_one[which(ti_cond == 1)] <- 1
+      ## Remember the rules are sorted by accuracy and generality already!
+      subsumer_must_match_zeros <- t_matrices[[1]][(item+1):length(pop),]  %*% t_matrices[[1]][item,]
+      subsumer_must_match_ones <- t_matrices[[2]][(item+1):length(pop),]  %*% t_matrices[[2]][item,]
 
-        ## Remember the rules are sorted by accuracy and generality already!
-        subsumer_must_match_zeros <- t_matrices[[1]][(item+1):length(pop),]  %*% subsumer_must_be_zero
-        subsumer_must_match_ones <- t_matrices[[2]][(item+1):length(pop),]  %*% subsumer_must_be_one
+      subsumed_must_be_different_zero <-  t_matrices[[1]][(item+1):length(pop),] %*% t_matrices[[2]][item,]
+      subsumed_must_be_different_one <- t_matrices[[2]][(item+1):length(pop),] %*% t_matrices[[1]][item,]
 
-        subsumed_must_be_different_zero <-  t_matrices[[1]][(item+1):length(pop),] %*% subsumer_must_be_one
-        subsumed_must_be_different_one <- t_matrices[[2]][(item+1):length(pop),] %*% subsumer_must_be_zero
+      pop_to_delete <- which(
+        ((subsumer_must_match_zeros+subsumer_must_match_ones) == (length(t_zero)+length(t_one))) &
+          (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+          (t_labs[(item+1):length(pop)] == t_labs[item])
+      )
 
-        new_pop_to_delete <- which(
-          ((subsumer_must_match_zeros+subsumer_must_match_ones) == (length(t_zero)+length(t_one))) &
-            (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
-            (t_labs[(item+1):length(pop)] == cond_lab)
-        )
+      # pop_to_delete <- new_pop_to_delete
+      # browser()
 
-        pop_to_delete <- new_pop_to_delete
-        # browser()
-
-        if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
-
-          pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
-
-          pop[[item]]$numerosity <- pop[[item]]$numerosity+length(pop_to_delete)
-
-          pop[pop_to_delete] <- lapply(pop[pop_to_delete], \(item_to_clean) {
-            item_to_clean$numerosity <- 0
-            item_to_clean
-          })
-          # print(sapply(pop[pop_to_delete], \(x) x$numerosity))
-        }
+      if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+        pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
+        return(pop_to_delete)
       }
-    }
+
+      # }
+      return(c())
+    })
+
+    ## Update numerosity for each subsumer
+    for(i in 1:length(subsumers_list)) {
+      pop[[i]]$numerosity <- pop[[i]]$numerosity+length(subsumers_list[[i]])
+    } ## Probably can be vectorized, this too...
+
+    pop_to_delete <- unique(unlist(subsumers_list)) ## Reduce operations
+    pop[pop_to_delete] <- lapply(pop[pop_to_delete], \(item_to_clean) {
+      item_to_clean$numerosity <- 0
+      item_to_clean
+    }) ## Go this just once!
 
     pop <- .apply_deletion_no_threshold(pop)
   }
 
   pop
 }
+
 
 .apply_deletion_sl <- function(pop, deletion_limit = 0.6, max_pop_size = 10000) {
 
@@ -482,15 +626,13 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
         print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
         `%dopar%` <- foreach::`%dopar%`
 
+        # browser()
         if(use_validation) {
           validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
           sub_train_environment <- train_env_df[-validation_set,]
         } else {
           sub_train_environment <- train_env_df
         }
-
-
-        # browser()
 
         agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
 
@@ -586,6 +728,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     }
 
     lcs$pop <- .apply_deletion_sl(lcs$pop, max_pop_size = max_pop_size_parallel)
+    lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+    lcs$lengths <- sapply(lcs$pop, \(x) x$length_fixed_bits) ## Poor naming...
+
     return(lcs)
   } else {
     print("Running single-core/thread, sequential")

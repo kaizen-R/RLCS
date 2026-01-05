@@ -94,7 +94,7 @@ for(i in temp_seeds) {
   iris_classifier <- rlcs_train_sl(
       train_environment,
       run_params = iris_hyperparameters_1,
-      pre_trained_lcs = iris_classifier,
+      # pre_trained_lcs = iris_classifier,
       verbose = FALSE,
       n_agents = run_par_count, use_validation = T, merge_best_n = min(4, run_par_count),
       second_evolution_iterations = 2,
