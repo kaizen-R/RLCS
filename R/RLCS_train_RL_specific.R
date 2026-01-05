@@ -41,6 +41,8 @@
   pop[order(ranking, decreasing=T)]
 }
 
+
+## TODO: Improve here, use matrices to go (much) faster...
 .apply_subsumption_rl <- function(pop) {
   ## Careful here: It's dangerous to sort action population without a thought!
   ## Population here is from the action set.
@@ -62,42 +64,42 @@
 
         t_zero <- pop[[item]]$condition_list$"0"
         t_one <- pop[[item]]$condition_list$"1"
-        cond_string <- pop[[item]]$condition_string
+        # cond_string <- pop[[item]]$condition_string
         cond_lab <- pop[[item]]$action
 
         t_rew <- pop[[item]]$total_reward
 
-        pop_to_delete <-
-          which(sapply(pop[(item+1):length(pop)],
-                       # \(x, t_cond, t_lab, t_zero, t_one, t_rew, ref_num) {
-                       \(x, t_cond, t_lab, t_zero, t_one, t_rew) {
-                         if(x$numerosity > 0 &&
-                            x$action == t_lab &&
-                            x$total_reward < t_rew) {
-                           t_other_cond_0 <- x$condition_list$"0"
-                           t_other_cond_1 <- x$condition_list$"1"
-
-                           # if(pop[[x]]$condition_string == t_cond  ||
-                           #    all((length(t_zero) <= length(t_other_cond_0)) ||
-                           #        (length(t_one) <= length(t_other_cond_1)),
-                           #        t_zero %in% t_other_cond_0,
-                           #        t_one %in% t_other_cond_1))
-                           #   return(T)
-                           return(x$condition_string == t_cond  ||
-                                    all((length(t_zero) <= length(t_other_cond_0)) ||
-                                          (length(t_one) <= length(t_other_cond_1)),
-                                        t_zero %in% t_other_cond_0,
-                                        t_one %in% t_other_cond_1))
-                         }
-
-                         return(F)
-                       }, cond_string, cond_lab, t_zero, t_one, t_rew))
+        # pop_to_delete <-
+        #   which(sapply(pop[(item+1):length(pop)],
+        #                # \(x, t_cond, t_lab, t_zero, t_one, t_rew, ref_num) {
+        #                \(x, t_cond, t_lab, t_zero, t_one, t_rew) {
+        #                  if(x$numerosity > 0 &&
+        #                     x$action == t_lab &&
+        #                     x$total_reward < t_rew) {
+        #                    t_other_cond_0 <- x$condition_list$"0"
+        #                    t_other_cond_1 <- x$condition_list$"1"
+        #
+        #                    # if(pop[[x]]$condition_string == t_cond  ||
+        #                    #    all((length(t_zero) <= length(t_other_cond_0)) ||
+        #                    #        (length(t_one) <= length(t_other_cond_1)),
+        #                    #        t_zero %in% t_other_cond_0,
+        #                    #        t_one %in% t_other_cond_1))
+        #                    #   return(T)
+        #                    return(x$condition_string == t_cond  ||
+        #                             all((length(t_zero) <= length(t_other_cond_0)) ||
+        #                                   (length(t_one) <= length(t_other_cond_1)),
+        #                                 t_zero %in% t_other_cond_0,
+        #                                 t_one %in% t_other_cond_1))
+        #                  }
+        #
+        #                  return(F)
+        #                }, cond_string, cond_lab, t_zero, t_one, t_rew))
 
 
         pop_to_delete <-
           ## RELATIVE POSITIONS!! we need item as base.
           which(sapply(pop[(item+1):length(pop)],
-                       \(x, t_cond, t_lab, t_zero, t_one) {
+                       \(x, t_lab, t_zero, t_one) {
 
                          if(x$numerosity > 0 && x$action == t_lab &&
                             x$total_reward < t_rew) {
@@ -116,7 +118,7 @@
                          }
 
                          return(F)
-                       }, cond_string, cond_lab, t_zero, t_one))
+                       }, cond_lab, t_zero, t_one))
 
         if(length(pop_to_delete) > 0) { ## Subsumption applied!
           print(pop[[item]]$action) ## For visual progress tracking
