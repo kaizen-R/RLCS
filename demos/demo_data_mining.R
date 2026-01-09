@@ -36,7 +36,7 @@ plot(rlcs_model2)
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
   n_epochs = 800,
-  deletion_trigger = 80,
+  deletion_trigger = 100,
   deletion_threshold = 0.95)
 
 demo_env3 <- rlcs_mux6()
