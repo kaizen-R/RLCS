@@ -8,8 +8,8 @@ print(demo_env1[sample_of_rows,], row.names = F)
 ## Tuning some hyper-parameters makes it faster:
 demo_params <- RLCS_hyperparameters(
   n_epochs = 300,
-  deletion_trigger = 100,
-  deletion_threshold = 0.9)
+  deletion_trigger = 150,
+  deletion_threshold = 0.99)
 
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL,

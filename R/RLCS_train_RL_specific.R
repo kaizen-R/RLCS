@@ -64,37 +64,9 @@
 
         t_zero <- pop[[item]]$condition_list$"0"
         t_one <- pop[[item]]$condition_list$"1"
-        # cond_string <- pop[[item]]$condition_string
         cond_lab <- pop[[item]]$action
 
         t_rew <- pop[[item]]$total_reward
-
-        # pop_to_delete <-
-        #   which(sapply(pop[(item+1):length(pop)],
-        #                # \(x, t_cond, t_lab, t_zero, t_one, t_rew, ref_num) {
-        #                \(x, t_cond, t_lab, t_zero, t_one, t_rew) {
-        #                  if(x$numerosity > 0 &&
-        #                     x$action == t_lab &&
-        #                     x$total_reward < t_rew) {
-        #                    t_other_cond_0 <- x$condition_list$"0"
-        #                    t_other_cond_1 <- x$condition_list$"1"
-        #
-        #                    # if(pop[[x]]$condition_string == t_cond  ||
-        #                    #    all((length(t_zero) <= length(t_other_cond_0)) ||
-        #                    #        (length(t_one) <= length(t_other_cond_1)),
-        #                    #        t_zero %in% t_other_cond_0,
-        #                    #        t_one %in% t_other_cond_1))
-        #                    #   return(T)
-        #                    return(x$condition_string == t_cond  ||
-        #                             all((length(t_zero) <= length(t_other_cond_0)) ||
-        #                                   (length(t_one) <= length(t_other_cond_1)),
-        #                                 t_zero %in% t_other_cond_0,
-        #                                 t_one %in% t_other_cond_1))
-        #                  }
-        #
-        #                  return(F)
-        #                }, cond_string, cond_lab, t_zero, t_one, t_rew))
-
 
         pop_to_delete <-
           ## RELATIVE POSITIONS!! we need item as base.
@@ -155,8 +127,6 @@
 
   ## Works nicely with subsumption to remove unnecessary classifiers:
   survivors_set <- which(sapply(pop, \(x) {
-    # if(x$numerosity > 0) return(TRUE)
-    # FALSE
     x$numerosity > 0
   }))
 
@@ -214,10 +184,8 @@
   }
 
   n_agents <- length(agents)
-  # print(n_agents)
   i <- t_step
   for(j in 1:n_agents) {
-    # print(j)
     t_agent <- 1000+j
     ## Adding MEMORY
     if(!is.null(agents[[j]]$lcs) && !is.null(agents[[j]]$chosen_action)) { ## There was an action before
@@ -229,25 +197,18 @@
       }))
     }
 
-    # browser()
-    ## t_agent, agents, agent_env_to_state() compatible with world$get_agent_env(agent_num)
     action_set <- c()
 
     t_instance_string <- world$get_agent_env(t_agent)
 
+    # browser()
     match_set <- .get_match_set_mat(t_instance_string, agents[[j]]$lcs)
-    # print(is.null(match_set))
-    # print(match_set)
 
-    # match_set <- get_match_set(t_instance_string, agents[[j]]$lcs$pop)
-    # print(class(match_set))
-    # print(match_set)
+    # browser()
 
     train_count <- n_epoch <- i
 
     subsumption_applied <- F
-
-
 
     ## Not part of LCS, supplementary mechanism to favor exploration
     if(agents[[j]]$internal_status > agents[[j]]$max_internal_status)
@@ -297,14 +258,8 @@
         }
 
         agents[[j]]$lcs$pop <- .add_valid_rule_to_pop(agents[[j]]$lcs$pop, cover_rule, agents[[j]]$chosen_action, train_count)
-        # if(length(agents[[j]]$lcs$lengths) == 0) {
-        #   agents[[j]]$lcs$matrices <-.recalculate_pop_matrices_new_rule(t_matrices, cover_rule)
-        #   agents[[j]]$lcs$lengths <- .lengths_fixed_bits_new_rule(t_lengths, cover_rule)
-        # } else {
         agents[[j]]$lcs$matrices <- .recalculate_pop_matrices(agents[[j]]$lcs$pop)
         agents[[j]]$lcs$lengths <- .lengths_fixed_bits(agents[[j]]$lcs$pop)
-        # }
-
 
         reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
         ## Not part of LCS, instead creating an internal "state" of the agent:
@@ -318,13 +273,10 @@
       }
     } else { ## Exploit known Actions
       ## Faster to work with only match population until need to review overall population
-      # browser()
-
       match_pop <- .inc_match_count(agents[[j]]$lcs$pop[c(match_set)])
 
-      agents[[j]]$chosen_action <- rlcs_predict_rl(match_pop)
+      agents[[j]]$chosen_action <- rlcs_predict_rl(match_pop, verbose = F, possible_actions = possible_actions)
 
-      # browser()
       action_set <- .get_action_set(agents[[j]]$chosen_action, match_pop)
 
       action_pop <- .inc_action_count(match_pop[c(action_set)])
@@ -377,18 +329,19 @@
       ## the agent only "sees" two steps ahead MAX.
       # agents[[j]]$lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_td(agents[[j]]$lcs$pop[agents[[j]]$last_action], action_pop, alpha = 0.1)
       agents[[j]]$lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_sa(agents[[j]]$lcs$pop[agents[[j]]$last_action], action_pop)
+
     }
 
     if((subsumption_applied && length(which(sapply(agents[[j]]$lcs$pop, \(x) x$numerosity == 0))) > 0) ||
        ((i %% 1000) == 0 && length(agents[[j]]$lcs$pop) > max_pop_size)) {
       before_deletion <- length(agents[[j]]$lcs$pop)
       agents[[j]]$lcs$pop <- .apply_deletion_rl(agents[[j]]$lcs$pop, deletion_threshold, max_pop_size)
-
       agents[[j]]$lcs$matrices <- .recalculate_pop_matrices(agents[[j]]$lcs$pop)
       agents[[j]]$lcs$lengths <- .lengths_fixed_bits(agents[[j]]$lcs$pop)
 
       print(paste("Deletion Applied", before_deletion, " -> ", length(agents[[j]]$lcs$pop)))
     }
+    if(!is.null(agents[[j]]$lcs$pop)) class(agents[[j]]$lcs) <- "rlcs_population"
   }
 
   # world$get_world_matrix()

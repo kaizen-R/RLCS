@@ -49,6 +49,7 @@ print.rlcs_population <- function(x, ...) {
   x <- x$pop
   if(length(x) == 0) return(NULL)
   if(any(sapply(x, \(elem) elem$total_reward != 5))) {
+    # browser()
     x <- .lcs_best_sort_rl(x)
     x <- unclass(x)
     l <- lapply(1:length(x), \(i) {

@@ -69,11 +69,11 @@ rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
 #' @returns A vector of values of actions.
 #' @export
 #'
-rlcs_predict_rl <- function(pop, verbose=F) {
+rlcs_predict_rl <- function(pop, verbose=F, possible_actions = c("left", "right", "up", "down")) {
 
   # pop <- lcs$pop
   ## Simple version that *only* works for our demo for RL!!
-  t_df <- data.frame(action=c("left", "right", "up", "down"),
+  t_df <- data.frame(action=possible_actions,
                      total_reward = 0,
                      n_entries = 0)
   for(i in 1:length(pop)) {
