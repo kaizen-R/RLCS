@@ -1,10 +1,11 @@
 importFrom(Rcpp, evalCpp)
 useDynLib(RLCS, .registration = TRUE)
 
-S3method("[",rlcs_population)
-S3method(plot,rlcs_population)
+S3method("[",rlcs)
+S3method(plot,rlcs)
 S3method(print,rlcs_population)
 S3method(print,rlcs_rule)
+S3method(print,rlcs)
 
 export(get_match_set)
 export(reverse_match_set)

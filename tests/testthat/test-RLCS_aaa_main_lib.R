@@ -3,7 +3,7 @@ test_that("New rule creates an object of class rlcs_rule", {
   expect_equal(class(.new_rlcs_rule("0100", "yes")), "rlcs_rule")
 })
 test_that("New pop creates an object of class rlcs_population", {
-  expect_equal(class(RLCS:::.new_rlcs_population()), "rlcs_population")
+  expect_equal(class(RLCS:::.new_rlcs()), "rlcs")
 })
 
 ## Validate rule input controls

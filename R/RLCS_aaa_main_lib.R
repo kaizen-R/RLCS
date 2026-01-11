@@ -50,10 +50,9 @@
   t_rule
 }
 
-.new_rlcs_population <- function(x = list(pop = list(), matrices = list(), lengths = 0)) {
-  # x$pop <- structure(list(), class="rlcs_population")
-  structure(x, class = "rlcs_population")
-  # x
+.new_rlcs <- function(x = list(pop = list(), matrices = list(), lengths = 0)) {
+  x$pop <- structure(x$pop, class = "rlcs_population")
+  structure(x, class = "rlcs")
 }
 
 ## VERY basic error generation and processing stop.
@@ -142,27 +141,34 @@
 
 ## Function to add rule to a population.
 ## date_rule_born will be useful stat for future, setting as parameter for now.
-.add_valid_rule_to_pop <- function(pop, condition_string,
+.add_valid_rule_to_lcs <- function(lcs, condition_string,
                                   action, date_rule_born = 0,
                                   match_count = 1,
                                   correct_count = 1,
                                   accuracy = 1,
                                   numerosity = 1) {
-  t_rule <- .new_rlcs_rule(condition_string, action)
 
   ## Key here is creating a population structure
-  if(is.null(pop) || length(pop) == 0) {
-    pop <- structure(list(t_rule), class = "rlcs_population")
-    return(pop)
+  if(is.null(lcs)) {
+    return(.new_rlcs())
+  }
+
+  t_rule <- .new_rlcs_rule(condition_string, action)
+
+  if(is.null(lcs$pop) || length(lcs$pop) == 0) {
+    lcs$pop <- structure(list(t_rule), class = "rlcs_population")
+    lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
+    lcs$lengths <- .lengths_fixed_bits(lcs$pop)
+    return(lcs)
   }
 
   t_rule$match_count <- match_count
   t_rule$correct_count <- correct_count
   t_rule$accuracy <- accuracy
   t_rule$numerosity <- numerosity
-
   t_rule$first_seen <- date_rule_born
-  pop[[length(pop)+1]] <- t_rule
+
+  lcs$pop[[length(lcs$pop)+1]] <- t_rule
 
 
   # memory_surprise_and_dreams = list(), ## TBD.
@@ -171,8 +177,10 @@
   # memory_explored_hashes = list(), ## TBD.
   # ## In RL, we could use this to prefer directions which look new.
 
-  # class(pop) <- "rlcs_population"
-  pop
+  lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
+  lcs$lengths <- .lengths_fixed_bits(lcs$pop)
+
+  lcs
 }
 
 ## FUNCTION FACTORY!
@@ -215,41 +223,6 @@
   })
 }
 
-#' Get the subset of a Population of Classifiers that matches a given State
-#'
-#' @param instance_state A state from the RLCS environment
-#' @param lcs A population of Classifiers
-#'
-#' @returns Numeric vector, of indices of the matching Classifiers
-#' @export
-#'
-#' @examples
-#' demo_env1 <- rlcs_demo_secret1()
-#' demo_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
-#' rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params)
-#' print(rlcs_model1)
-#' get_match_set("00101", rlcs_model1)
-#'
-## Still works, mainly for end-user; but will eventually be discarded.
-get_match_set <- function(instance_state, lcs) {
-  pop <- lcs$pop
-  if(length(pop) > 0) {
-    # Only part relevant for matching
-    ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
-
-    ## Former sapply version, was bottleneck of the overall runtimes in tests:
-    ## CLEANED.
-
-    ## Simple C++ version:
-    match_set <- get_match_set_cpp(pop, ti_cond)
-
-    if(length(match_set) > 0)
-      return(match_set)
-  }
-
-  NULL ## implicit return
-}
-
 .get_match_set_mat <- function(instance_state, lcs) {
   pop <- lcs$pop
   t_matrices <- lcs$matrices
@@ -274,6 +247,29 @@ get_match_set <- function(instance_state, lcs) {
 
   NULL ## implicit return
 }
+
+#' Get the subset of a Population of Classifiers that matches a given State
+#'
+#' @param instance_state A state from the RLCS environment
+#' @param lcs A population of Classifiers
+#'
+#' @returns Numeric vector, of indices of the matching Classifiers
+#' @export
+#'
+#' @examples
+#' demo_env1 <- rlcs_demo_secret1()
+#' demo_params <- RLCS_hyperparameters(n_epochs = 280, deletion_trigger = 40, deletion_threshold = 0.9)
+#' rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model1)
+#' get_match_set("00101", rlcs_model1)
+#'
+## Still works, mainly for end-user; but will eventually be discarded.
+get_match_set <- function(instance_state, lcs) {
+
+  .get_match_set_mat(instance_state = instance_state, lcs = lcs)
+}
+
+
 
 #' Returns all rlcs_environment entries (data frame row indices) that match a Classifier/Rule
 #'
@@ -304,6 +300,24 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 }
 
 
+.reverse_match_set_size <- function(pop, rlcs_environment) {
+  # print(pop)
+  match_sets_lengths <- c()
+  for(i in 1:length(pop)) {
+    rule_0 <- pop[[i]]$condition_list$'0'
+    rule_1 <- pop[[i]]$condition_list$'1'
+
+    rule_matches <- which(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
+      env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
+      !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
+    }, rule_0, rule_1))
+
+    match_sets_lengths <- c(match_sets_lengths, length(rule_matches))
+  }
+
+  match_sets_lengths
+}
+
 .found_same_condition <- function(pop, item) {
   any(sapply(pop, \(x, item) {
     if(x$condition_string == item) return(TRUE)
@@ -323,7 +337,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   pop <- pop[survivors_set]
   # pop <- .recalculate_pop_matrices(pop)
 
-  structure(pop, class = "rlcs")
+  structure(pop, class = "rlcs_population")
 }
 
 ## Bad: Old doesn't mean it should be discarded.

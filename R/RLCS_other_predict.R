@@ -1,7 +1,5 @@
 #' Predict a Class for a given input set of states
 #'
-#'
-#'
 #' @param test_env_df The dataset. Must contain a compatible state column.
 #' @param lcs A trained RLCS model, consisting of a population of classifiers.
 #' @param verbose Detail or not the results? Defaults to FALSE.
@@ -14,16 +12,8 @@ rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
   ret_set <- c()
   possible_classes <- unique(sapply(pop, \(x) x$action))
 
-  # lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
-  # lcs$lengths <- sapply(lcs$pop, \(x) x$length_fixed_bits)
-
-
-  for(i in 1:nrow(test_env_df)) {
-    if(verbose) {
-      print("-------------")
-      print(test_env_df$state[i])
-    }
-    # match_set <- get_match_set(test_env_df$state[i], pop)
+  # for(i in 1:nrow(test_env_df)) {
+  ret_list <- lapply(1:nrow(test_env_df), \(i) {
     match_set <- .get_match_set_mat(test_env_df$state[i], lcs)
     if(length(match_set) > 0) {
       t_recommendation <- c()
@@ -36,35 +26,46 @@ rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
         }))
       }
 
+      # if(verbose) {
+      #   print("-------------")
+      #   print(test_env_df$state[i])
+      #   print(test_env_df$class[i])
+      #   print(possible_classes)
+      #   print(pop[match_set])
+      #   for(item in 1:length(possible_classes))
+      #     print(paste("Recommend", possible_classes[item], ":", t_recommendation[item]))
+      #   # print(paste("Recommend 1: ", rec_1))
+      #   print(t_recommendation)
+      #   print(max(t_recommendation))
+      #   print(possible_classes[which(t_recommendation == max(t_recommendation))])
+      # }
 
-      if(verbose) {
-        print(test_env_df$class[i])
-        print(possible_classes)
-        print(pop[match_set])
-        for(item in 1:length(possible_classes))
-          print(paste("Recommend", possible_classes[item], ":", t_recommendation[item]))
-        # print(paste("Recommend 1: ", rec_1))
-        print(t_recommendation)
-
-        print(max(t_recommendation))
-        print(possible_classes[which(t_recommendation == max(t_recommendation))])
-      }
       predicted_actions <- as.character(possible_classes[which(t_recommendation == max(t_recommendation))])
-      if(length(predicted_actions) > 1) ret_set <- c(ret_set, "rlcs_doubt")
-      else ret_set <- c(ret_set, predicted_actions)
+      if(length(predicted_actions) > 1)
+        return("rlcs_doubt")
+        # ret_set <- c(ret_set, "rlcs_doubt")
+      else
+        return(predicted_actions)
+        # ret_set <- c(ret_set, predicted_actions)
     } else {
       if(verbose) print("NO suitable rule for this instance.")
-      ret_set <- c(ret_set, "rlcs_no_match")
+      # ret_set <- c(ret_set, "rlcs_no_match")
+      return("rlcs_no_match")
     }
+  })
 
-  }
-  return(ret_set)
+
+
+  # }
+
+  return(unlist(ret_list))
 }
 
 #' Predict an Action for a given input set of states
 #'
 #' @param pop A trained RLCS model population, consisting of a population of classifiers.
 #' @param verbose Detail or not the results? Defaults to FALSE.
+#' @param possible_actions List of acceptable actions in the given "world".
 #'
 #' @returns A vector of values of actions.
 #' @export

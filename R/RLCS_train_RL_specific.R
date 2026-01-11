@@ -18,16 +18,21 @@
 }
 
 ## Similar to get_action_set in a way
-.get_rule_to_be_updated <- function(t_instance_string, chosen_action, pop) {
-  which(sapply(pop, \(x) {
-    ## Because there was an action, there was a t_instance_string
-    # if(x$action == chosen_action &&
-    #    !is.null(get_match_set(t_instance_string, list(x))))
-    #   return(T)
-    # F
-    return(x$action == chosen_action &&
-             !is.null(get_match_set(t_instance_string, list(x))))
-  }))
+.get_rule_to_be_updated <- function(t_instance_string, chosen_action, lcs) {
+  match_set <- get_match_set(t_instance_string, lcs)
+  if(is.null(match_set)) return(c())
+
+  also_good_action <- which(sapply(lcs$pop[match_set], \(x) return(x$action == chosen_action)))
+  return(match_set[also_good_action])
+  # which(sapply(pop, \(x) {
+  #   ## Because there was an action, there was a t_instance_string
+  #   # if(x$action == chosen_action &&
+  #   #    !is.null(get_match_set(t_instance_string, list(x))))
+  #   #   return(T)
+  #   # F
+  #   return(x$action == chosen_action &&
+  #            !is.null(get_match_set(t_instance_string, list(x))))
+  # }))
 }
 
 
@@ -78,11 +83,6 @@
                            t_other_cond_0 <- x$condition_list$"0"
                            t_other_cond_1 <- x$condition_list$"1"
 
-                           # if(all((length(t_zero) <= length(t_other_cond_0)) ||
-                           #       (length(t_one) <= length(t_other_cond_1)),
-                           #       t_zero %in% t_other_cond_0,
-                           #       t_one %in% t_other_cond_1))
-                           #   return(T)
                            return(all((length(t_zero) <= length(t_other_cond_0)) ||
                                         (length(t_one) <= length(t_other_cond_1)),
                                       t_zero %in% t_other_cond_0,
@@ -110,27 +110,31 @@
   pop
 }
 
-.apply_deletion_rl <- function(pop, deletion_limit = 0.0, max_pop_size = 10000) {
+.apply_deletion_rl <- function(lcs, deletion_limit = 0.0, max_pop_size = 10000) {
 
-  pop <- lapply(pop, \(x) {
+  lcs$pop <- lapply(lcs$pop, \(x) {
     if(x$total_reward < deletion_limit) x$numerosity <- 0
     x
   })
 
-  if(length(pop) > max_pop_size) {
-    pop <- .lcs_best_sort_rl(pop) ## Should this happen more often??
-    pop[max_pop_size:length(pop)] <- lapply(pop[max_pop_size:length(pop)], \(x) {
+  if(length(lcs$pop) > max_pop_size) {
+    lcs$pop <- .lcs_best_sort_rl(lcs$pop) ## Should this happen more often??
+    lcs$pop[max_pop_size:length(lcs$pop)] <- lapply(lcs$pop[max_pop_size:length(lcs$pop)], \(x) {
       x$numerosity <- 0
       x
     })
   }
 
   ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which(sapply(pop, \(x) {
+  survivors_set <- which(sapply(lcs$pop, \(x) {
     x$numerosity > 0
   }))
 
-  structure(pop[c(survivors_set)], class="rlcs_population")
+  lcs$pop <- lcs$pop[c(survivors_set)]
+  lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
+  lcs$lengths <- .lengths_fixed_bits(lcs$pop)
+
+  lcs
 }
 
 ## Implementation of TD, with alpha 0.1
@@ -188,7 +192,7 @@
   for(j in 1:n_agents) {
     t_agent <- 1000+j
     ## Adding MEMORY
-    if(!is.null(agents[[j]]$lcs) && !is.null(agents[[j]]$chosen_action)) { ## There was an action before
+    if(!is.null(agents[[j]]$lcs) && length(agents[[j]]$lcs$pop) > 0 && !is.null(agents[[j]]$chosen_action)) { ## There was an action before
       agents[[j]]$last_action <- which(sapply(agents[[j]]$lcs$pop, \(x) {
         ## Because there was an action, there was a last_instance_string
         if(x$action == agents[[j]]$chosen_action && !is.null(get_match_set(last_instance_string, list(x))))
@@ -241,6 +245,7 @@
       if(!is.null(cover_rule)) {
         if(is.null(match_set) || length(match_set) == 0) ## COVERING needed
           agents[[j]]$chosen_action <- sample(possible_actions, 1)
+
         if(((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
            decide_explore) { ## Agent is "not hungry"
           match_pop <- agents[[j]]$lcs$pop[c(match_set)]
@@ -257,15 +262,14 @@
           }
         }
 
-        agents[[j]]$lcs$pop <- .add_valid_rule_to_pop(agents[[j]]$lcs$pop, cover_rule, agents[[j]]$chosen_action, train_count)
-        agents[[j]]$lcs$matrices <- .recalculate_pop_matrices(agents[[j]]$lcs$pop)
-        agents[[j]]$lcs$lengths <- .lengths_fixed_bits(agents[[j]]$lcs$pop)
+        agents[[j]]$lcs <- .add_valid_rule_to_lcs(agents[[j]]$lcs, cover_rule, agents[[j]]$chosen_action, train_count)
 
         reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
         ## Not part of LCS, instead creating an internal "state" of the agent:
         agents[[j]]$internal_status <- agents[[j]]$internal_status + reward
 
-        rule_to_be_updated <- .get_rule_to_be_updated(t_instance_string, agents[[j]]$chosen_action, agents[[j]]$lcs$pop)
+        # browser()
+        rule_to_be_updated <- .get_rule_to_be_updated(t_instance_string, agents[[j]]$chosen_action, agents[[j]]$lcs)
 
         ## Trick: Set alpha to 1.0 to take max reward directly
         # agents[[j]]$lcs$pop[rule_to_be_updated] <- .update_action_reward_td(agents[[j]]$lcs$pop[rule_to_be_updated], reward, alpha=1)
@@ -298,13 +302,9 @@
             match_pop[c(action_set)] <- action_pop |>
               .inc_numerosity_by_condition(child)
           else {
-            agents[[j]]$lcs$pop <- .add_valid_rule_to_pop(agents[[j]]$lcs$pop,
+            agents[[j]]$lcs <- .add_valid_rule_to_lcs(agents[[j]]$lcs,
                                                              child, agents[[j]]$chosen_action,
                                                              train_count)
-            # agents[[j]]$lcs$matrices <-.recalculate_pop_matrices_new_rule(t_matrices, child)
-            # agents[[j]]$lcs$lengths <- .lengths_fixed_bits_new_rule(t_lengths, child)
-            agents[[j]]$lcs$matrices <- .recalculate_pop_matrices(agents[[j]]$lcs$pop)
-            agents[[j]]$lcs$lengths <- .lengths_fixed_bits(agents[[j]]$lcs$pop)
           }
         }
       }
@@ -335,13 +335,11 @@
     if((subsumption_applied && length(which(sapply(agents[[j]]$lcs$pop, \(x) x$numerosity == 0))) > 0) ||
        ((i %% 1000) == 0 && length(agents[[j]]$lcs$pop) > max_pop_size)) {
       before_deletion <- length(agents[[j]]$lcs$pop)
-      agents[[j]]$lcs$pop <- .apply_deletion_rl(agents[[j]]$lcs$pop, deletion_threshold, max_pop_size)
-      agents[[j]]$lcs$matrices <- .recalculate_pop_matrices(agents[[j]]$lcs$pop)
-      agents[[j]]$lcs$lengths <- .lengths_fixed_bits(agents[[j]]$lcs$pop)
+      agents[[j]]$lcs <- .apply_deletion_rl(agents[[j]]$lcs, deletion_threshold, max_pop_size)
 
       print(paste("Deletion Applied", before_deletion, " -> ", length(agents[[j]]$lcs$pop)))
     }
-    if(!is.null(agents[[j]]$lcs$pop)) class(agents[[j]]$lcs) <- "rlcs_population"
+    if(!is.null(agents[[j]]$lcs$pop)) class(agents[[j]]$lcs) <- "rlcs"
   }
 
   # world$get_world_matrix()

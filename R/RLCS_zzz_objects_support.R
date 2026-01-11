@@ -9,22 +9,26 @@ print.rlcs_rule <- function(x, ...) {
 
 ## RLCS Population overwritten functions
 #' @export
-`[.rlcs_population` <- function(x, i) {
+`[.rlcs` <- function(x, i) {
   # stopifnot(x, list)
-  .new_rlcs_population(NextMethod())
+  .new_rlcs(NextMethod())
 }
 
 #' @export
-plot.rlcs_population <- function(x, ...) {
+plot.rlcs <- function(x, ...) {
 
-  nbits <- x$pop[[1]]$condition_length
+  if(is.null(x)) return(NULL)
+  pop <- x$pop
+  nbits <- pop[[1]]$condition_length
 
   t_m <- matrix(rep(0, nbits^2), byrow = T, nrow=nbits)
 
   for(i in 1:length(x$pop)) {
-    filled_bits <- length(x$pop[[i]]$condition_list$"0")+length(x$pop[[i]]$condition_list$"1")
+    t_cond_0 <- pop[[i]]$condition_list$"0"
+    t_cond_1 <- pop[[i]]$condition_list$"1"
+    filled_bits <- length(t_cond_0)+length(t_cond_1)
     for(j in 1:nbits) {
-      if(j %in% c(x$pop[[i]]$condition_list$"0", x$pop[[i]]$condition_list$"1"))
+      if(j %in% c(t_cond_0, t_cond_1))
         t_m[filled_bits, j] <- t_m[filled_bits, j]+1
     }
   }
@@ -46,7 +50,6 @@ plot.rlcs_population <- function(x, ...) {
 print.rlcs_population <- function(x, ...) {
   ## x here is an rlcs LCS, which contains a population
 
-  x <- x$pop
   if(length(x) == 0) return(NULL)
   if(any(sapply(x, \(elem) elem$total_reward != 5))) {
     # browser()
@@ -95,3 +98,8 @@ print.rlcs_population <- function(x, ...) {
   df
 }
 
+#' @export
+print.rlcs <- function(x, ...) {
+  ## x here is an rlcs LCS, which contains a population
+  print.rlcs_population(x$pop)
+}

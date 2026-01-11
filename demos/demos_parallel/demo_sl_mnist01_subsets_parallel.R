@@ -202,12 +202,12 @@ mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                         split_horizontal = T,
                                         max_pop_size_parallel = 500) ## NEW!
 
-mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
-                                        pre_trained_lcs = mnist01_par_classifier,
-                                        mnist_hyperparameters,
-                                        n_agents = run_par_count,
-                                        split_horizontal = T,
-                                        max_pop_size_parallel = 5000) ## NEW!
+# mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
+#                                         pre_trained_lcs = mnist01_par_classifier,
+#                                         mnist_hyperparameters,
+#                                         n_agents = run_par_count,
+#                                         split_horizontal = T,
+#                                         max_pop_size_parallel = 5000) ## NEW!
 
 stopCluster(cluster) ## Don't forget that :)
 

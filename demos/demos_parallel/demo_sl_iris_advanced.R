@@ -119,8 +119,9 @@ iris_classifier_parallel <- rlcs_train_sl(train_environment,
                                           iris_hyperparameters,
                                           pre_trained_lcs = NULL,
                                           n_agents=run_par_count,
-                                          use_validation=T,
-                                          merge_best_n = 3)
+                                          # use_validation=T,
+                                          merge_best_n = 3
+                                          )
 
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
@@ -137,5 +138,3 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 length(iris_classifier_parallel)
 
 stopCluster(cluster) ## Don't forget that :)
-
-

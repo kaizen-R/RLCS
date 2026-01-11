@@ -4,12 +4,18 @@
 \alias{rlcs_predict_rl}
 \title{Predict an Action for a given input set of states}
 \usage{
-rlcs_predict_rl(pop, verbose = F)
+rlcs_predict_rl(
+  pop,
+  verbose = F,
+  possible_actions = c("left", "right", "up", "down")
+)
 }
 \arguments{
 \item{pop}{A trained RLCS model population, consisting of a population of classifiers.}
 
 \item{verbose}{Detail or not the results? Defaults to FALSE.}
+
+\item{possible_actions}{List of acceptable actions in the given "world".}
 }
 \value{
 A vector of values of actions.

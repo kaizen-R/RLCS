@@ -1,5 +1,5 @@
 test_that("Basic Functionality of SL training", {
-  expect_equal(class(rlcs_train_sl(data.frame(state=c("00", "11"), class=c("yes", "no")), RLCS_hyperparameters())), "rlcs_population")
+  expect_equal(class(rlcs_train_sl(data.frame(state=c("00", "11"), class=c("yes", "no")), RLCS_hyperparameters())), "rlcs")
 })
 
 test_that("Basic Functionality of SL training - Bad Input Controls", {

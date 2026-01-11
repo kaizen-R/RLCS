@@ -3,7 +3,17 @@
 ## Upcoming work
 
 Text encoding for binary input compatible with RLCS for NLP tasks is currently being
-studied and is potentially interesting.
+studied and is potentially interesting. More RL work is needed, as right now there
+is no "actual" Policy being worked out, TD, SARSA, Q or otherwise.
+
+## v0.1.4
+
+Version v0.1.4 is supposed to be a bit more efficient than 0.1.3. Moreover, code
+is prepared to support a concept of coverage per rule, which might help influence
+subsumption in the future (but that new part is rather slow).
+Parallel processing overhead still needs to be reviewed.
+Not included in the examples per-se, but worked out separately, some RL is now
+being used to test and choose RLCS Hyperparameters for some of the SL demos.
 
 ## v0.1.3
 
