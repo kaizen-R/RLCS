@@ -22,6 +22,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_correct_set_cpp
+Rcpp::NumericVector get_correct_set_cpp(List match_pop, Rcpp::StringVector t_class);
+RcppExport SEXP _RLCS_get_correct_set_cpp(SEXP match_popSEXP, SEXP t_classSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type match_pop(match_popSEXP);
+    Rcpp::traits::input_parameter< Rcpp::StringVector >::type t_class(t_classSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_correct_set_cpp(match_pop, t_class));
+    return rcpp_result_gen;
+END_RCPP
+}
 // update_matched_accuracy_cpp
 Rcpp::List update_matched_accuracy_cpp(List pop);
 RcppExport SEXP _RLCS_update_matched_accuracy_cpp(SEXP popSEXP) {
@@ -48,6 +60,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_RLCS_get_match_set_cpp", (DL_FUNC) &_RLCS_get_match_set_cpp, 2},
+    {"_RLCS_get_correct_set_cpp", (DL_FUNC) &_RLCS_get_correct_set_cpp, 2},
     {"_RLCS_update_matched_accuracy_cpp", (DL_FUNC) &_RLCS_update_matched_accuracy_cpp, 1},
     {"_RLCS_inc_param_count_cpp", (DL_FUNC) &_RLCS_inc_param_count_cpp, 2},
     {NULL, NULL, 0}

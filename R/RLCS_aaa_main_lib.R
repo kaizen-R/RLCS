@@ -7,12 +7,14 @@
 .new_rlcs_rule <- function(condition_string, action) {
   ## NEW!
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
-  which_zeros <- which(strsplit(condition_string, "", fixed=T)[[1]] == "0")
-  which_ones <- which(strsplit(condition_string, "", fixed=T)[[1]] == "1")
+  t_vec <- strsplit(condition_string, "", fixed=T)[[1]]
+  which_zeros <- which(t_vec == "0")
+  which_ones <- which(t_vec == "1")
   zeros_vector[which_zeros] <- 1
   ones_vector[which_ones] <- 1
 
-  length_fixed_bits <- length(which_zeros)+length(which_ones)
+  # length_fixed_bits <- length(which_zeros)+length(which_ones)
+  length_fixed_bits <- sum(zeros_vector) + sum(ones_vector)
 
   t_rule <- list(condition_string = condition_string,
        condition_length = nchar(condition_string),
@@ -50,7 +52,7 @@
   t_rule
 }
 
-.new_rlcs <- function(x = list(pop = list(), matrices = list(), lengths = 0)) {
+.new_rlcs <- function(x = list(pop = list(), matrices = list(), lengths = 0, actions_vec = c())) {
   x$pop <- structure(x$pop, class = "rlcs_population")
   structure(x, class = "rlcs")
 }
@@ -117,15 +119,18 @@
 }
 
 .lengths_fixed_bits <- function(pop) {
-  sapply(pop, \(x) x$length_fixed_bits)
+  # sapply(pop, \(x) x$length_fixed_bits)
+  vapply(pop, \(x) x$length_fixed_bits, numeric(1))
 }
 
 .lengths_fixed_zeros <- function(pop) {
-  sapply(pop, \(x) length(x$cond$condition_list$"0"))
+  # sapply(pop, \(x) length(x$cond$condition_list$"0"))
+  vapply(pop, \(x) length(x$cond$condition_list$"0"), integer(1))
 }
 
 .lengths_fixed_ones <- function(pop) {
-  sapply(pop, \(x) length(x$cond$condition_list$"1"))
+  # sapply(pop, \(x) length(x$cond$condition_list$"1"))
+  vapply(pop, \(x) length(x$cond$condition_list$"1"), integer(1))
 }
 
 .lengths_fixed_bits_new_rule <- function(t_lengths, condition_string) {
@@ -137,6 +142,14 @@
   which_ones <- which(t_cond == "1")
 
   c(t_lengths, length(which_zeros)+length(which_ones))
+}
+
+.recalculate_actions_vec <- function(pop) {
+  unlist(sapply(pop, \(x) x$action))
+}
+
+.recalculate_actions_vec_new_rule <- function(t_actions_vec, t_action) {
+  c(t_actions_vec, t_action)
 }
 
 ## Function to add rule to a population.
@@ -159,6 +172,7 @@
     lcs$pop <- structure(list(t_rule), class = "rlcs_population")
     lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
     lcs$lengths <- .lengths_fixed_bits(lcs$pop)
+    lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
     return(lcs)
   }
 
@@ -179,8 +193,56 @@
 
   lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
   lcs$lengths <- .lengths_fixed_bits(lcs$pop)
+  lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
   lcs
+}
+
+.add_valid_rule_to_lcs_env <- function(env, condition_string,
+                                   action, date_rule_born = 0,
+                                   match_count = 1,
+                                   correct_count = 1,
+                                   accuracy = 1,
+                                   numerosity = 1) {
+
+  ## Key here is creating a population structure
+  if(is.null(env$lcs)) {
+    #return(.new_rlcs())
+    env$lcs <- .new_rlcs()
+    return(NULL)
+  }
+
+  t_rule <- .new_rlcs_rule(condition_string, action)
+
+  if(is.null(env$lcs$pop) || length(env$lcs$pop) == 0) {
+    env$lcs$pop <- structure(list(t_rule), class = "rlcs_population")
+    env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
+    env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
+    env$lcs$actions_vec <- .recalculate_actions_vec(env$lcs$pop)
+    return(NULL)
+  }
+
+  t_rule$match_count <- match_count
+  t_rule$correct_count <- correct_count
+  t_rule$accuracy <- accuracy
+  t_rule$numerosity <- numerosity
+  t_rule$first_seen <- date_rule_born
+
+  env$lcs$pop[[length(env$lcs$pop)+1]] <- t_rule
+
+
+  # memory_surprise_and_dreams = list(), ## TBD.
+  # ## In SL, we could use samples not matched to re-train on these
+  # ## thereby effectively "dreaming on episodic memory"
+  # memory_explored_hashes = list(), ## TBD.
+  # ## In RL, we could use this to prefer directions which look new.
+
+  # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
+  env$lcs$matrices <- .recalculate_pop_matrices_new_rule(env$lcs$matrices, condition_string)
+  env$lcs$lengths <- c(env$lcs$lengths, t_rule$length_fixed_bits)#.lengths_fixed_bits(env$lcs$pop)
+  env$lcs$actions_vec <- .recalculate_actions_vec_new_rule(env$lcs$actions_vec, action)
+
+  NULL
 }
 
 ## FUNCTION FACTORY!
@@ -216,20 +278,32 @@
 ## Augment correct count of a set of classifiers
 .update_matched_accuracy <- function(match_pop) {
   ## TODO Could run in problems for VERY high numbers divisions...?
-  # update_matched_accuracy_cpp(match_pop)
-  lapply(match_pop, \(x, item) {
-    x$accuracy <- x$correct_count / x$match_count
-    x
-  })
+  update_matched_accuracy_cpp(match_pop)
+  # lapply(match_pop, \(x) {
+  #   x$accuracy <- x$correct_count / x$match_count
+  #   x
+  # })
+}
+
+.update_matched_accuracy_env <- function(env) {
+  ## TODO Could run in problems for VERY high numbers divisions...?
+  env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
+
+  # env$match_pop <- lapply(env$match_pop, \(x) {
+  #   x$accuracy <- x$correct_count / x$match_count
+  #   x
+  #   # x$correct_count / x$match_count
+  # })
+  NULL
 }
 
 .get_match_set_mat <- function(instance_state, lcs) {
-  pop <- lcs$pop
+  # pop <- lcs$pop
   t_matrices <- lcs$matrices
   t_lengths <- lcs$lengths
 
   # print(length(pop))
-  if(length(pop) > 0) {
+  if(length(lcs$pop) > 0) {
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
 
@@ -241,6 +315,23 @@
     match_set <- which(matched_lengths == t_lengths)
     # browser()
 
+    if(length(match_set) > 0)
+      return(match_set)
+  }
+
+  NULL ## implicit return
+}
+
+.get_match_set_mat_env <- function(instance_state, env) {
+  # print(length(pop))
+  if(length(env$lcs$pop) > 0) {
+    # Only part relevant for matching
+    ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
+
+    ## Matrices approach!
+    match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+                          env$lcs$matrices[[2]] %*% ti_cond) ==
+                         env$lcs$lengths)
     if(length(match_set) > 0)
       return(match_set)
   }
@@ -340,6 +431,22 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   structure(pop, class = "rlcs_population")
 }
 
+
+.apply_deletion_no_threshold_env <- function(env) {
+
+
+  ## Works nicely with subsumption to remove unnecessary classifiers:
+  survivors_set <- which(sapply(env$lcs$pop, \(x) {
+    if(x$numerosity > 0) return(TRUE)
+    FALSE
+  }))
+  if(length(survivors_set) == 0) return(NULL)
+  ## Ensure you keep class here.
+  env$lcs$pop <- env$lcs$pop[survivors_set]
+  # pop <- .recalculate_pop_matrices(pop)
+
+  env$lcs$pop <- structure(env$lcs$pop, class = "rlcs_population")
+}
 ## Bad: Old doesn't mean it should be discarded.
 # keep_only_newer_individuals <- function(pop, first_seen_threshold, accuracy=1) {
 #

@@ -27,6 +27,35 @@ Rcpp::NumericVector get_match_set_cpp(List pop, NumericVector ti_cond) {
   return(matches_indices);
 }
 
+bool string_matches(List element, Rcpp::StringVector t_class) {
+  Rcpp::StringVector t_action = element("action");
+  if(t_action(0) == t_class(0)) return(true);
+  return(false);
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericVector get_correct_set_cpp(List match_pop, Rcpp::StringVector t_class) {
+  NumericVector matches_indices;
+  int i;
+  for(i = 0; i < match_pop.length(); i++) {
+    // Rcout << t_class(0) << "\n";
+    //
+    // List element = match_pop[i];
+    // Rcout << t_class << "\n";
+    // Rcpp::StringVector t_action = element["action"];
+    // Rcout << t_action(0) << "\n";
+    // std::string t_action2 = Rcpp::as<std::string>(element("action"));
+    // Rcout << t_class << "\n";
+
+    // Rcout << t_action << "\n";
+    if(string_matches(match_pop[i], t_class)) {
+      matches_indices.push_back(i+1); // R index is +1
+    }
+  }
+  return(matches_indices);
+}
+
+
 
 // [[Rcpp::export]]
 Rcpp::List update_matched_accuracy_cpp(List pop) {

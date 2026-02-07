@@ -45,9 +45,9 @@ iris_hyperparameters_1 <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 10,
   ## Most important parameters to vary so far:
-  n_epochs = 400, ## Epochs to repeat process on train set
+  n_epochs = 600, ## Epochs to repeat process on train set
   deletion_trigger = 200, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.75,
+  deletion_threshold = 0.9,
   max_pop_size=1200
 )
 ## Then make it faster
@@ -91,7 +91,8 @@ for(i in temp_seeds) {
 
   ## New: Validation subset, so that we can compare accuracy / F1 score...
   ## Of different agents, and then keep and consolidate each one.
-  iris_classifier <- rlcs_train_sl(
+  # iris_classifier <- rlcs_train_sl(
+  iris_classifier <- RLCS:::.rlcs_train_sl_env(
       train_environment,
       run_params = iris_hyperparameters_1,
       # pre_trained_lcs = iris_classifier,

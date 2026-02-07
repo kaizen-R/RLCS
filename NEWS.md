@@ -6,6 +6,16 @@ Text encoding for binary input compatible with RLCS for NLP tasks is currently b
 studied and is potentially interesting. More RL work is needed, as right now there
 is no "actual" Policy being worked out, TD, SARSA, Q or otherwise.
 
+## v0.1.5
+
+Version v0.1.5 is a half-rework which in latest tests improves performance by 30 to 50%.
+Normal calls do not implement the full set of improvements just yet.
+Some of the most complicated demos do call the new version of the code, but it is mostly experimental.
+It uses environments passing (instead of variables). Correct set identification is improved
+by caching LCS vector of actions. sapply() calls have been mostly replaced by vapply().
+And a few other changes.
+Next version should be mostly about code clean-up.
+
 ## v0.1.4
 
 Version v0.1.4 is supposed to be a bit more efficient than 0.1.3. Moreover, code
