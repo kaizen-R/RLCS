@@ -1,25 +1,15 @@
-
-library(RLCS) ## Well, yes...
-
-##
-## PART ONE
-##
-
-##
-## PRE-REQUISITES specific to this particular Dataset example:
-## Support functions for data visualizations.
-## You can skip to "PART TWO" below.
-##
-
 ## Poorly put together, quick and dirty
-rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
+## Can be sourced to clean MNIST examples a bit
+rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
+  pop <- lcs$pop
+
   example_visual <- test_env_df
   example_visual_v <- strsplit(example_visual$sharp_image, "", fixed=T)[[1]]
   example_visual_m <- matrix(1-as.integer(example_visual_v), nrow=28, byrow = F)
 
-  correct_class <- rlcs_predict_sl(test_env_df, pop, verbose=F)
+  correct_class <- rlcs_predict_sl(test_env_df, lcs, verbose=F)
 
-  match_set <- get_match_set(test_env_df$state, pop)
+  match_set <- get_match_set(test_env_df$state, lcs)
   res_pos <- sapply(match_set, \(i) {
     if(pop[[i]]$action == correct_class) return(T)
     F
@@ -137,93 +127,3 @@ print_mnist_number_49b <- function(mnist_string) {
 ## Here is a simple look at some of it:
 print_mnist_number(mnist_string = mnist_bin01_49b[1, "sharp_image"])
 print_mnist_number_49b(mnist_string = mnist_bin01_49b[1, "state"])
-
-##
-## PART TWO
-##
-
-##
-## MAIN CODE
-##
-
-######
-## PARALLEL RUNNING in a DIFFERENT way!
-## Here we decide, instead of doing some boosting, we have enough
-## samples in the environment to work on ENVIRONMENT SUBSETS
-## in parallel.
-######
-## The MODEL is a set of Classifiers.
-## It's easy to "merge" more than one model!
-
-## Now this is NOT to be made part of the RLCS package, but it's cool:
-library(foreach)
-library(doParallel) ## could be mirai, this is just one example
-n_cores <- detectCores()
-## More cores would only make sense with more data!
-run_par_count <- min(8, n_cores-1)
-cluster <- makeCluster(run_par_count)
-registerDoParallel(cluster)
-
-## We will repeat this here JUST TO facilitate running the parallel example
-## Separately from the simpler mono-core/thread run
-
-library(RLCS)
-## Seeding is the same as above, for results comparison.
-set.seed(12345)
-# train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
-# train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
-# test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
-
-# ## IF YOU HAVE LOTS OF CPU Cores... You could try this:
-train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.25*nrow(mnist_bin01_49b)), replace = F)
-train_mnist_bin01_49b <- mnist_bin01_49b[train_set,] ## !!TRAIN << TEST!!
-test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,]
-
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-
-t_start_par <- Sys.time()
-# sets_size <- floor(nrow(train_mnist_bin01_49b) / run_par_count)
-# results <- list()
-
-mnist_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = .4,
-  rd_trigger = 20,
-  mutation_probability = .1,
-  ## parents_selection_mode,
-  tournament_pressure = 5,
-  n_epochs = 50,
-  deletion_trigger = 10,
-  deletion_threshold = .9
-) ## Same a single-core run, only to compare speed
-
-mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
-                                        mnist_hyperparameters,
-                                        n_agents = run_par_count,
-                                        split_horizontal = T,
-                                        max_pop_size_parallel = 800) ## NEW!
-
-
-# mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
-#                                         pre_trained_lcs = mnist01_par_classifier,
-#                                         mnist_hyperparameters,
-#                                         n_agents = run_par_count,
-#                                         split_horizontal = T,
-#                                         max_pop_size_parallel = 5000) ## NEW!
-
-
-stopCluster(cluster) ## Don't forget that :)
-
-
-t_end_par <- Sys.time() ## Let's compare with single-core runtime:
-print(t_end_par - t_start_par)
-
-## Now how does this new approach for the LCS fare...?
-
-
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, mnist01_par_classifier)
-
-table(test_mnist_bin01_49b[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
-  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
-}))/nrow(test_mnist_bin01_49b), 2)))

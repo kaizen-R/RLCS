@@ -42,7 +42,7 @@ demo_params <- RLCS_hyperparameters(
   mutation_probability = .2,
   n_epochs = 200,
   deletion_trigger = 10,
-  deletion_threshold = 0.6,
+  deletion_threshold = 0.8,
   max_pop_size = 500)
 rlcs_model2 <- rlcs_train_sl(demo_env2, demo_params)
 print(rlcs_model2)

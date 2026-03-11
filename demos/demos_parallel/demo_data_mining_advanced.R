@@ -37,6 +37,10 @@ demo_params_parallel <- RLCS_hyperparameters(
   n_epochs = 400,
   deletion_trigger = 20,
   deletion_threshold = 0.95)
+
+set.seed(12345) ## There is a possibility that an execution fails.
+## Detected in v0.1.6 and marked to be reworked.
+## Error is related to t_shuffle_set in train SL Specific #759
 t_start_parallel <- Sys.time()
 rlcs_model_parallel <- rlcs_train_sl(demo_env,
                                      demo_params_parallel,

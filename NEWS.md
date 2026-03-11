@@ -5,6 +5,17 @@
 Text encoding for binary input compatible with RLCS for NLP tasks is currently being
 studied and is potentially interesting. More RL work is needed, as right now there
 is no "actual" Policy being worked out, TD, SARSA, Q or otherwise.
+Not included in the code itself in current version, although in the works (I maintain a separate WIP folder), 
+are complicated demos and tests for hierarchical setups of multiple connected RLCS models, 
+several performance testing setups (profvis, microbenchmark), tests for NLP 
+applications (data encoding is not easy, as mentioned above), and an example RL setup 
+with RLCS to optimise the RLCS hyperparameters themselves (!).
+
+## v0.1.6
+
+Version v0.1.6 implements new RCpp functions and most importantly also now uses
+"environment()" for faster passing of arguments across functions.
+
 
 ## v0.1.5
 

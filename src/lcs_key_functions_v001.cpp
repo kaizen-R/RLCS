@@ -61,10 +61,11 @@ Rcpp::NumericVector get_correct_set_cpp(List match_pop, Rcpp::StringVector t_cla
 Rcpp::List update_matched_accuracy_cpp(List pop) {
   int i;
   Rcpp::List L = pop;
+  float accuracy = 0.0;
 
   for(i = 0; i < L.length(); i++) {
     Rcpp::List elem = L[i];
-    float accuracy = 0.0;
+
     //x$accuracy <- x$correct_count / x$match_count
     accuracy = float(elem["correct_count"]) / float(elem["match_count"]);
     elem["accuracy"] = accuracy;
@@ -85,4 +86,20 @@ Rcpp::List inc_param_count_cpp(List pop, String param_name) {
   }
   // print(L);
   return(L);
+}
+
+
+// [[Rcpp::export]]
+float min_param_count_cpp(List pop, String param_name) {
+  int i;
+  Rcpp::List L = pop;
+  float new_elem = 0.0;
+  float best_val = FLT_MAX;
+  for(i = 0; i < L.length(); i++) {
+    Rcpp::List elem = L[i];
+    new_elem = float(elem[param_name]);
+    if(new_elem < best_val) { best_val = new_elem; }
+  }
+  // print(L);
+  return(best_val);
 }

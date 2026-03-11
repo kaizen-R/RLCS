@@ -268,11 +268,26 @@
 ## Augment match count of a set of classifiers
 .inc_match_count <- .inc_param_count("match_count")
 
+# .inc_match_count_env <- function(env, match_set) {
+#   inc_param_count_cpp(env$lcs$pop[c(match_set)], "match_count")
+# }
+
+.inc_match_count_env <- function(env) {
+  inc_param_count_cpp(env$match_pop, "match_count")
+}
+
 .inc_numerosity_by_condition <- function(pop, item) {
   lapply(pop, \(x, item) {
     if(x$condition_string == item) x$numerosity <- x$numerosity + 1
     x
   }, item)
+}
+
+.inc_numerosity <- function(pop) {
+  lapply(pop, \(x) {
+    x$numerosity <- x$numerosity + 1
+    x
+  })
 }
 
 ## Augment correct count of a set of classifiers
@@ -288,12 +303,6 @@
 .update_matched_accuracy_env <- function(env) {
   ## TODO Could run in problems for VERY high numbers divisions...?
   env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
-
-  # env$match_pop <- lapply(env$match_pop, \(x) {
-  #   x$accuracy <- x$correct_count / x$match_count
-  #   x
-  #   # x$correct_count / x$match_count
-  # })
   NULL
 }
 
@@ -328,6 +337,20 @@
     # Only part relevant for matching
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
 
+    ## Matrices approach!
+    match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+                          env$lcs$matrices[[2]] %*% ti_cond) ==
+                         env$lcs$lengths)
+    if(length(match_set) > 0)
+      return(match_set)
+  }
+
+  NULL ## implicit return
+}
+
+.get_match_set_mat_env2 <- function(ti_cond, env) {
+  if(length(env$lcs$pop) > 0) {
+    # Only part relevant for matching
     ## Matrices approach!
     match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
                           env$lcs$matrices[[2]] %*% ti_cond) ==
@@ -435,6 +458,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 .apply_deletion_no_threshold_env <- function(env) {
 
 
+  if(length(env$lcs$pop) < 1) return(NULL)
   ## Works nicely with subsumption to remove unnecessary classifiers:
   survivors_set <- which(sapply(env$lcs$pop, \(x) {
     if(x$numerosity > 0) return(TRUE)

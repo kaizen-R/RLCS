@@ -1,7 +1,7 @@
 Package: RLCS
 Type: Package
 Title: Learning Classifier System for Binary Input Strings
-Version: 0.1.5
+Version: 0.1.6
 Authors@R: c(
     person(
       "Nicolas", "Leconte-Demarsy",

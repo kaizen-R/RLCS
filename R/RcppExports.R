@@ -17,3 +17,7 @@ inc_param_count_cpp <- function(pop, param_name) {
     .Call(`_RLCS_inc_param_count_cpp`, pop, param_name)
 }
 
+min_param_count_cpp <- function(pop, param_name) {
+    .Call(`_RLCS_min_param_count_cpp`, pop, param_name)
+}
+

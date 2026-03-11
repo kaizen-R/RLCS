@@ -169,7 +169,7 @@ library(foreach)
 library(doParallel) ## could be mirai, this is just one example
 n_cores <- detectCores()
 ## More cores would only make sense with more data!
-run_par_count <- 4 # max(1, n_cores-1)
+run_par_count <- max(1, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 
@@ -182,7 +182,7 @@ mnist_hyperparameters_1 <- RLCS_hyperparameters(
   n_epochs = 50,
   deletion_trigger = 10,
   deletion_threshold = .9,
-  max_pop_size = 500
+  max_pop_size = 1000
 )
 
 mnist_hyperparameters_2 <- RLCS_hyperparameters(
@@ -194,7 +194,7 @@ mnist_hyperparameters_2 <- RLCS_hyperparameters(
   n_epochs = 4,
   deletion_trigger = 2,
   deletion_threshold = .9,
-  max_pop_size = 1000
+  max_pop_size = 1500
 )
 
 t_start_par <- Sys.time()
@@ -203,8 +203,8 @@ mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                     mnist_hyperparameters_1,
                                     n_agents=run_par_count,
                                     use_validation = T,
-                                    merge_best_n = 2,
-                                    second_evolution_iterations = 2,
+                                    merge_best_n = 4,
+                                    second_evolution_iterations = 3,
                                     second_evolution_run_params = mnist_hyperparameters_2)
 
 t_end_par <- Sys.time() ## Let's compare with single-core runtime:

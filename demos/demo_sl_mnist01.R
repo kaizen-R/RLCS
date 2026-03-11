@@ -176,7 +176,7 @@ t_start <- Sys.time()
 
 mnist01_classifier <- structure(list(), class="rlcs_population")
 for(i in 1:1) { ## Can be double pass for example, but still sequential
-  mnist01_classifier <- RLCS:::.rlcs_train_sl_env(train_mnist_bin01_49b,
+  mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                       mnist_hyperparameters,
                                       pre_trained_lcs = mnist01_classifier)
 }

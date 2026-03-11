@@ -12,7 +12,7 @@ rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5)
 ## For later:
 full_dataset <- cbind(iris, rlcs_iris$model)
 
-set.seed(123) ## Only for "reproducibility", as the algorithm is stochastic
+set.seed(1234) ## Only for "reproducibility", as the algorithm is stochastic
 ## Let's shuffle the data a bit:
 full_dataset <- full_dataset[sample(1:nrow(full_dataset), nrow(full_dataset), replace = F), ]
 # head(full_dataset, n=3)
@@ -32,8 +32,9 @@ iris_hyperparameters <- RLCS_hyperparameters(
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
   n_epochs = 800, ## Epochs to repeat process on train set
-  deletion_trigger = 80, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.95
+  deletion_trigger = 200, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.95,
+  max_pop_size = 650
 )
 
 ## Doubling process with intermediate cleanup
@@ -79,7 +80,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 4, 7)) {
+for(example in c(1, 3, 5)) {
   sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -103,8 +104,8 @@ head(print(iris_classifier), 10)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[4]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[7]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[3]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[5]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
