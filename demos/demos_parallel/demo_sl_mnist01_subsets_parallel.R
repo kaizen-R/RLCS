@@ -18,7 +18,8 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
   example_visual_m <- matrix(1-as.integer(example_visual_v), nrow=28, byrow = F)
 
   correct_class <- rlcs_predict_sl(test_env_df, pop, verbose=F)
-
+  if(correct_class %in% c("rlcs_doubt", "rlcs_no_match"))
+    return(correct_class)
   match_set <- get_match_set(test_env_df$state, pop)
   res_pos <- sapply(match_set, \(i) {
     if(pop[[i]]$action == correct_class) return(T)

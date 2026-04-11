@@ -18,7 +18,8 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
   example_visual_m <- matrix(1-as.integer(example_visual_v), nrow=28, byrow = F)
 
   correct_class <- rlcs_predict_sl(test_env_df, pop, verbose=F)
-
+  if(correct_class %in% c("rlcs_doubt", "rlcs_no_match"))
+    return(correct_class)
   match_set <- get_match_set(test_env_df$state, pop)
   res_pos <- sapply(match_set, \(i) {
     if(pop[[i]]$action == correct_class) return(T)
@@ -204,7 +205,7 @@ mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                     n_agents=run_par_count,
                                     use_validation = T,
                                     merge_best_n = 4,
-                                    second_evolution_iterations = 3,
+                                    second_evolution_iterations = 10,
                                     second_evolution_run_params = mnist_hyperparameters_2)
 
 t_end_par <- Sys.time() ## Let's compare with single-core runtime:
