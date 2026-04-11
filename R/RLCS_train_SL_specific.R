@@ -492,7 +492,7 @@
 
 
 
-    for(iter in 1:5) { ## Testing more covering for new niches?
+    for(iter in 1:3) { ## Testing more covering for new niches?
 
       cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                               run_params$get_wildcard_prob())
@@ -888,6 +888,12 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           message(print(lcs))
         }
       }
+
+      ## RE-shuffling population, just in case...
+      train_env_df <- train_env_df[sample(1:nrow(train_env_df),
+                                          nrow(train_env_df),
+                                          replace = F), ]
+
       cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
                       "| Epoch:", epoch,
                       "Progress Exposure:", (epoch)*size_env,

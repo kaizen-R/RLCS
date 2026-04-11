@@ -38,26 +38,27 @@ temp_seeds <- sample(1:1000, 5, replace = F)
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
-  rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.1,
+  rd_trigger = 18, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.2,
   parents_selection_mode <- "tournament",
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
   n_epochs = 800, ## Epochs to repeat process on train set
-  deletion_trigger = 80, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.95
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.95,
+  max_pop_size=800
 )
 ## We make it particularly... Short, this time, see next:
 iris_hyperparameters_1 <- RLCS_hyperparameters(
   wildcard_prob = 0.2, ## Probability that covering will choose a wildcard char
   rd_trigger = 10, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  mutation_probability = 0.4,
   parents_selection_mode <- "tournament",
   tournament_pressure = 10,
   ## Most important parameters to vary so far:
   n_epochs = 800, ## Epochs to repeat process on train set
   deletion_trigger = 200, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.95,
+  deletion_threshold = 0.98,
   max_pop_size=1000
 )
 ## Then make it faster
@@ -98,15 +99,15 @@ for(i in temp_seeds) {
 
   ## New: Validation subset, so that we can compare accuracy / F1 score...
   ## Of different agents, and then keep and consolidate each one.
-  # iris_classifier <- rlcs_train_sl(
-  #     train_environment,
-  #     run_params = iris_hyperparameters_1,
-  #     # pre_trained_lcs = iris_classifier,
-  #     verbose = FALSE,
-  #     n_agents = run_par_count, use_validation = T, merge_best_n = min(4, run_par_count),
-  #     second_evolution_iterations = 4,
-  #     second_evolution_run_params = iris_hyperparameters_2
-  #   )
+  iris_classifier <- rlcs_train_sl(
+      train_environment,
+      run_params = iris_hyperparameters_1,
+      # pre_trained_lcs = iris_classifier,
+      verbose = FALSE,
+      n_agents = run_par_count, use_validation = T, merge_best_n = min(4, run_par_count),
+      second_evolution_iterations = 4,
+      second_evolution_run_params = iris_hyperparameters_2
+    )
 
     # print(head(print(iris_classifier), 5))
 
@@ -117,13 +118,13 @@ for(i in temp_seeds) {
   # )
 
   # ## Not so simple?
-  iris_classifier <- rlcs_train_sl(train_environment,
-                                   iris_hyperparameters,
-                                   pre_trained_lcs = NULL,
-                                   n_agents=run_par_count,
-                                   use_validation=T,
-                                   merge_best_n = 3
-  )
+  # iris_classifier <- rlcs_train_sl(train_environment,
+  #                                  iris_hyperparameters,
+  #                                  pre_trained_lcs = NULL,
+  #                                  n_agents=run_par_count,
+  #                                  use_validation=T,
+  #                                  merge_best_n = 3
+  # )
   print(length(iris_classifier))
   ## Let's see how we could do testing:
   test_environment$predicted <- -1 ## Stands for not found

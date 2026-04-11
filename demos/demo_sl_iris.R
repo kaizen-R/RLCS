@@ -26,14 +26,14 @@ test_environment <- full_dataset[-train_set,]
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
-  rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.1,
+  rd_trigger = 15, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.2,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 6,
+  tournament_pressure = 4,
   ## Most important parameters to vary so far:
-  n_epochs = 1000, ## Epochs to repeat process on train set
-  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.97,
+  n_epochs = 600, ## Epochs to repeat process on train set
+  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.99,
   max_pop_size = 650
 )
 

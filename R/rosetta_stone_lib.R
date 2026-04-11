@@ -54,6 +54,8 @@
 #' head(rlcs_iris$model, n=3)
 rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
+  input_df <- as.data.frame(input_df)
+
   if(max_bits > 6) {
     print("Max bits encoding: 6, reverting to that.")
     max_bits <- 6
@@ -124,6 +126,8 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
   for(t_col in which(1:ncol(input_df) != class_col)) {
     x <- input_df[,t_col]
+    if(class(x) == "factor")
+      x <- as.numeric(x)
     if(is.numeric(x) || is.integer(x)) {
       nbits_Gray <- .split_nbits(unique(x))
       vecs_cuts <- .extract_cuts_and_sublists(x, min(nbits_Gray, max_bits))
