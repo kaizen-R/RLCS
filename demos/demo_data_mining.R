@@ -84,7 +84,7 @@ demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
   n_epochs = 20,
   deletion_trigger = 5)
-rlcs_model5 <- rlcs_train_sl(demo_env4, demo_params)
+rlcs_model5 <- rlcs_train_sl(demo_env5, demo_params)
 print(rlcs_model5)
 
 ## Plotting NULL is pointless... plot(rlcs_model4)
