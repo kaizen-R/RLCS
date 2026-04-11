@@ -489,19 +489,26 @@
   match_set <- .get_match_set_mat_env2(t_instance_vec, env)
   # browser()
   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
-    cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
+
+
+
+    for(iter in 1:5) { ## Testing more covering for new niches?
+
+      cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                               run_params$get_wildcard_prob())
 
-    if(!is.null(cover_rule)) {
-      # browser()
-      #env$lcs <-
-      .add_valid_rule_to_lcs_env(env, cover_rule,
-                                    t_instance$class, train_count)
+      if(!is.null(cover_rule)) {
+        # browser()
+        #env$lcs <-
+        .add_valid_rule_to_lcs_env(env, cover_rule,
+                                   t_instance$class, train_count)
 
-      # print("no match, added rule")
-      # print(lcs$pop)
+        # print("no match, added rule")
+        # print(lcs$pop)
+
+      }
       return(NULL)
-    }
+    } ## END TESTING MORE COVERING FOR NEW NICHES
   } else {
     # print("Matched")
     ## Faster to work with only match population until need to review overall population
@@ -585,9 +592,9 @@
                            deletion_limit = run_params$get_deletion_threshold(),
                            max_pop_size = run_params$get_max_pop_size())
 
-    print(paste("Epoch:", n_epoch,
-                "Progress Exposure:", train_count,
-                "Classifiers Count:", length(env$lcs$pop)))
+    # print(paste("Epoch:", n_epoch,
+    #             "Progress Exposure:", train_count,
+    #             "Classifiers Count:", length(env$lcs$pop)))
   }
 
   NULL
@@ -715,6 +722,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                                                               (epoch-1)*size_env+i, ## train_count
                                                               run_params)
           }
+
         }
 
         ## Sometimes, deletion removes all rules as none are good enough!
@@ -864,6 +872,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
     ## Expose algorithm to training set:
     for(epoch in 1:(run_params$get_n_epochs())) {
+
       for(i in 1:size_env) {
         ## Now this part of the algorithm is "necessarily" sequential...
         #lcs <-
@@ -879,6 +888,11 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           message(print(lcs))
         }
       }
+      cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
+                      "| Epoch:", epoch,
+                      "Progress Exposure:", (epoch)*size_env,
+                      "Classifiers Count:", length(lcs$pop), "   "
+                      ))
     }
     ##
     ## Final simplification: Coverage
@@ -890,6 +904,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   if(is.null(lcs$pop)) return(NULL)
   class(lcs) <- "rlcs"
 
+  print('')
   lcs
 }
 

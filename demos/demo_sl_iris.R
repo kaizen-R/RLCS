@@ -31,9 +31,9 @@ iris_hyperparameters <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 6,
   ## Most important parameters to vary so far:
-  n_epochs = 800, ## Epochs to repeat process on train set
-  deletion_trigger = 200, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.95,
+  n_epochs = 1000, ## Epochs to repeat process on train set
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.97,
   max_pop_size = 650
 )
 

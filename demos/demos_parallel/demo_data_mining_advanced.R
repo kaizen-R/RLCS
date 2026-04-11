@@ -56,8 +56,34 @@ print(paste("Parallel runtime:", t_stop_parallel-t_start_parallel))
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
 
+run_par_count <- max(1, n_cores-1)
+cluster <- makeCluster(run_par_count)
+registerDoParallel(cluster)
+demo_params_parallel <- RLCS_hyperparameters(
+  wildcard_prob = 0.3,
+  n_epochs = 200,
+  deletion_trigger = 20,
+  deletion_threshold = 0.99)
 
+demo_env <- rlcs_mux11()
 
+set.seed(12345) ## There is a possibility that an execution fails.
+## Detected in v0.1.6 and marked to be reworked.
+## Error is related to t_shuffle_set in train SL Specific #759
+t_start_parallel <- Sys.time()
+rlcs_model_parallel <- rlcs_train_sl(demo_env,
+                                     demo_params_parallel,
+                                     n_agents=run_par_count,
+                                     use_validation = T,
+                                     merge_best_n = min(2, run_par_count),
+                                     second_evolution_iterations = 3)
+t_stop_parallel <- Sys.time()
+
+stopCluster(cluster) ## Don't forget that :)
+
+print(paste("Parallel runtime:", t_stop_parallel-t_start_parallel))
+print(rlcs_model_parallel)
+plot(rlcs_model_parallel)
 
 #### CAREFUL WITH THIS DEMO: IT MODIFIES your installed packages.
 #### TESTED IN RStudio as restarting R is needed.

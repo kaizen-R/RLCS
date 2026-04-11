@@ -65,6 +65,37 @@ rlcs_mux6 <- function() {
   full_dataset
 }
 
+#' 11-bits multiplexer as example dataset
+#'
+#' This example show-cases Epistasis. A genetic concept, points
+#' to interactions between features.
+#'
+#' @returns A multiplexer dataset, with states (11-bits strings) and a class.
+#' @export
+rlcs_mux11 <- function() {
+  ## Modified from Help of intToBits()
+  bitI_11b <- function(x) vapply(as.integer(x), function(x) {
+    b <- substr(as.character(rev(intToBits(x))), 2L, 2L)
+    paste0(b[22:32], collapse = "")
+  }, "")
+
+  full_dataset <- data.frame(state = bitI_11b(0:2047), class = 0)
+
+  for(i in 1:nrow(full_dataset)) {
+    full_dataset$class[i] <- switch(substr(full_dataset$state[i], 1L, 3L),
+                                    '000' = substr(full_dataset$state[i], 4L, 4L),
+                                    '001' = substr(full_dataset$state[i], 5L, 5L),
+                                    '010' = substr(full_dataset$state[i], 6L, 6L),
+                                    '011' = substr(full_dataset$state[i], 7L, 7L),
+                                    '100' = substr(full_dataset$state[i], 8L, 8L),
+                                    '101' = substr(full_dataset$state[i], 9L, 9L),
+                                    '110' = substr(full_dataset$state[i], 10L, 10L),
+                                    '111' = substr(full_dataset$state[i], 11L, 11L)
+    )
+  }
+
+  full_dataset
+}
 
 #' A very simple demo dataset generator.
 #'

@@ -166,7 +166,8 @@ mnist_hyperparameters <- RLCS_hyperparameters(
   tournament_pressure = 5,
   n_epochs = 50,
   deletion_trigger = 10,
-  deletion_threshold = .9
+  deletion_threshold = .9,
+  max_pop_size = 1250
 )
 
 ######

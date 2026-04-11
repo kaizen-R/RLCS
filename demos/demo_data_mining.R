@@ -51,8 +51,8 @@ plot(rlcs_model2)
 ## Last example - SLOWER, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
-  n_epochs = 800,
-  deletion_trigger = 200,
+  n_epochs = 1000,
+  deletion_trigger = 20,
   deletion_threshold = 0.95)
 
 demo_env3 <- rlcs_mux6()
@@ -60,13 +60,22 @@ rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params)
 print(rlcs_model3)
 plot(rlcs_model3)
 
-## Impossible mining
-## This should return NULL instead of a model...
-demo_env4 <- data.frame(state=c("11", "11"), class=c(1,0))
+## Last example - SLOWER, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = 0.5,
-  n_epochs = 20,
-  deletion_trigger = 5)
+  wildcard_prob = .3,
+  rd_trigger = 15,
+  mutation_probability = .2,
+  n_epochs = 200,
+  deletion_trigger = 5,
+  deletion_threshold = 0.99,
+  max_pop_size = 600)
+
+demo_env4 <- rlcs_mux11()
 rlcs_model4 <- rlcs_train_sl(demo_env4, demo_params)
 print(rlcs_model4)
+plot(rlcs_model4)
+
+## Impossible mining
+## This should return NULL instead of a model...
+
 ## Plotting NULL is pointless... plot(rlcs_model4)
