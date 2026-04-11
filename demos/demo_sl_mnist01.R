@@ -22,6 +22,8 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
 
   correct_class <- rlcs_predict_sl(test_env_df, lcs, verbose=F)
 
+  if(correct_class %in% c("rlcs_doubt", "rlcs_no_match"))
+    return(correct_class)
   match_set <- get_match_set(test_env_df$state, lcs)
   res_pos <- sapply(match_set, \(i) {
     if(pop[[i]]$action == correct_class) return(T)
@@ -253,6 +255,7 @@ res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin0
 ## Example wrong classification. Note number of disagreeing rules, though...
 ## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
 disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[2],],
+types <- test_mnist_bin01_49b[disagreed,"predicted"]
+rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[which(types %in% c('0', '1'))][1],],
                                        mnist01_classifier)
 

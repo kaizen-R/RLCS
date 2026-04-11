@@ -61,8 +61,8 @@ cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 demo_params_parallel <- RLCS_hyperparameters(
   wildcard_prob = 0.3,
-  n_epochs = 200,
-  deletion_trigger = 20,
+  n_epochs = 100,
+  deletion_trigger = 5,
   deletion_threshold = 0.99)
 
 demo_env <- rlcs_mux11()
@@ -110,28 +110,20 @@ n_cores <- detectCores()
 run_par_count <- max(1, n_cores-1)
 cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
-
+demo_env <- rlcs_mux6()
+## Poor results here, taking the best of n agents, but with fast-bad parameters
 rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
                                      n_agents=run_par_count)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
 
-## Use a validation set, now.
+## Use a validation set, now. And selection of best agents, and iterations:
 rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
                                      n_agents=run_par_count,
-                                     use_validation=T)
+                                     use_validation=T,
+                                     merge_best_n = min(2, run_par_count),
+                                     second_evolution_iterations = 3)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
-
-# ## Impossible mining
-# ## This should return NULL instead of a model, parallel or not...
-demo_env4 <- data.frame(state=c("11", "11"), class=c(1,0))
-demo_params <- RLCS_hyperparameters(
-  wildcard_prob = 0.5,
-  n_epochs = 20,
-  deletion_trigger = 5)
-rlcs_model4 <- rlcs_train_sl(demo_env4, demo_params,
-                             n_agents=run_par_count)
-print(rlcs_model4)
 
 stopCluster(cluster) ## Don't forget that :)
