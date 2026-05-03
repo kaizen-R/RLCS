@@ -59,3 +59,28 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
 length(penguins_classifier$pop)
+
+head(print(penguins_classifier$pop))
+get_match_set(test_environment[1, "state"], penguins_classifier)
+penguins_classifier$pop[[get_match_set(test_environment[1, "state"], penguins_classifier)[1]]]
+
+for(example in c(1, 3, 5)) {
+  sample_result_set <- reverse_match_set(penguins_classifier$pop[[example]], full_dataset)
+  full_dataset$Match <- "No"
+  full_dataset$Match[sample_result_set] <- "Yes"
+
+  g <- ggplot(full_dataset) +
+    geom_point(aes(x=bill_length_mm,
+                   y=bill_depth_mm,
+                   # y=Petal.Width,
+                   colour = class,
+                   shape=factor(Match),
+                   alpha=.2,
+                   # fill=NA,
+                   size=.8)) +
+    theme_bw()
+  plot(g)
+  full_dataset$Match <- NULL
+}
+reverse_match_set(penguins_classifier$pop[[1]], full_dataset)
+rlcs_rosetta_decode_rule(penguins_classifier$pop[[1]], rlcs_penguins)

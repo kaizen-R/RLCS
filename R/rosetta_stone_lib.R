@@ -141,7 +141,8 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
         cuts = vecs_cuts$cut_points,
         vals = Gray_vals_final_vec,
         name = t_name,
-        nbits = nbits_Gray)
+        nbits = nbits_Gray,
+        factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(levels=levels(input_df[,t_col]), vals=as.numeric), NA))
       if(is.null(output_df)) {
         output_df <- data.frame(Gray_vals_final_vec)
         names(output_df) <- t_name
@@ -160,8 +161,9 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
   list(cuts=lapply(t_res, \(x) x$cuts),
        var_names = names(output_df)[grepl("^rlcs_.*$", names(output_df))],
-       model=output_df,
-       nbits=lapply(t_res, \(x) x$nbits))
+       model= output_df,
+       nbits= lapply(t_res, \(x) x$nbits),
+       factor_vals = lapply(t_res, \(x) x$factor_vals))
 }
 
 
@@ -218,10 +220,10 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
     if(length(candidates) == 2^tnbits) {
       print(paste(rosetta_stone_obj$var_names[i], "can take any value"))
     } else {
-      print(.Gray_strings)
+      #print(.Gray_strings)
       print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits_tcol, collapse="")))
-      print(rosetta_stone_obj$cuts[[i]])
-      print(candidates_pos)
+      #print(rosetta_stone_obj$cuts[[i]])
+      #print(candidates_pos)
     #
     #   if(all(candidates_pos == (candidates_pos[1]:candidates_pos[length(candidates_pos)]))) {
     #     text <- "-->"
@@ -243,9 +245,19 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
 
 
       sapply(candidates_pos, \(x) {
-        if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
-        if(x == 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[2^tnbits-1]))
-        if(1 < x && x < 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
+        if(is.na(rosetta_stone_obj$factor_vals[[i]])) {
+          if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "less than", t_cuts[1]))
+          if(x == 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "greater than", t_cuts[2^tnbits-1]))
+          if(1 < x && x < 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "between", t_cuts[x-1], "and", t_cuts[x]))
+        }
+
+        if(!is.na(rosetta_stone_obj$factor_vals[[i]])) {
+          t_vals <- 1:length(rosetta_stone_obj$factor_vals[[i]][[1]])
+          t_levels <- rosetta_stone_obj$factor_vals[[i]][[1]]
+          if(x == 1) print(paste(rosetta_stone_obj$var_names[i], "is", ))
+          if(x == 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "is", t_levels[which(t_vals >= t_cuts[2^tnbits-1])]))
+          if(1 < x && x < 2^tnbits) print(paste(rosetta_stone_obj$var_names[i], "is any of ", t_levels[which(t_vals >= t_cuts[1] && t_vals < t_cuts[2^tnbits-1])]))
+        }
       })
     }
   }
