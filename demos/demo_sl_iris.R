@@ -31,8 +31,8 @@ iris_hyperparameters <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 4,
   ## Most important parameters to vary so far:
-  n_epochs = 600, ## Epochs to repeat process on train set
-  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
+  n_epochs = 800, ## Epochs to repeat process on train set
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.99,
   max_pop_size = 650
 )
@@ -80,7 +80,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 3, 5)) {
+for(example in c(1, 2, 13)) {
   sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -100,12 +100,12 @@ for(example in c(1, 3, 5)) {
 }
 
 ## Sorted by accuracy and generality, the LCS first few rules are informative:
-head(print(iris_classifier), 10)
+head(print(iris_classifier), 20)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[3]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[5]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[13]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
@@ -114,6 +114,6 @@ test_environment[1,]
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
 # print(iris_classifier[[5]])
-rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
 rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
+# rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
 

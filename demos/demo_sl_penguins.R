@@ -1,5 +1,6 @@
 library(palmerpenguins)
 library(RLCS)
+library(ggplot2)
 plot(penguins, col=as.factor(penguins$species))
 rlcs_penguins <- rlcs_rosetta_stone(penguins[complete.cases(penguins),], class_col=1)
 
@@ -64,7 +65,7 @@ head(print(penguins_classifier$pop))
 get_match_set(test_environment[1, "state"], penguins_classifier)
 penguins_classifier$pop[[get_match_set(test_environment[1, "state"], penguins_classifier)[1]]]
 
-for(example in c(1, 3, 5)) {
+for(example in c(1, 3, 6)) {
   sample_result_set <- reverse_match_set(penguins_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -84,3 +85,5 @@ for(example in c(1, 3, 5)) {
 }
 reverse_match_set(penguins_classifier$pop[[1]], full_dataset)
 rlcs_rosetta_decode_rule(penguins_classifier$pop[[1]], rlcs_penguins)
+rlcs_rosetta_decode_rule(penguins_classifier$pop[[3]], rlcs_penguins)
+rlcs_rosetta_decode_rule(penguins_classifier$pop[[6]], rlcs_penguins)
