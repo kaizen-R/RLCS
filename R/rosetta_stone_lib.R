@@ -242,7 +242,7 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
       # print(paste(rosetta_stone_obj$var_names[i], "can take any value"))
     } else {
 
-      print("****")
+      cat("AND ")
       # print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits_tcol, collapse="")))
 
       if(is.na(rosetta_stone_obj$factor_vals[[i]])) {
@@ -318,8 +318,9 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
         tbits_tcol_0 <- paste(tbits_tcol, collapse="")
         t_levels <- rosetta_stone_obj$factor_vals[[i]][[1]]
         matching_positions <- which(sapply(rosetta_stone_obj$vals[[i]], these_2_match, tbits_tcol_0))
-        print(paste(rosetta_stone_obj$var_names[i], "is any of", paste(t_levels[matching_positions], collapse = ", ")))
+        cat(paste(rosetta_stone_obj$var_names[i], "is any of {", paste(t_levels[matching_positions], collapse = ", "), '} '))
       }
     }
   }
+  cat('\n')
 }
