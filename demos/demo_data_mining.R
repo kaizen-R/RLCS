@@ -8,8 +8,8 @@ print(demo_env1[sample_of_rows,], row.names = F)
 ## Tuning some hyper-parameters makes it faster:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = .5,
-  rd_trigger = 15,
-  mutation_probability = .2,
+  rd_trigger = 25,
+  mutation_probability = .1,
   tournament_pressure = 8,
   n_epochs = 90,
   deletion_trigger = 30,
@@ -18,6 +18,13 @@ demo_params <- RLCS_hyperparameters(
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL,
                              verbose = F)
+
+## NEW! You could use torch?
+## Testing, for now, actually... Not faster than CPU on Mac with MPS... :(
+rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
+                             pre_trained_lcs = NULL,
+                             verbose = F,
+                             use_gpu = T)
 print(rlcs_model1$pop)
 plot(rlcs_model1)
 
@@ -39,7 +46,8 @@ plot(rlcs_model2)
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = .4,
   rd_trigger = 25,
-  mutation_probability = .2,
+  mutation_probability = .1,
+  tournament_pressure = 8,
   n_epochs = 200,
   deletion_trigger = 10,
   deletion_threshold = 0.8,
@@ -63,10 +71,11 @@ plot(rlcs_model3)
 ## Last example - SLOWER, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = .3,
-  rd_trigger = 15,
-  mutation_probability = .2,
+  rd_trigger = 25,
+  mutation_probability = .1,
+  tournament_pressure = 8,
   n_epochs = 200,
-  deletion_trigger = 5,
+  deletion_trigger = 20,
   deletion_threshold = 0.99,
   max_pop_size = 600)
 
@@ -77,8 +86,6 @@ plot(rlcs_model4)
 
 ## Impossible mining
 ## This should return NULL instead of a model...
-# ## Impossible mining
-# ## This should return NULL instead of a model, parallel or not...
 demo_env5 <- data.frame(state=c("11", "11"), class=c(1,0))
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,

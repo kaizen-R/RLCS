@@ -126,7 +126,8 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
   for(t_col in which(1:ncol(input_df) != class_col)) {
     x <- input_df[,t_col]
-    if(class(x) == "factor")
+    # if(class(x) == "factor")
+    if(is.factor(x))
       x <- as.numeric(x)
     if(is.numeric(x) || is.integer(x)) {
       nbits_Gray <- .split_nbits(unique(x))
@@ -210,7 +211,7 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
     tbits_tcol <- tbits[(total_bits_covered+1):(total_bits_covered + tnbits)]
 
     total_bits_covered <- total_bits_covered + tnbits
-    .Gray_strings <- RLCS:::.Gray_strings(tnbits)
+    .Gray_strings <- .Gray_strings(tnbits)
 
 
     t_cuts <- rosetta_stone_obj$cuts[[i]]

@@ -26,15 +26,15 @@ test_environment <- full_dataset[-train_set,]
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
-  rd_trigger = 15, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  rd_trigger = 25, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.1,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 4,
+  tournament_pressure = 8,
   ## Most important parameters to vary so far:
   n_epochs = 800, ## Epochs to repeat process on train set
   deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.99,
-  max_pop_size = 650
+  max_pop_size = 250
 )
 
 ## Doubling process with intermediate cleanup
@@ -43,7 +43,8 @@ t_start <- Sys.time()
 ## This here is the training. That's all there is to it!
 iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters,
-                              pre_trained_lcs = NULL)
+                              pre_trained_lcs = NULL,
+                              use_gpu = T)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
 # ## (IF you're willing to accept the cost on Accuracy...)

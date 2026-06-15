@@ -15,7 +15,8 @@ rlcs_train_sl(
   merge_best_n = 0,
   second_evolution_iterations = 1,
   second_evolution_run_params = NULL,
-  max_pop_size_parallel = 10000
+  max_pop_size_parallel = 10000,
+  use_gpu = F
 )
 }
 \arguments{
@@ -61,6 +62,9 @@ second (and more) era(s) can be used to push more generalization.}
 
 \item{max_pop_size_parallel}{Defaults to 10000. OPTIONAL. ONLY USED if foreach and doParallel are available
 Applies as last step: additional deletion to contain population sizes after merging.}
+
+\item{use_gpu}{Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
+Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

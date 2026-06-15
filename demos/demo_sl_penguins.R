@@ -20,16 +20,16 @@ test_environment <- full_dataset[-train_set,]
 
 ## Hyperparameters are key for performance of RLCS:
 penguins_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = 0.2, ## Probability that covering will choose a wildcard char
-  rd_trigger = 15, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
+  rd_trigger = 25, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.1,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 4,
+  tournament_pressure = 8,
   ## Most important parameters to vary so far:
-  n_epochs = 600, ## Epochs to repeat process on train set
-  deletion_trigger = 20, ## Number of epochs in between subsumption & deletion
+  n_epochs = 800, ## Epochs to repeat process on train set
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.99,
-  max_pop_size = 650
+  max_pop_size = 250
 )
 
 ## Doubling process with intermediate cleanup
@@ -60,6 +60,7 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
 length(penguins_classifier$pop)
+plot(penguins_classifier)
 
 head(print(penguins_classifier$pop))
 get_match_set(test_environment[1, "state"], penguins_classifier)

@@ -11,6 +11,18 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.1.7
+
+Version v0.1.7 is all about adding support for GPUs through the torch package.
+
+Default usage is still through GPU, but if use_gpu is set to TRUE, you can try
+to use torch with cuda or mps (Mac ARM) if available, which also falls back onto
+CPU.
+
+However one of the tests doesn't pass anymore, the null case, to be fixed.
+
+
+
 ## v0.1.6
 
 Version v0.1.6 implements new RCpp functions and most importantly also now uses

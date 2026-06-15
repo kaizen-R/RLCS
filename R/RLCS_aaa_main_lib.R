@@ -99,6 +99,20 @@
 .recalculate_pop_matrices <- function(pop) {
   zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
   ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
+
+  list(zeros_matrix, ones_matrix)
+}
+
+.recalculate_pop_matrices_env <- function(pop, env) {
+  zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
+  ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
+  # print(zeros_matrix)
+  if(env$use_gpu & length(zeros_matrix) > 0) zeros_tensor <- torch::torch_tensor(zeros_matrix, dtype = torch::torch_uint8(), device=env$gpu_type)
+  if(env$use_gpu & length(ones_matrix) > 0) ones_tensor <- torch::torch_tensor(ones_matrix, dtype = torch::torch_uint8(), device=env$gpu_type)
+  if(env$use_gpu & length(zeros_matrix) > 0 & length(ones_matrix) > 0)
+    return(list(zeros_matrix, ones_matrix,
+                zeros_tensor, ones_tensor))
+
   list(zeros_matrix, ones_matrix)
 }
 
@@ -114,6 +128,27 @@
 
   zeros_matrix <- rbind(t_matrices[[1]], zeros_vector)
   ones_matrix <- rbind(t_matrices[[2]], ones_vector)
+
+  list(zeros_matrix, ones_matrix)
+}
+
+.recalculate_pop_matrices_new_rule_env <- function(t_matrices, condition_string, env) {
+  ## I just want to add a row to either matrices!!
+  t_cond <- strsplit(condition_string, "", fixed=T)[[1]]
+
+  zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
+  which_zeros <- which(t_cond == "0")
+  which_ones <- which(t_cond == "1")
+  zeros_vector[which_zeros] <- 1
+  ones_vector[which_ones] <- 1
+
+  zeros_matrix <- rbind(t_matrices[[1]], zeros_vector)
+  ones_matrix <- rbind(t_matrices[[2]], ones_vector)
+
+  if(env$use_gpu)
+    return(list(zeros_matrix, ones_matrix,
+                torch::torch_tensor(zeros_matrix, dtype = torch::torch_uint8(), device=env$gpu_type),
+                torch::torch_tensor(ones_matrix, dtype = torch::torch_uint8(), device=env$gpu_type)))
 
   list(zeros_matrix, ones_matrix)
 }
@@ -216,7 +251,8 @@
 
   if(is.null(env$lcs$pop) || length(env$lcs$pop) == 0) {
     env$lcs$pop <- structure(list(t_rule), class = "rlcs_population")
-    env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
+    # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
+    env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
     env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
     env$lcs$actions_vec <- .recalculate_actions_vec(env$lcs$pop)
     return(NULL)
@@ -238,7 +274,8 @@
   # ## In RL, we could use this to prefer directions which look new.
 
   # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
-  env$lcs$matrices <- .recalculate_pop_matrices_new_rule(env$lcs$matrices, condition_string)
+  # env$lcs$matrices <- .recalculate_pop_matrices_new_rule(env$lcs$matrices, condition_string)
+  env$lcs$matrices <- .recalculate_pop_matrices_new_rule_env(env$lcs$matrices, condition_string, env)
   env$lcs$lengths <- c(env$lcs$lengths, t_rule$length_fixed_bits)#.lengths_fixed_bits(env$lcs$pop)
   env$lcs$actions_vec <- .recalculate_actions_vec_new_rule(env$lcs$actions_vec, action)
 
@@ -338,9 +375,18 @@
     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
 
     ## Matrices approach!
-    match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
-                          env$lcs$matrices[[2]] %*% ti_cond) ==
-                         env$lcs$lengths)
+
+    if(env$use_gpu & requireNamespace("torch", quietly=T)) {
+      print("Use Torch!")
+      match_set <- which((torch::torch_matmul(env$lcs$matrices[[1]], (1-ti_cond)) +
+                            torch::torch_matmul(env$lcs$matrices[[2]], ti_cond)) ==
+                           env$lcs$lengths)
+    } else {
+      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+                            env$lcs$matrices[[2]] %*% ti_cond) ==
+                           env$lcs$lengths)
+    }
+
     if(length(match_set) > 0)
       return(match_set)
   }
@@ -352,9 +398,18 @@
   if(length(env$lcs$pop) > 0) {
     # Only part relevant for matching
     ## Matrices approach!
-    match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+    if(env$use_gpu) {
+      # print("Use Torch!")
+      match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
+                                                             torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
+                                      torch::torch_matmul(env$lcs$matrices[[4]],
+                                                          torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
+                           env$lcs$lengths)
+    } else {
+      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
                           env$lcs$matrices[[2]] %*% ti_cond) ==
                          env$lcs$lengths)
+    }
     if(length(match_set) > 0)
       return(match_set)
   }
@@ -471,6 +526,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
   env$lcs$pop <- structure(env$lcs$pop, class = "rlcs_population")
 }
+
 ## Bad: Old doesn't mean it should be discarded.
 # keep_only_newer_individuals <- function(pop, first_seen_threshold, accuracy=1) {
 #
