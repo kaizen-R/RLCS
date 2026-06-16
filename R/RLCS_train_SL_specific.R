@@ -887,6 +887,12 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           sub_lcs <- lcs
           lcs <- sub_lcs
 
+          if(use_gpu & requireNamespace("torch", quietly=T)) {
+            library(torch)
+            use_gpu <- use_gpu
+            gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+          }
+
           for(epoch in 1:(run_params$get_n_epochs())) {
             for(i in 1:size_env) {
               #lcs <-
