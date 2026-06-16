@@ -764,6 +764,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   ## Initialization:
   lcs <- .new_rlcs()
   .validate_SL_train_df(train_env_df)
+  backup_gpu_flag <- use_gpu
   if(use_gpu & requireNamespace("torch", quietly=T)) {
     use_gpu <- use_gpu
     gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
@@ -857,6 +858,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       print(length(lcs$pop))
       # lcs <- .apply_deletion_sl(lcs, max_pop_size = max_pop_size_parallel)
       # return(lcs)
+
     } else {
       for(second_evol_iter in 1:second_evolution_iterations) {
 
@@ -864,7 +866,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           run_params <- second_evolution_run_params
 
         print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
-        `%dopar%` <- foreach::`%dopar%`
+        # `%dopar%` <- foreach::`%dopar%`
 
         # browser()
         if(use_validation) {
@@ -872,6 +874,14 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           sub_train_environment <- train_env_df[-validation_set,]
         } else {
           sub_train_environment <- train_env_df
+        }
+
+
+        use_gpu <- backup_gpu_flag
+        if(use_gpu & requireNamespace("torch", quietly=T)) {
+          library(torch)
+          use_gpu <- use_gpu
+          gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
         }
 
         agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
@@ -949,6 +959,13 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
         print(unlist(agents_quality))
 
+        use_gpu <- backup_gpu_flag
+        if(use_gpu & requireNamespace("torch", quietly=T)) {
+          library(torch)
+          use_gpu <- use_gpu
+          gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+        }
+
         if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
 
           best_agents <- order(unlist(agents_quality), decreasing = TRUE)[1:merge_best_n]
@@ -974,7 +991,12 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
           print(best_agent)
           lcs <- agents[[best_agent]]
+          # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+          lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
+          lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
+          lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
         }
+        # browser()
 
         # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
       }
