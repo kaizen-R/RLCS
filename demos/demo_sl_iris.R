@@ -43,8 +43,7 @@ t_start <- Sys.time()
 ## This here is the training. That's all there is to it!
 iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters,
-                              pre_trained_lcs = NULL,
-                              use_gpu = T)
+                              pre_trained_lcs = NULL)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
 # ## (IF you're willing to accept the cost on Accuracy...)

@@ -795,7 +795,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
     if(split_horizontal) {
 
-      agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
+      agents <- foreach::foreach(i = 1:n_agents
+                                 # , .export = c("use_gpu", "train_env_df", "n_agents", "lcs", "run_params")
+                                 ) %dopar% { ## Train N agents
 
         sets_size <- floor(nrow(train_env_df) / n_agents)
         sub_start <- (i-1)*sets_size+1
@@ -809,6 +811,15 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
         sub_lcs <- lcs
         lcs <- sub_lcs
         # sub_lcs <- lcs
+
+        if(use_gpu & requireNamespace("torch", quietly=T)) {
+          library(torch)
+          use_gpu <- use_gpu
+          gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+        }
+
+
+        # use_gpu <- FALSE
 
         for(epoch in 1:(run_params$get_n_epochs())) {
           for(i in 1:size_env) {

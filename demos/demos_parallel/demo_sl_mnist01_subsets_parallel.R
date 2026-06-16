@@ -171,14 +171,14 @@ registerDoParallel(cluster)
 library(RLCS)
 ## Seeding is the same as above, for results comparison.
 set.seed(12345)
-# train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
-# train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
-# test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
+train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
+train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
+test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
 
-# ## IF YOU HAVE LOTS OF CPU Cores... You could try this:
-train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.25*nrow(mnist_bin01_49b)), replace = F)
-train_mnist_bin01_49b <- mnist_bin01_49b[train_set,] ## !!TRAIN << TEST!!
-test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,]
+# # ## IF YOU HAVE LOTS OF CPU Cores... You could try this:
+# train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.25*nrow(mnist_bin01_49b)), replace = F)
+# train_mnist_bin01_49b <- mnist_bin01_49b[train_set,] ## !!TRAIN << TEST!!
+# test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,]
 
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
@@ -201,7 +201,8 @@ mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                         mnist_hyperparameters,
                                         n_agents = run_par_count,
                                         split_horizontal = T,
-                                        max_pop_size_parallel = 800) ## NEW!
+                                        max_pop_size_parallel = 800,
+                                        use_gpu = T) ## NEW!
 
 
 # mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
