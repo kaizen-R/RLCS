@@ -26,15 +26,15 @@ test_environment <- full_dataset[-train_set,]
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
-  rd_trigger = 25, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.1,
+  rd_trigger = 20, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.2,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 8,
+  tournament_pressure = 10,
   ## Most important parameters to vary so far:
-  n_epochs = 800, ## Epochs to repeat process on train set
-  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
-  deletion_threshold = 0.99,
-  max_pop_size = 250
+  n_epochs = 500, ## Epochs to repeat process on train set
+  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.95,
+  max_pop_size = 600
 )
 
 ## Doubling process with intermediate cleanup
@@ -42,8 +42,7 @@ t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
 iris_classifier <- rlcs_train_sl(train_environment,
-                              iris_hyperparameters,
-                              pre_trained_lcs = NULL)
+                              iris_hyperparameters)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
 # ## (IF you're willing to accept the cost on Accuracy...)
@@ -80,7 +79,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 2, 13)) {
+for(example in c(1, 4, 8)) {
   sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -104,16 +103,13 @@ head(print(iris_classifier), 20)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[13]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[4]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[8]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION
 test_environment[1,]
-
 get_match_set(test_environment[1, "state"], iris_classifier)
 ## Use 1 of the matches, then:
-# print(iris_classifier[[5]])
-rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
-# rlcs_rosetta_decode_rule(iris_classifier$pop[[2]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
 

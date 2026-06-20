@@ -8,7 +8,6 @@ rlcs_train_sl(
   train_env_df,
   run_params = RLCS_hyperparameters(),
   pre_trained_lcs = NULL,
-  verbose = FALSE,
   n_agents = 0,
   split_horizontal = F,
   use_validation = F,
@@ -27,8 +26,6 @@ such as: "00110101". This is a requirement for the current RLCS implementation.}
 \item{run_params}{An RLCS_hyperparameters object, for which an object construction is provided.}
 
 \item{pre_trained_lcs}{Optional. Can be used to EVOLVE a pre-trained LCS.}
-
-\item{verbose}{Default is FALSE. I strongly suggest you do not use that parameter.}
 
 \item{n_agents}{Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
 IF available, a number of parallel cores, as indicated PRIOR to calling RLCS

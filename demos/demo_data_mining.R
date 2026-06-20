@@ -7,23 +7,26 @@ print(demo_env1[sample_of_rows,], row.names = F)
 ## Defaults will work but make things quite slow...
 ## Tuning some hyper-parameters makes it faster:
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = .5,
-  rd_trigger = 25,
-  mutation_probability = .1,
+  wildcard_prob = .2,
+  rd_trigger = 20,
+  mutation_probability = .2,
   tournament_pressure = 8,
-  n_epochs = 90,
+  n_epochs = 150,
   deletion_trigger = 30,
   deletion_threshold = 0.95)
 
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
-                             pre_trained_lcs = NULL,
-                             verbose = F)
+                             pre_trained_lcs = NULL)
+print(rlcs_model1$pop)
+
+
+
 
 ## NEW! You could use torch?
-## Testing, for now, actually... Not faster than CPU on Mac with MPS... :(
+## Testing, for now, actually...
+## Not faster than CPU on Mac M1 with MPS... :(
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL,
-                             verbose = F,
                              use_gpu = T)
 print(rlcs_model1$pop)
 plot(rlcs_model1)
@@ -86,6 +89,10 @@ plot(rlcs_model4)
 
 ## Impossible mining
 ## This should return NULL instead of a model...
+rlcs_train_sl(data.frame(state=c("11", "11"), class=c(1,0)),
+              RLCS_hyperparameters(wildcard_prob=0.1,
+                                   n_epochs = 50, deletion_trigger = 10,
+                                   deletion_threshold=.999))
 demo_env5 <- data.frame(state=c("11", "11"), class=c(1,0))
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
@@ -93,5 +100,4 @@ demo_params <- RLCS_hyperparameters(
   deletion_trigger = 5)
 rlcs_model5 <- rlcs_train_sl(demo_env5, demo_params)
 print(rlcs_model5)
-
-## Plotting NULL is pointless... plot(rlcs_model4)
+## Plotting NULL is pointless... plot(rlcs_model5)

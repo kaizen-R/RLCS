@@ -291,7 +291,6 @@
 
   function(pop) {
     inc_param_count_cpp(pop, f_param)
-    # print(str(inc_param_count_cpp(pop, f_param)))
 
     # res <- lapply(pop, \(x) {
     #   x[[param]] <- x[[param]] + 1
@@ -417,6 +416,36 @@
   NULL ## implicit return
 }
 
+## Idea: Do matching once, multiple env at a time, how would that go?
+.get_match_set_mat_env3 <- function(ti_conds, env) {
+  if(length(env$lcs$pop) > 0) {
+    # Only part relevant for matching
+    ## Matrices approach!
+    # if(env$use_gpu) {
+    #   # print("Use Torch!")
+    #   match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
+    #                                                          torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
+    #                                        torch::torch_matmul(env$lcs$matrices[[4]],
+    #                                                            torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
+    #                        env$lcs$lengths)
+    # } else {
+      match_sets <- lapply(ti_conds, \(ti_cond) {
+        which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+                 env$lcs$matrices[[2]] %*% ti_cond) ==
+                env$lcs$lengths)
+      })
+    # }
+    # if(length(match_set) > 0)
+    #   return(match_set)
+    if(any(sapply(match_sets, length) > 0)) return(match_sets)
+
+      NULL
+  }
+
+  NULL ## implicit return
+}
+
+
 #' Get the subset of a Population of Classifiers that matches a given State
 #'
 #' @param instance_state A state from the RLCS environment
@@ -468,7 +497,6 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   NULL ## implicit return
 }
 
-
 .reverse_match_set_size <- function(pop, rlcs_environment) {
   # print(pop)
   match_sets_lengths <- c()
@@ -508,7 +536,6 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
   structure(pop, class = "rlcs_population")
 }
-
 
 .apply_deletion_no_threshold_env <- function(env) {
 

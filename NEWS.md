@@ -19,8 +19,8 @@ Default usage is still through GPU, but if use_gpu is set to TRUE, you can try
 to use torch with cuda or mps (Mac ARM) if available, which also falls back onto
 CPU.
 
-However one of the tests doesn't pass anymore, the null case, to be fixed.
-
+And clearly on M1, using torch is slower. Probably due to passing of data onto
+torch-compatible tensor.
 
 
 ## v0.1.6
