@@ -4,9 +4,11 @@
 ## Slowly replacing functions with hidden functions (.<name>)...
 
 .inc_correct_count <- .inc_param_count("correct_count") ## Factory
+
 .inc_correct_count_env <- function(env) {
   inc_param_count_cpp(env$correct_pop, "correct_count")
 }
+
 .mean_correct_count <- function(pop) {
   # sum(sapply(pop, \(x) x$correct_count)) / length(pop)
   sum(vapply(pop, \(x) x$correct_count, numeric(1))) / length(pop)
@@ -14,11 +16,14 @@
 
 .mean_match_count <- function(pop) {
   # experienced_classifiers <- which(
-  #   sapply(pop, \(x) {
-  #     if(x$match_count > 5)
-  #       return(T)
-  #     return(F)
-  #   })
+    ## sapply(pop, \(x) {
+    ##   if(x$match_count > 5)
+    ##     return(T)
+    ##   return(F)
+    ## })
+    # sapply(pop, \(x) {
+    #   (x$match_count > 5)
+    # })
   # )
   # sum(sapply(pop[experienced_classifiers], \(x) x$match_count)) / length(pop[experienced_classifiers])
   # sum(sapply(pop, \(x) x$match_count)) / length(pop)
@@ -29,16 +34,9 @@
   min(vapply(pop, \(x) x$correct_count, numeric(1)))
 }
 
-# .min_correct_count_env <- function(env) {
-  # min(vapply(env$correct_pop, \(x) x$correct_count, numeric(1)))
-# }
-# .min_correct_count_env <- function(env) {
-#   min(vapply(env$correct_pop, \(x) x[[7]], numeric(1)))
-# }
 .min_correct_count_env <- function(env) {
   min_param_count_cpp(env$correct_pop, "correct_count")
 }
-
 
 .min_match_count <- function(pop) {
   min(vapply(pop, \(x) x$match_count, numeric(1)))
@@ -68,7 +66,6 @@
   }
   NULL ## implicit return
 }
-
 
 ## KEY function:
 ## Classifiers are better or worse. CHOOSING THE BEST ones is important
@@ -468,6 +465,8 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   if(requireNamespace("foreach", quietly=T) & requireNamespace("doParallel", quietly=T) &
      n_agents > 1 & split_horizontal) { ## NEW! Parallel processing support
 
+    `%dopar%` <- foreach::`%dopar%` ## not required anymore?
+
     agents <- foreach::foreach(i = 1:n_agents # , .export = c("use_gpu", "train_env_df", "n_agents", "lcs", "run_params")
     ) %dopar% { ## Train N agents
 
@@ -484,9 +483,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       lcs <- lcs ## Calling implicitly parent environment value here
 
       if(use_gpu & requireNamespace("torch", quietly=T)) {
-        library(torch)
-        use_gpu <- use_gpu
-        gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+        # library(torch)
+        use_gpu <- use_gpu; gpu_type <- gpu_type;
+        # gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
       }
 
       for(epoch in 1:(run_params$get_n_epochs())) {
@@ -521,8 +520,11 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
     print(length(lcs$pop))
 
-    return(lcs)
+    return(lcs) ## End here
   }
+
+
+
 
   ##
   ## Case 2: Parallel, but not horizontal input data split.
@@ -532,13 +534,22 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   ## epochs.
   if(requireNamespace("foreach", quietly=T) & requireNamespace("doParallel", quietly=T) &
      n_agents > 1) {
+
+    use_gpu <- backup_gpu_flag
+    if(use_gpu & requireNamespace("torch", quietly=T)) {
+      # library(torch)
+      use_gpu <- use_gpu
+      gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+    }
+
+    `%dopar%` <- foreach::`%dopar%` ## not required anymore?
+
     for(second_evol_iter in 1:second_evolution_iterations) {
 
       if(second_evol_iter > 1 && !is.null(second_evolution_run_params))
         run_params <- second_evolution_run_params
 
       print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
-      # `%dopar%` <- foreach::`%dopar%` ## not required anymore?
 
       # browser()
       if(use_validation) {
@@ -546,10 +557,10 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
         sub_train_environment <- train_env_df[-validation_set,]
       } else { sub_train_environment <- train_env_df }
 
-
-      use_gpu <- backup_gpu_flag
-
-      agents <- foreach::foreach(i = 1:n_agents) %dopar% { ## Train N agents
+      agents <- foreach::foreach(i = 1:n_agents
+                                 #, .export = c("use_gpu")
+                                 , .packages = c("torch")
+                                 ) %dopar% { ## Train N agents
 
         t_shuffle_set <- sample(1:nrow(sub_train_environment),
                                 nrow(sub_train_environment),
@@ -559,14 +570,19 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
         library(RLCS) ## Assuming you've gotten the package installed by now...
 
         size_env <- nrow(sub_train_environment)
-        # sub_lcs <- lcs ; lcs <- sub_lcs
-        lcs <- lcs ## Calling implicitly parent environment value here
+        sub_lcs <- lcs ; lcs <- sub_lcs
+        # lcs <- lcs ## Calling implicitly parent environment value here
 
-        if(use_gpu & requireNamespace("torch", quietly=T)) {
-          library(torch)
-          use_gpu <- use_gpu
+        if(backup_gpu_flag & requireNamespace("torch", quietly=T)) {
+          # library(torch)
+          use_gpu <- NULL
+          use_gpu <- backup_gpu_flag
           gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
         }
+
+        lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
+        lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
+        lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
         for(epoch in 1:(run_params$get_n_epochs())) {
           for(i in 1:size_env) {
@@ -624,12 +640,12 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
       print(unlist(agents_quality))
 
-      # use_gpu <- backup_gpu_flag
-      if(use_gpu & requireNamespace("torch", quietly=T)) {
-        library(torch)
-        use_gpu <- use_gpu
-        gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
-      }
+      # # use_gpu <- backup_gpu_flag
+      # if(use_gpu & requireNamespace("torch", quietly=T)) {
+      #   library(torch)
+      #   use_gpu <- use_gpu
+      #   gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+      # }
 
       if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
 
@@ -646,7 +662,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           }
         }
 
-        compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
+        # compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
         lcs$pop <- compacted_classifier
         # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
         lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
@@ -664,6 +680,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
       # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
     }
+
+
+
     lcs$pop <- .apply_subsumption_whole_pop_sl(lcs$pop)
     # .apply_subsumption_whole_pop_sl_env(environment())
     print(length(lcs$pop))
@@ -671,7 +690,12 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     .apply_deletion_sl_env(environment(), max_pop_size = max_pop_size_parallel)
     # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
     print(length(lcs$pop))
+
+    return(lcs) ## End here
   }
+
+
+
 
   ##
   ## Case 3: Default: single-core, full data, basic processing:
@@ -721,6 +745,14 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
 
 ####----
+
+# .min_correct_count_env <- function(env) {
+# min(vapply(env$correct_pop, \(x) x$correct_count, numeric(1)))
+# }
+# .min_correct_count_env <- function(env) {
+#   min(vapply(env$correct_pop, \(x) x[[7]], numeric(1)))
+# }
+
 # .apply_deletion_sl <- function(lcs, deletion_limit = 0.6, max_pop_size = 10000) {
 #
 #   lcs$pop <- lapply(lcs$pop, \(x) {

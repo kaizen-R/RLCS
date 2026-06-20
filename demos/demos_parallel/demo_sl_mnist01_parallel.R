@@ -150,7 +150,7 @@ print_mnist_number_49b(mnist_string = mnist_bin01_49b[1, "state"])
 ## Let's train a model on our demo simplified-MNIST dataset:
 set.seed(12345)
 train_set <- sample(1:nrow(mnist_bin01_49b),size = round(0.7*nrow(mnist_bin01_49b)), replace = F)
-train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:400],] ## REDUX: 800 samples!
+train_mnist_bin01_49b <- mnist_bin01_49b[train_set[1:800],] ## REDUX: 800 samples!
 test_mnist_bin01_49b <- mnist_bin01_49b[-train_set,] ## REDUX: 30% of total!
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 
@@ -203,11 +203,13 @@ t_start_par <- Sys.time()
 mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                     mnist_hyperparameters_1,
                                     n_agents=run_par_count,
+                                    # n_agents=2,
                                     use_validation = T,
                                     merge_best_n = 4,
-                                    second_evolution_iterations = 3,
-                                    second_evolution_run_params = mnist_hyperparameters_2,
-                                    use_gpu = T)
+                                    second_evolution_iterations = 2,
+                                    second_evolution_run_params = mnist_hyperparameters_2
+                                    , use_gpu = T
+                                    )
 
 t_end_par <- Sys.time() ## Let's compare with single-core runtime:
 print(t_end_par - t_start_par)

@@ -197,13 +197,18 @@ mnist_hyperparameters <- RLCS_hyperparameters(
   deletion_threshold = .9
 ) ## Same a single-core run, only to compare speed
 
+# mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
+#                                         mnist_hyperparameters,
+#                                         n_agents = run_par_count,
+#                                         split_horizontal = T,
+#                                         max_pop_size_parallel = 800) ## NEW!
+
 mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                         mnist_hyperparameters,
                                         n_agents = run_par_count,
                                         split_horizontal = T,
                                         max_pop_size_parallel = 800,
                                         use_gpu = T) ## NEW!
-
 
 # mnist01_par_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
 #                                         pre_trained_lcs = mnist01_par_classifier,
