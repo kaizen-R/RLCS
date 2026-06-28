@@ -242,6 +242,7 @@
 }
 
 .rlcs_train_one_instance_one_epoch_mat_env <- function(env,
+                                                       sample_pos,
                                                    t_instance,
                                                    size_env, ## Used for Subsumption Freq.
                                                    n_epoch, ## Used for Subsumption Freq.
@@ -256,8 +257,9 @@
   if(env$use_gpu) { use_gpu <- env$use_gpu; gpu_type <- env$gpu_type }
 
   ## ADD ERROR CONTROL
-  t_instance_state <- t_instance$state
-  t_instance_vec <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+  t_instance_state <- env$environment_states[sample_pos] ## this is a vector
+  t_instance_vec <- env$environment_conds[[sample_pos]] ## this is a list
+  t_instance_class <- env$environment_classes[sample_pos]
 
   # match_set <- .get_match_set_mat(t_instance_state, env$lcs)
   # match_set <- .get_match_set_mat_env(t_instance_state, env)
@@ -270,7 +272,7 @@
                                                     run_params$get_wildcard_prob())
       if(!is.null(cover_rule)) {
         .add_valid_rule_to_lcs_env(env, cover_rule,
-                                   t_instance$class,
+                                   t_instance_class,
                                    train_count)
       }
 
@@ -286,14 +288,14 @@
   match_pop <- .inc_match_count_env(environment())
 
   # correct_set <- .get_correct_set(t_instance, match_pop)
-  correct_set <- .get_correct_set_env(t_instance$class, env, match_set)
+  correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
 
   if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                               run_params$get_wildcard_prob())
     if(!is.null(cover_rule)) {
       #env$lcs <-
-      .add_valid_rule_to_lcs_env(env, cover_rule, t_instance$class, train_count)
+      .add_valid_rule_to_lcs_env(env, cover_rule, t_instance_class, train_count)
     }
   }
   else {
@@ -322,7 +324,7 @@
           correct_pop <- .inc_numerosity(correct_pop)
         else {
           #env$lcs <-
-          .add_valid_rule_to_lcs_env(env, child, t_instance$class, train_count)
+          .add_valid_rule_to_lcs_env(env, child, t_instance_class, train_count)
         }
       }
     }
@@ -436,6 +438,8 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
 
+
+
   ## Initialization:
   lcs <- .new_rlcs()
   ## Re-training, or "online" updates
@@ -455,9 +459,18 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1))
   lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
-  ## Shuffling population, just in case...
-  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
-  train_env_df <- train_env_df[shuffle_indexes, ]
+  # ## Shuffling population, just in case...
+  # shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+  # train_env_df <- train_env_df[shuffle_indexes, ]
+  # environment_conds <- lapply(1:nrow(train_env_df), \(i) {
+  #   t_instance <- train_env_df[i, ]
+  #   ## ADD ERROR CONTROL
+  #   t_instance_state <- t_instance$state
+  #   ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+  #   ti_cond
+  # })
+  # environment_states <- train_env_df$state
+  # environment_classes <- train_env_df$class
 
   ##
   ## Case 1: Parallel agents, each with a part of horizontal input data split.
@@ -473,7 +486,23 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       sets_size <- floor(nrow(train_env_df) / n_agents)
       sub_start <- (i-1)*sets_size+1
       sub_end <- i*sets_size
+
+      ## Shuffling population, just in case...
+      shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+      train_env_df <- train_env_df[shuffle_indexes, ]
       sub_df <- train_env_df[sub_start:sub_end,]
+      environment_conds <- lapply(1:nrow(sub_df), \(i) {
+        t_instance <- sub_df[i, ]
+        ## ADD ERROR CONTROL
+        t_instance_state <- t_instance$state
+        ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+        ti_cond
+      })
+      environment_states <- sub_df$state
+      environment_classes <- sub_df$class
+
+
+
       t_classes_counts <- table(sub_df$class) ## For Coverage!!
 
       library(RLCS) ## Assuming you've gotten the package installed by now...
@@ -492,6 +521,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
         for(i in 1:size_env) {
           #lcs <-
           .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+                                                     i,
                                                      sub_df[i, ],
                                                      size_env,
                                                      epoch,
@@ -551,6 +581,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
       print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
 
+      ## Shuffling population, just in case...
+      shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+      train_env_df <- train_env_df[shuffle_indexes, ]
       # browser()
       if(use_validation) {
         validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
@@ -566,6 +599,16 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                                 nrow(sub_train_environment),
                                 replace = F)
         sub_train_environment_shuffle <- sub_train_environment[t_shuffle_set, ]
+        environment_conds <- lapply(1:nrow(sub_train_environment_shuffle), \(i) {
+          t_instance <- sub_train_environment_shuffle[i, ]
+          ## ADD ERROR CONTROL
+          t_instance_state <- t_instance$state
+          ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+          ti_cond
+        })
+        environment_states <- sub_train_environment_shuffle$state
+        environment_classes <- sub_train_environment_shuffle$class
+
         # t_classes_counts <- table(sub_train_environment_shuffle$class) ## For Coverage!!
         library(RLCS) ## Assuming you've gotten the package installed by now...
 
@@ -588,6 +631,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
           for(i in 1:size_env) {
             #lcs <-
             .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+                                                       i,
                                                        sub_train_environment_shuffle[i, ],
                                                        size_env,
                                                        epoch,
@@ -702,6 +746,18 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   ##
   print("Running single-core/thread, sequential")
   size_env <- nrow(train_env_df)
+  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+  train_env_df <- train_env_df[shuffle_indexes, ]
+  environment_conds <- lapply(1:size_env, \(i) {
+    t_instance <- train_env_df[i, ]
+    ## ADD ERROR CONTROL
+    t_instance_state <- t_instance$state
+    ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+    ti_cond
+  })
+  environment_states <- train_env_df$state
+  environment_classes <- train_env_df$class
+
   t_classes_counts <- table(train_env_df$class) ## For Coverage!!
 
   ## Expose algorithm to training set:
@@ -711,6 +767,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       ## Now this part of the algorithm is "necessarily" sequential...
       #lcs <-
       .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+                                                 i,
                                                  train_env_df[i, ],
                                                  size_env,
                                                  epoch,
@@ -722,6 +779,328 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     train_env_df <- train_env_df[sample(1:nrow(train_env_df),
                                         nrow(train_env_df),
                                         replace = F), ]
+    environment_conds <- lapply(1:size_env, \(i) {
+      t_instance <- train_env_df[i, ]
+      ## ADD ERROR CONTROL
+      t_instance_state <- t_instance$state
+      ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+      ti_cond
+    })
+    environment_states <- train_env_df$state
+    environment_classes <- train_env_df$class
+
+    cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
+                    "| Epoch:", epoch,
+                    "Progress Exposure:", (epoch)*size_env,
+                    "Classifiers Count:", length(lcs$pop), "   "
+    ))
+  }
+
+  ## Final simplification: Coverage
+  # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
+  lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
+
+  ## Sometimes, deletion removes all rules as none are good enough!
+  if(is.null(lcs$pop)) return(NULL)
+  class(lcs) <- "rlcs"
+
+  cat('\n')
+  lcs
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+####----
+
+## Working on new version to make things somehow faster, although this will
+## require some validation for sure...
+
+.rlcs_train_one_instance_one_epoch_mat_env_v2 <- function(env,
+                                                       sample_pos,
+                                                       size_env, ## Used for Subsumption Freq.
+                                                       n_epoch, ## Used for Subsumption Freq.
+                                                       train_count, ## train_count
+                                                       run_params ## Algorithm Hyperparameters
+) {
+  ######
+  ## Main process for R LCS Training
+  ######
+
+  ## Do we want to try using torch?
+  if(env$use_gpu) { use_gpu <- env$use_gpu; gpu_type <- env$gpu_type }
+
+  t_instance <- env$train_env_df[sample_pos, ]
+
+  ## ADD ERROR CONTROL
+  t_instance_state <- env$environment_states[sample_pos]
+  # t_instance_vec <- env$environment_conds[[sample_pos]]
+  t_instance_vec <- env$environment_conds_mat[, sample_pos]
+  t_instance_class <- env$environment_classes[sample_pos]
+
+  # match_set <- .get_match_set_mat(t_instance_state, env$lcs)
+  # match_set <- .get_match_set_mat_env(t_instance_state, env)
+  if(sample_pos %% 2 != 1) {
+    match_set <- .get_match_set_mat_env2(t_instance_vec, env)
+  } else {
+    # match_set <- .get_match_set_mat_env2(t_instance_vec, env)
+    res_match_set <- .get_match_set_mat_env3(sample_pos, env, train_count)
+    if(is.null(res_match_set)) {
+      return(NULL)
+    }
+    if(length(res_match_set) == 0) return(NULL)
+
+
+    # if(is.na(res_match_set[1])) return(NULL)
+    # print(res_match_set)
+    # print(sample_pos)
+    #
+    # if(!(sample_pos %in% res_match_set)) {
+    #   return(NULL)
+    # }
+
+    # print("********")
+    # print(sample_pos)
+    # print(t_instance)
+    # print(t_instance_state)
+    # print(t_instance_vec)
+    # print(res_match_set)
+    # print(env$lcs$pop)
+
+
+    match_set <- res_match_set ## for backward compatibility of rest of function.
+
+  }
+  # print("Matched")
+  ## Faster to work with only match population until need to review overall population
+  # match_pop <- .inc_match_count(env$lcs$pop[c(match_set)])
+  # match_pop <- .inc_match_count_env(env, match_set)
+  match_pop <- env$lcs$pop[c(match_set)]
+
+  # print(env$train_env_df[sample_pos, ])
+  # print(match_pop)
+  # print('--------')
+  match_pop <- .inc_match_count_env(environment())
+
+  # correct_set <- .get_correct_set(t_instance, match_pop)
+  correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+
+  if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
+    cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
+                                                              run_params$get_wildcard_prob())
+    if(!is.null(cover_rule)) {
+      #env$lcs <-
+      .add_valid_rule_to_lcs_env(env, cover_rule, t_instance_class, train_count)
+    }
+  }
+  else {
+    correct_pop <- match_pop[c(correct_set)]
+    correct_pop <- .inc_correct_count_env(environment())
+
+    ## *Second* Rule Discovery HAPPENS HERE NOW
+    ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
+    # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if((.min_correct_count(correct_pop) %% run_params$rd_trigger) == 0) {
+    # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    if((.min_correct_count_env(environment()) %% run_params$rd_trigger) == 0) {
+
+      ## The GA, basically, happens here: Cross-over & Mutation:
+      # print("Triggered Mutation")
+      children <- correct_pop |>
+        .cross_over_parents_strings_sl(run_params$get_sel_mode(),
+                                       run_params$get_tournament_pressure()) |>
+        sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob())
+
+      ## In some cases, we have only one child.
+      for(child in children) {
+        if(.found_same_condition(correct_pop, child)) ## Duplicate rule
+          correct_pop <- .inc_numerosity(correct_pop)
+        else {
+          #env$lcs <-
+          .add_valid_rule_to_lcs_env(env, child, t_instance_class, train_count)
+        }
+      }
+    }
+    match_pop[c(correct_set)] <- correct_pop
+  }
+
+  ## Update Matched Population statistics into main population
+  # env$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+  .update_matched_accuracy_env(environment())
+  env$lcs$pop[c(match_set)] <- match_pop
+
+  # ## NEW: More rule-discovery
+  # ## OK, matched, correct set, but what if there is not enough correctset?
+  # if(length(correct_set) < 2) { ## COVERING enforced
+  #   cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
+  #                                                             run_params$get_wildcard_prob())
+  #   if(!is.null(cover_rule)) {
+  #     # lcs <- .add_valid_rule_to_lcs(lcs, cover_rule,
+  #     #                               t_instance$class, train_count)
+  #     .add_valid_rule_to_lcs_env(env, cover_rule, t_instance$class, train_count)
+  #   }
+  # }
+
+  ## Apply Deletion by reducing numerosity
+  if((train_count %% (run_params$deletion_trigger*size_env)) == 0) {
+    ## Subsumption is too important to skip, for speed reasons.
+    env$lcs$pop <- .apply_subsumption_whole_pop_sl(env$lcs$pop)
+
+    .apply_deletion_sl_env(env,
+                           deletion_limit = run_params$get_deletion_threshold(),
+                           max_pop_size = run_params$get_max_pop_size())
+  }
+
+  NULL
+}
+
+#' Train a Learning Classifier System (LCS).
+#'
+#' @param train_env_df
+#' A data frame containing, specifically, one "state" and one
+#' "class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+#' such as: "00110101". This is a requirement for the current RLCS implementation.
+#' @param run_params
+#' An RLCS_hyperparameters object, for which an object construction is provided.
+#' @param pre_trained_lcs
+#' Optional. Can be used to EVOLVE a pre-trained LCS.
+#' @param n_agents
+#' Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
+#' IF available, a number of parallel cores, as indicated PRIOR to calling RLCS
+#' like so: makeCluster() registerDoParallel()
+#' then RLCS will train n_agents in parallel.
+#' @param split_horizontal
+#' Defaults to FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
+#' WARNING: If used, EXCLUDES OTHER Parallelizing options!!
+#' Splits evenly across N agents (N number of cores/threads) the input dataset.
+#' Then trains N agents, and then merges the resulting data.
+#' This can potentially speed-up the process, but will probably over-fit for each
+#' subset, hence probably reducing overall model accuracy.
+#' @param use_validation
+#' Default is FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
+#' When training several models in parallel, this parameter modifies selection of best
+#' one by running a test in a validation set of 10 percent of samples, which is
+#' first removed from the training set.
+#' @param merge_best_n
+#' Default is 0. OPTIONAL.ONLY USED if foreach and doParallel are available.
+#' Choose to merge and compact the best n (1 < n < n_agents) of your parallelly trained
+#' agents. This includes a compaction previous to returning results, but will most
+#' probably return a larger population as a trade-off for expecting better accuracy.
+#' @param second_evolution_iterations
+#' Defaults to 1. OPTIONAL.ONLY USED if foreach and doParallel are available and
+#' used. On top of the above, it will run a second "era", whereby only best agents
+#' are surviving and competing again, only to then be merged.
+#' @param second_evolution_run_params
+#' Defaults to NULL. OPTIONAL. ONLY USED if second_evolution_iterations is bigger
+#' than 1. The idea here is that after a slower, more exploratory first era, a
+#' second (and more) era(s) can be used to push more generalization.
+#' @param max_pop_size_parallel
+#' Defaults to 10000. OPTIONAL. ONLY USED if foreach and doParallel are available
+#' Applies as last step: additional deletion to contain population sizes after merging.
+#' @param use_gpu
+#' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
+#' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
+#' @export
+#'
+#' @examples
+#' ## Generate running hyperparameters
+#' demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+#' ## One demo dataset for data mining scenario
+#' demo_env1 <- rlcs_demo_secret1()
+#' ## Try to see for yourself what the dataset hides:
+#' demo_env1
+#' ## Generate the model with RLCS:
+#' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model)
+#' plot(rlcs_model)
+rlcs_train_sl_v2 <- function(train_env_df, run_params = RLCS_hyperparameters(),
+                          pre_trained_lcs = NULL,
+                          n_agents = 0,
+                          split_horizontal = F, ## That is but one option!
+                          use_validation=F,
+                          merge_best_n = 0,
+                          second_evolution_iterations = 1,
+                          second_evolution_run_params = NULL,
+                          max_pop_size_parallel = 10000,
+                          use_gpu = F) {
+
+  ## Basic input controls:
+  .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
+  ## TODO Add Running Params Checks here... Use decorators!
+
+  ## Shuffling population, just in case...
+  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+  train_env_df <- train_env_df[shuffle_indexes, ]
+
+  environment_conds <- sapply(1:nrow(train_env_df), \(i) {
+    t_instance <- train_env_df[i, ]
+    ## ADD ERROR CONTROL
+    t_instance_state <- t_instance$state
+    ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
+    ti_cond
+  })
+  environment_conds_mat <- matrix(as.integer(unlist(strsplit(train_env_df$state, "", fixed = T))), byrow=F, ncol=nrow(train_env_df))
+  environment_states <- train_env_df$state
+  environment_classes <- train_env_df$class
+
+  ## Initialization:
+  lcs <- .new_rlcs()
+  ## Re-training, or "online" updates
+  if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## For torch use:
+  backup_gpu_flag <- use_gpu
+  if(use_gpu & requireNamespace("torch", quietly=T)) {
+    use_gpu <- use_gpu
+    gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+  }
+
+
+  ## Using matrices for matching is much faster:
+  # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+  lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment())
+  lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1))
+  lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
+
+  ##
+  ## Case 3: Default: single-core, full data, basic processing:
+  ##
+  print("Running single-core/thread, sequential")
+  size_env <- nrow(train_env_df)
+  t_classes_counts <- table(train_env_df$class) ## For Coverage!!
+
+  ## Expose algorithm to training set:
+  for(epoch in 1:(run_params$get_n_epochs())) {
+
+    for(sample_pos in 1:size_env) {
+      ## Now this part of the algorithm is "necessarily" sequential...
+      #lcs <-
+      .rlcs_train_one_instance_one_epoch_mat_env_v2(environment(),
+                                                 sample_pos,
+                                                 size_env,
+                                                 epoch,
+                                                 (epoch-1)*size_env+sample_pos, ## train_count
+                                                 run_params)
+    }
+
+    # ## RE-shuffling population, just in case...
+    # train_env_df <- train_env_df[sample(1:nrow(train_env_df),
+    #                                     nrow(train_env_df),
+    #                                     replace = F), ]
 
     cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
                     "| Epoch:", epoch,

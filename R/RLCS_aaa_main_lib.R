@@ -416,33 +416,80 @@
   NULL ## implicit return
 }
 
-## Idea: Do matching once, multiple env at a time, how would that go?
-.get_match_set_mat_env3 <- function(ti_conds, env) {
-  if(length(env$lcs$pop) > 0) {
-    # Only part relevant for matching
-    ## Matrices approach!
-    # if(env$use_gpu) {
-    #   # print("Use Torch!")
-    #   match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
-    #                                                          torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
-    #                                        torch::torch_matmul(env$lcs$matrices[[4]],
-    #                                                            torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
-    #                        env$lcs$lengths)
-    # } else {
-      match_sets <- lapply(ti_conds, \(ti_cond) {
-        which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
-                 env$lcs$matrices[[2]] %*% ti_cond) ==
-                env$lcs$lengths)
-      })
-    # }
-    # if(length(match_set) > 0)
-    #   return(match_set)
-    if(any(sapply(match_sets, length) > 0)) return(match_sets)
+## Idea: Do matching once, multiple env samples at a time, how would that go?
+.get_match_set_mat_env3 <- function(sample_pos, env, train_count) {
 
-      NULL
+  env_subset_pos <- sample_pos:min(nrow(env$train_env_df), sample_pos+1)
+  ti_conds <- env$environment_conds_mat[, env_subset_pos]
+
+  # print(sample_pos)
+
+  match_sets <- NULL
+
+  if(length(env$lcs$pop) == 0) {
+    cover_rule <-
+      .generate_cover_rule_for_unmatched_instance(env$environment_states[sample_pos],
+                                                  env$run_params$get_wildcard_prob())
+    if(!is.null(cover_rule)) {
+      .add_valid_rule_to_lcs_env(env, cover_rule,
+                                 env$environment_classes[sample_pos],
+                                 train_count)
+    }
+    return(NULL)
   }
 
-  NULL ## implicit return
+  # Only part relevant for matching
+  # # Matrices approach!
+  match_sets_vals <- matrix((env$lcs$matrices[[1]] %*% (1-ti_conds) +
+                              env$lcs$matrices[[2]] %*% ti_conds),
+                            byrow=F, ncol=nrow(env$lcs$matrices[[1]]))
+  match_sets_matrix <- which(match_sets_vals == env$lcs$lengths, arr.ind=T)
+  match_sets <- unique(match_sets_matrix[,1])
+  # browser()
+
+  # if(is.null(match_sets) | length(match_sets) == 0) {
+  #   message("Cover needed")
+  #   cover_rule <-
+  #     .generate_cover_rule_for_unmatched_instance(env$environment_states[sample_pos],
+  #                                                 env$run_params$get_wildcard_prob())
+  #   if(!is.null(cover_rule)) {
+  #     .add_valid_rule_to_lcs_env(env, cover_rule,
+  #                                env$environment_classes[sample_pos],
+  #                                train_count)
+  #   }
+  #   return(NULL)
+  # }
+
+  # %% nrow(env$lcs$matrices[[1]])
+
+  # print(env_subset_pos[-match_sets])
+  if(is.null(match_sets) | length(match_sets) == 0) {
+    match_env_subset_pos <- env_subset_pos
+  } else {
+    match_env_subset_pos <- env_subset_pos[-match_sets]
+  }
+
+  lapply(match_env_subset_pos,
+         \(i) {
+           cover_rule <-
+             .generate_cover_rule_for_unmatched_instance(env$environment_states[i],
+                                                         env$run_params$get_wildcard_prob())
+           if(!is.null(cover_rule)) {
+             .add_valid_rule_to_lcs_env(env, cover_rule,
+                                        env$environment_classes[i],
+                                        train_count)
+             NULL
+           }
+         })
+
+  # browser()
+
+  if(length(match_env_subset_pos) > 0)
+    if(match_env_subset_pos[1] == sample_pos)
+      return(NULL)
+
+  as.integer(match_sets_matrix[which(match_sets_matrix[,1] == 1), 2])
+  # env_subset_pos[match_sets] ## Returning positions matching!
 }
 
 

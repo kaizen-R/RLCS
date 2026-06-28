@@ -46,9 +46,9 @@ rlcs_model_parallel <- rlcs_train_sl(demo_env,
                                      demo_params_parallel,
                                      n_agents=run_par_count,
                                      use_validation = T,
-                                     # merge_best_n = min(4, run_par_count),
-                                     # second_evolution_iterations = 2,
-                                     use_gpu = T
+                                     merge_best_n = min(4, run_par_count),
+                                     second_evolution_iterations = 2
+                                     # use_gpu = T
                                      )
 t_stop_parallel <- Sys.time()
 
