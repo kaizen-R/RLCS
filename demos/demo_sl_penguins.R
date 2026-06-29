@@ -62,11 +62,11 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 length(penguins_classifier$pop)
 plot(penguins_classifier)
 
-head(print(penguins_classifier$pop))
+head(print(penguins_classifier$pop), 100)
 get_match_set(test_environment[1, "state"], penguins_classifier)
 penguins_classifier$pop[[get_match_set(test_environment[1, "state"], penguins_classifier)[1]]]
 
-for(example in c(1, 3, 6)) {
+for(example in c(1, 9, 78)) {
   sample_result_set <- reverse_match_set(penguins_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -86,5 +86,5 @@ for(example in c(1, 3, 6)) {
 }
 reverse_match_set(penguins_classifier$pop[[1]], full_dataset)
 rlcs_rosetta_decode_rule(penguins_classifier$pop[[1]], rlcs_penguins)
-rlcs_rosetta_decode_rule(penguins_classifier$pop[[3]], rlcs_penguins)
-rlcs_rosetta_decode_rule(penguins_classifier$pop[[6]], rlcs_penguins)
+rlcs_rosetta_decode_rule(penguins_classifier$pop[[9]], rlcs_penguins)
+rlcs_rosetta_decode_rule(penguins_classifier$pop[[78]], rlcs_penguins)

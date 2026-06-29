@@ -258,7 +258,8 @@
 
   ## ADD ERROR CONTROL
   t_instance_state <- env$environment_states[sample_pos] ## this is a vector
-  t_instance_vec <- env$environment_conds[[sample_pos]] ## this is a list
+  # t_instance_vec <- env$environment_conds[[sample_pos]] ## this is a list
+  t_instance_vec <- env$environment_conds_mat[, sample_pos] ## matrix version better?
   t_instance_class <- env$environment_classes[sample_pos]
 
   # match_set <- .get_match_set_mat(t_instance_state, env$lcs)
@@ -438,8 +439,6 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
 
-
-
   ## Initialization:
   lcs <- .new_rlcs()
   ## Re-training, or "online" updates
@@ -458,19 +457,6 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment())
   lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1))
   lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
-
-  # ## Shuffling population, just in case...
-  # shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
-  # train_env_df <- train_env_df[shuffle_indexes, ]
-  # environment_conds <- lapply(1:nrow(train_env_df), \(i) {
-  #   t_instance <- train_env_df[i, ]
-  #   ## ADD ERROR CONTROL
-  #   t_instance_state <- t_instance$state
-  #   ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
-  #   ti_cond
-  # })
-  # environment_states <- train_env_df$state
-  # environment_classes <- train_env_df$class
 
   ##
   ## Case 1: Parallel agents, each with a part of horizontal input data split.
@@ -491,30 +477,20 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
       train_env_df <- train_env_df[shuffle_indexes, ]
       sub_df <- train_env_df[sub_start:sub_end,]
-      environment_conds <- lapply(1:nrow(sub_df), \(i) {
-        t_instance <- sub_df[i, ]
-        ## ADD ERROR CONTROL
-        t_instance_state <- t_instance$state
-        ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
-        ti_cond
-      })
+      environment_conds_mat <- sapply(strsplit(sub_df$state, "", fixed = T), \(x) as.integer(x))
       environment_states <- sub_df$state
       environment_classes <- sub_df$class
 
-
-
-      t_classes_counts <- table(sub_df$class) ## For Coverage!!
+      t_classes_counts <- table(sub_df$class) ## For Coverage - pending use
 
       library(RLCS) ## Assuming you've gotten the package installed by now...
 
       size_env <- nrow(sub_df)
-      # sub_lcs <- lcs ; lcs <- sub_lcs
-      lcs <- lcs ## Calling implicitly parent environment value here
+      sub_lcs <- lcs ; lcs <- sub_lcs
+      # lcs <- lcs ## Calling implicitly parent environment value here
 
       if(use_gpu & requireNamespace("torch", quietly=T)) {
-        # library(torch)
         use_gpu <- use_gpu; gpu_type <- gpu_type;
-        # gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
       }
 
       for(epoch in 1:(run_params$get_n_epochs())) {
@@ -567,9 +543,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
     use_gpu <- backup_gpu_flag
     if(use_gpu & requireNamespace("torch", quietly=T)) {
-      # library(torch)
-      use_gpu <- use_gpu
-      gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+      use_gpu <- use_gpu; gpu_type <- gpu_type;
+      # use_gpu <- use_gpu
+      # gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
     }
 
     `%dopar%` <- foreach::`%dopar%` ## not required anymore?
@@ -582,9 +558,9 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       print(paste("Using foreach() %dopar% to train up to", n_agents, "parallel agents."))
 
       ## Shuffling population, just in case...
-      shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
-      train_env_df <- train_env_df[shuffle_indexes, ]
-      # browser()
+      # shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+      # train_env_df <- train_env_df[shuffle_indexes, ]
+
       if(use_validation) {
         validation_set <- sample(1:nrow(train_env_df), max(round(.1*nrow(train_env_df)), 1), replace = F)
         sub_train_environment <- train_env_df[-validation_set,]
@@ -599,29 +575,20 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                                 nrow(sub_train_environment),
                                 replace = F)
         sub_train_environment_shuffle <- sub_train_environment[t_shuffle_set, ]
-        environment_conds <- lapply(1:nrow(sub_train_environment_shuffle), \(i) {
-          t_instance <- sub_train_environment_shuffle[i, ]
-          ## ADD ERROR CONTROL
-          t_instance_state <- t_instance$state
-          ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
-          ti_cond
-        })
+        environment_conds_mat <- sapply(strsplit(sub_train_environment_shuffle$state, "", fixed = T), \(x) as.integer(x))
         environment_states <- sub_train_environment_shuffle$state
         environment_classes <- sub_train_environment_shuffle$class
 
-        # t_classes_counts <- table(sub_train_environment_shuffle$class) ## For Coverage!!
         library(RLCS) ## Assuming you've gotten the package installed by now...
 
-        size_env <- nrow(sub_train_environment)
-        sub_lcs <- lcs ; lcs <- sub_lcs
-        # lcs <- lcs ## Calling implicitly parent environment value here
-
         if(backup_gpu_flag & requireNamespace("torch", quietly=T)) {
-          # library(torch)
           use_gpu <- NULL
           use_gpu <- backup_gpu_flag
           gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
         }
+
+        size_env <- nrow(sub_train_environment)
+        sub_lcs <- lcs ; lcs <- sub_lcs
 
         lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
         lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
@@ -638,8 +605,6 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                                                        (epoch-1)*size_env+i, ## train_count
                                                        run_params)
           }
-
-
         }
         ## Sometimes, deletion removes all rules as none are good enough!
         if(is.null(lcs)) return(NULL)
@@ -684,22 +649,14 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
       print(unlist(agents_quality))
 
-      # # use_gpu <- backup_gpu_flag
-      # if(use_gpu & requireNamespace("torch", quietly=T)) {
-      #   library(torch)
-      #   use_gpu <- use_gpu
-      #   gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
-      # }
-
       if((merge_best_n > 1) & (merge_best_n <= n_agents)) {
-
         best_agents <- order(unlist(agents_quality), decreasing = TRUE)[1:merge_best_n]
         print(best_agents)
 
         ## Recollect all sub-lcs
         compacted_classifier <- list()
         agents <- agents[best_agents]
-        # t_start_1 <- Sys.time()
+
         for(j in 1:length(agents)) {
           for(k in 1:length(agents[[j]]$pop)) {
             compacted_classifier[[length(compacted_classifier)+1]] <- agents[[j]]$pop[[k]]
@@ -708,24 +665,22 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
         # compacted_classifier <- .apply_subsumption_whole_pop_sl(compacted_classifier)
         lcs$pop <- compacted_classifier
-        # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
-        lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
-        lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
-        lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
+        # # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+        # lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
+        # lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
+        # lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
       } else {
         best_agent <- order(unlist(agents_quality), decreasing = TRUE)[1]
         print(best_agent)
         lcs <- agents[[best_agent]]
-        # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
-        lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
-        lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
-        lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
       }
+      # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+      lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
+      lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
+      lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
       # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
     }
-
-
 
     lcs$pop <- .apply_subsumption_whole_pop_sl(lcs$pop)
     # .apply_subsumption_whole_pop_sl_env(environment())
@@ -748,13 +703,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   size_env <- nrow(train_env_df)
   shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
   train_env_df <- train_env_df[shuffle_indexes, ]
-  environment_conds <- lapply(1:size_env, \(i) {
-    t_instance <- train_env_df[i, ]
-    ## ADD ERROR CONTROL
-    t_instance_state <- t_instance$state
-    ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
-    ti_cond
-  })
+  environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
   environment_states <- train_env_df$state
   environment_classes <- train_env_df$class
 
@@ -762,7 +711,6 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
 
   ## Expose algorithm to training set:
   for(epoch in 1:(run_params$get_n_epochs())) {
-
     for(i in 1:size_env) {
       ## Now this part of the algorithm is "necessarily" sequential...
       #lcs <-
@@ -779,13 +727,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     train_env_df <- train_env_df[sample(1:nrow(train_env_df),
                                         nrow(train_env_df),
                                         replace = F), ]
-    environment_conds <- lapply(1:size_env, \(i) {
-      t_instance <- train_env_df[i, ]
-      ## ADD ERROR CONTROL
-      t_instance_state <- t_instance$state
-      ti_cond <- as.integer(strsplit(t_instance_state, "", fixed = T)[[1]])
-      ti_cond
-    })
+    environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
     environment_states <- train_env_df$state
     environment_classes <- train_env_df$class
 

@@ -18,9 +18,7 @@ demo_params <- RLCS_hyperparameters(
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
 print(rlcs_model1$pop)
-
-
-
+rlcs_not_bit_4_10()
 
 ## NEW! You could use torch?
 ## Testing, for now, actually...
@@ -34,6 +32,29 @@ plot(rlcs_model1)
 ## Which rule of the model would match the following "state"?
 get_match_set("00101", rlcs_model1)
 rlcs_predict_sl(data.frame(state="00101", class="1", predicted=-1), rlcs_model1)
+
+demo_env1b <- rlcs_not_bit_4_10()
+sample_of_rows <- sample(1:nrow(demo_env1b), 10, replace=F)
+print(demo_env1b[sample_of_rows,], row.names = F)
+
+## Defaults will work but make things quite slow...
+## Tuning some hyper-parameters makes it faster:
+demo_params <- RLCS_hyperparameters(
+  wildcard_prob = .2,
+  rd_trigger = 20,
+  mutation_probability = .2,
+  tournament_pressure = 8,
+  n_epochs = 15,
+  deletion_trigger = 5,
+  deletion_threshold = 0.95)
+
+t_start <- Sys.time()
+rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params,
+                             pre_trained_lcs = NULL)
+cat('execution time for data mining:', Sys.time()-t_start, '\n')
+print(rlcs_model1b$pop)
+
+
 
 ## Let's try a second example:
 demo_env2 <- rlcs_demo_secret2()

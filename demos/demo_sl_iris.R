@@ -12,29 +12,30 @@ rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5)
 ## For later:
 full_dataset <- cbind(iris, rlcs_iris$model)
 
-set.seed(1234) ## Only for "reproducibility", as the algorithm is stochastic
+set.seed(123) ## Only for "reproducibility", as the algorithm is stochastic
 ## Let's shuffle the data a bit:
 full_dataset <- full_dataset[sample(1:nrow(full_dataset), nrow(full_dataset), replace = F), ]
 # head(full_dataset, n=3)
 
 ## Train-test separation:
-train_set <- sample(1:nrow(full_dataset),size = round(0.8*nrow(full_dataset)), replace = F)
+train_set <- sample(1:nrow(full_dataset), size = round(0.8*nrow(full_dataset)), replace = F)
+# train_set <- sample(1:nrow(full_dataset), size = 127, replace = F)
 train_environment <- full_dataset[train_set,]
 test_environment <- full_dataset[-train_set,]
 # head(test_environment, n=3)
 
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
+  wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
   rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  mutation_probability = 0.25,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 10,
+  tournament_pressure = 8,
   ## Most important parameters to vary so far:
-  n_epochs = 500, ## Epochs to repeat process on train set
-  deletion_trigger = 50, ## Number of epochs in between subsumption & deletion
+  n_epochs = 800, ## Epochs to repeat process on train set
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.95,
-  max_pop_size = 600
+  max_pop_size = 10000
 )
 
 ## Doubling process with intermediate cleanup
@@ -44,13 +45,6 @@ t_start <- Sys.time()
 iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters)
 
-# ## SECRET TRICK: You can keep only the best rules of your model.
-# ## (IF you're willing to accept the cost on Accuracy...)
-# iris_classifier <- RLCS:::.apply_deletion_sl(
-#   iris_classifier,
-#   deletion_limit = 0.99,
-#   max_pop_size = 400)
-
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 
@@ -58,7 +52,7 @@ print(t_end - t_start) ## Training Runtime.
 test_environment$predicted <- -1 ## Stands for not found
 test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier, verbose=F)
 
-head(test_environment)
+# head(test_environment)
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
@@ -79,7 +73,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 4, 8)) {
+for(example in c(1, 3, 4)) {
   sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -103,8 +97,8 @@ head(print(iris_classifier), 20)
 
 ## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
 rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier$pop[[3]], rlcs_iris)
 rlcs_rosetta_decode_rule(iris_classifier$pop[[4]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[8]], rlcs_iris)
 
 
 ## DECODING RESULTS FOR INTERPRETATION

@@ -13,6 +13,12 @@
   full_dataset
 }
 
+#' 10 bits as example dataset
+#'
+#' This example show-cases longer chains, simple info.
+#'
+#' @returns A demo dataset with bit 4 negated as predicted class.
+#' @export
 rlcs_not_bit_4_10 <- function() {
   ## Modified from Help of intToBits()
   bitI_10b <- function(x) vapply(as.integer(x), function(x) {

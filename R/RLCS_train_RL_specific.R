@@ -120,7 +120,7 @@
   pop
 }
 
-.apply_deletion_rl <- function(lcs, deletion_limit = 0.0, max_pop_size = 10000) {
+.apply_deletion_rl <- function(lcs, deletion_limit = 0.0, max_pop_size = 1000) {
 
   lcs$pop <- lapply(lcs$pop, \(x) {
     if(x$total_reward < deletion_limit) x$numerosity <- 0
@@ -147,10 +147,12 @@
   lcs
 }
 
-.apply_deletion_rl_env <- function(env, deletion_limit = 0.0, max_pop_size = 10000) {
+.apply_deletion_rl_env <- function(env, deletion_limit = 0.0, max_pop_size = 1000) {
 
   env$lcs$pop <- lapply(env$lcs$pop, \(x) {
-    if(x$total_reward < deletion_limit) x$numerosity <- 0
+    # if(x$total_reward < deletion_limit) x$numerosity <- 0
+    if(abs(x$total_reward) < deletion_limit) x$numerosity <- 0 ## New approach:
+    ## Here we keep only the MOST INFORMATIVE rules...
     x
   })
 
@@ -216,7 +218,8 @@
                                       last_instance_string = NULL,
                                       explore_exploit_mechanism = 1,
                                       warm_up = 2000,
-                                      verbose = FALSE) {
+                                      verbose = FALSE,
+                                      use_gpu = F) {
 
   if(verbose == T) {
     Sys.sleep(0.2)
@@ -377,12 +380,12 @@
     }
 
     if((subsumption_applied && length(which(sapply(lcs$pop, \(x) x$numerosity == 0))) > 0) ||
-       ((i %% 1000) == 0 && length(lcs$pop) > max_pop_size)) {
+       ((i %% 1000) == 0 || length(lcs$pop) > max_pop_size)) {
       before_deletion <- length(lcs$pop)
       # lcs <- .apply_deletion_rl(lcs, deletion_threshold, max_pop_size)
       .apply_deletion_rl_env(environment(), deletion_threshold, max_pop_size)
 
-      print(paste("Deletion Applied", before_deletion, " -> ", length(lcs$pop)))
+      # print(paste("Deletion Applied", before_deletion, " -> ", length(lcs$pop)))
     }
     if(!is.null(lcs$pop)) class(lcs) <- "rlcs"
 
