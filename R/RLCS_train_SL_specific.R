@@ -723,6 +723,10 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
                                                  run_params)
     }
 
+    # if(epoch %% 10 == 0)
+      # plot(lcs) ## Let's monitor progress
+      # Sys.sleep(0.1)
+
     ## RE-shuffling population, just in case...
     train_env_df <- train_env_df[sample(1:nrow(train_env_df),
                                         nrow(train_env_df),

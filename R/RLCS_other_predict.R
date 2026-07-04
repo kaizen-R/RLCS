@@ -26,20 +26,6 @@ rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
         }))
       }
 
-      # if(verbose) {
-      #   print("-------------")
-      #   print(test_env_df$state[i])
-      #   print(test_env_df$class[i])
-      #   print(possible_classes)
-      #   print(pop[match_set])
-      #   for(item in 1:length(possible_classes))
-      #     print(paste("Recommend", possible_classes[item], ":", t_recommendation[item]))
-      #   # print(paste("Recommend 1: ", rec_1))
-      #   print(t_recommendation)
-      #   print(max(t_recommendation))
-      #   print(possible_classes[which(t_recommendation == max(t_recommendation))])
-      # }
-
       predicted_actions <- as.character(possible_classes[which(t_recommendation == max(t_recommendation))])
       if(length(predicted_actions) > 1)
         return("rlcs_doubt")
