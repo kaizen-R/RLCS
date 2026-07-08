@@ -38,11 +38,17 @@ demo_params_parallel <- RLCS_hyperparameters(
   deletion_trigger = 20,
   deletion_threshold = 0.95)
 
+demo_params_split <- RLCS_hyperparameters(
+  wildcard_prob = 0.5,
+  n_epochs = 5000,
+  deletion_trigger = 500,
+  deletion_threshold = 0.95)
 set.seed(12345) ## There is a possibility that an execution fails.
+
 ## Detected in v0.1.6 and marked to be reworked.
 ## Error is related to t_shuffle_set in train SL Specific #759
 t_start_parallel <- Sys.time()
-rlcs_model_parallel <- rlcs_train_sl(demo_env,
+rlcs_model_parallel <- rlcs_train_sl_parallel_search_space(demo_env,
                                      demo_params_parallel,
                                      n_agents=run_par_count,
                                      use_validation = T,
@@ -50,6 +56,10 @@ rlcs_model_parallel <- rlcs_train_sl(demo_env,
                                      second_evolution_iterations = 2
                                      # use_gpu = T
                                      )
+
+rlcs_model_split <- rlcs_train_sl_horizontal_split(demo_env,
+                                                   demo_params_split,
+                                                   n_agents=run_par_count)
 t_stop_parallel <- Sys.time()
 
 stopCluster(cluster) ## Don't forget that :)
@@ -57,6 +67,7 @@ stopCluster(cluster) ## Don't forget that :)
 print(paste("Parallel runtime:", t_stop_parallel-t_start_parallel))
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
+plot(rlcs_model_split) ## Very poor results here, but indeed faster...
 
 run_par_count <- max(1, n_cores-1)
 cluster <- makeCluster(run_par_count)
@@ -73,7 +84,7 @@ set.seed(12345) ## There is a possibility that an execution fails.
 ## Detected in v0.1.6 and marked to be reworked.
 ## Error is related to t_shuffle_set in train SL Specific #759
 t_start_parallel <- Sys.time()
-rlcs_model_parallel <- rlcs_train_sl(demo_env,
+rlcs_model_parallel <- rlcs_train_sl_parallel_search_space(demo_env,
                                      demo_params_parallel,
                                      n_agents=run_par_count,
                                      use_validation = T,
@@ -97,11 +108,14 @@ remove.packages("foreach")
 requireNamespace("foreach", quietly = TRUE)==T
 requireNamespace("doParallel", quietly = TRUE)==T
 library(RLCS)
-rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_single, n_agents=run_par_count)
+rlcs_model_parallel <- rlcs_train_sl_parallel_search_space(demo_env,
+                                                           demo_params_single,
+                                                           n_agents=run_par_count)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
 
 ## Test re-adding the package in namespace:
+Sys.sleep(2)
 install.packages("foreach")
 requireNamespace("foreach", quietly = TRUE)==T
 requireNamespace("doParallel", quietly = TRUE)==T
@@ -114,17 +128,18 @@ cluster <- makeCluster(run_par_count)
 registerDoParallel(cluster)
 demo_env <- rlcs_mux6()
 ## Poor results here, taking the best of n agents, but with fast-bad parameters
-rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
-                                     n_agents=run_par_count)
+rlcs_model_parallel <- rlcs_train_sl_parallel_search_space(demo_env,
+                                                           demo_params_parallel,
+                                                           n_agents=run_par_count)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
 
 ## Use a validation set, now. And selection of best agents, and iterations:
-rlcs_model_parallel <- rlcs_train_sl(demo_env, demo_params_parallel,
-                                     n_agents=run_par_count,
-                                     use_validation=T,
-                                     merge_best_n = min(2, run_par_count),
-                                     second_evolution_iterations = 3)
+rlcs_model_parallel <- rlcs_train_sl_parallel_search_space(demo_env, demo_params_parallel,
+                                                           n_agents=run_par_count,
+                                                           use_validation=T,
+                                                           merge_best_n = min(2, run_par_count),
+                                                           second_evolution_iterations = 3)
 print(rlcs_model_parallel)
 plot(rlcs_model_parallel)
 

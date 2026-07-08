@@ -99,11 +99,13 @@ for(i in temp_seeds) {
 
   ## New: Validation subset, so that we can compare accuracy / F1 score...
   ## Of different agents, and then keep and consolidate each one.
-  iris_classifier <- rlcs_train_sl(
+  iris_classifier <- rlcs_train_sl_parallel_search_space(
       train_environment,
       run_params = iris_hyperparameters_1,
       # pre_trained_lcs = iris_classifier,
-      n_agents = run_par_count, use_validation = T, merge_best_n = min(4, run_par_count),
+      n_agents = run_par_count,
+      use_validation = T,
+      merge_best_n = min(4, run_par_count),
       second_evolution_iterations = 4,
       second_evolution_run_params = iris_hyperparameters_2
     )

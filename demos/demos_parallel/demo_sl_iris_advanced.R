@@ -63,7 +63,7 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier)
+length(iris_classifier$pop)
 
 
 ## Training several agents, one can also
@@ -84,11 +84,12 @@ registerDoParallel(cluster)
 t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
-iris_classifier_parallel <- rlcs_train_sl(train_environment,
-                                 iris_hyperparameters,
-                                 pre_trained_lcs = NULL,
-                                 n_agents=run_par_count,
-                                 use_validation=T)
+iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
+  train_environment,
+  iris_hyperparameters,
+  pre_trained_lcs = NULL,
+  n_agents=run_par_count,
+  use_validation=T)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
 # ## (IF you're willing to accept the cost on Accuracy...)
@@ -109,19 +110,20 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier_parallel)
+length(iris_classifier_parallel$pop)
 
 
 t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
-iris_classifier_parallel <- rlcs_train_sl(train_environment,
-                                          iris_hyperparameters,
-                                          pre_trained_lcs = NULL,
-                                          n_agents=run_par_count,
-                                          # use_validation=T,
-                                          merge_best_n = 3
-                                          )
+iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
+  train_environment,
+  iris_hyperparameters,
+  pre_trained_lcs = NULL,
+  n_agents=run_par_count,
+  # use_validation=T,
+  merge_best_n = 3
+)
 
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
@@ -135,6 +137,6 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier_parallel)
+length(iris_classifier_parallel$pop)
 
 stopCluster(cluster) ## Don't forget that :)

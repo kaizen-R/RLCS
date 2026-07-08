@@ -200,7 +200,7 @@ mnist_hyperparameters_2 <- RLCS_hyperparameters(
 
 t_start_par <- Sys.time()
 ## Parallel processing has a few options of its own...
-mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
+mnist01_classifier <- rlcs_train_sl_parallel_search_space(train_mnist_bin01_49b,
                                     mnist_hyperparameters_1,
                                     n_agents=run_par_count,
                                     use_validation = T,

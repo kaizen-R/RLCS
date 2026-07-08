@@ -35,7 +35,7 @@ iris_hyperparameters <- RLCS_hyperparameters(
   n_epochs = 800, ## Epochs to repeat process on train set
   deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.95,
-  max_pop_size = 10000
+  max_pop_size = 600
 )
 
 ## Doubling process with intermediate cleanup

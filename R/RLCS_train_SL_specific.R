@@ -372,18 +372,300 @@
 #' An RLCS_hyperparameters object, for which an object construction is provided.
 #' @param pre_trained_lcs
 #' Optional. Can be used to EVOLVE a pre-trained LCS.
+#' @param use_gpu
+#' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
+#' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
+#' @export
+#'
+#' @examples
+#' ## Generate running hyperparameters
+#' demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+#' ## One demo dataset for data mining scenario
+#' demo_env1 <- rlcs_demo_secret1()
+#' ## Try to see for yourself what the dataset hides:
+#' demo_env1
+#' ## Generate the model with RLCS:
+#' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model)
+#' plot(rlcs_model)
+rlcs_train_sl <- function(train_env_df,
+                          run_params = RLCS_hyperparameters(),
+                          pre_trained_lcs = NULL,
+                          use_gpu = F) {
+
+  ## Basic input controls:
+  .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
+  ## TODO Add Running Params Checks here... Use decorators!
+
+  ## Initialization:
+  lcs <- .new_rlcs()
+  ## Re-training, or "online" updates
+  if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## For torch use:
+  backup_gpu_flag <- use_gpu
+  if(use_gpu & requireNamespace("torch", quietly=T)) {
+    use_gpu <- use_gpu
+    gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+  }
+
+
+  ## Using matrices for matching is much faster:
+  # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+  lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment())
+  lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1))
+  lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
+
+  ##
+  ## Case 1: Default: single-core, full data, basic processing:
+  ##
+  print("Running single-core/thread, sequential")
+  size_env <- nrow(train_env_df)
+  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+  train_env_df <- train_env_df[shuffle_indexes, ]
+  environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
+  environment_states <- train_env_df$state
+  environment_classes <- train_env_df$class
+
+  t_classes_counts <- table(train_env_df$class) ## For Coverage!!
+
+  ## Expose algorithm to training set:
+  for(epoch in 1:(run_params$get_n_epochs())) {
+    for(i in 1:size_env) {
+      ## Now this part of the algorithm is "necessarily" sequential...
+      #lcs <-
+      .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+                                                 i,
+                                                 train_env_df[i, ],
+                                                 size_env,
+                                                 epoch,
+                                                 (epoch-1)*size_env+i, ## train_count
+                                                 run_params)
+    }
+
+    # if(epoch %% 10 == 0)
+      # plot(lcs) ## Let's monitor progress
+      # Sys.sleep(0.1)
+
+    ## RE-shuffling population, just in case...
+    train_env_df <- train_env_df[sample(1:nrow(train_env_df),
+                                        nrow(train_env_df),
+                                        replace = F), ]
+    environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
+    environment_states <- train_env_df$state
+    environment_classes <- train_env_df$class
+
+    cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
+                    "| Epoch:", epoch,
+                    "Progress Exposure:", (epoch)*size_env,
+                    "Classifiers Count:", length(lcs$pop), "   "
+    ))
+  }
+
+  ## Final simplification: Coverage
+  # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
+  lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
+
+  ## Sometimes, deletion removes all rules as none are good enough!
+  if(is.null(lcs$pop)) return(NULL)
+  class(lcs) <- "rlcs"
+
+  cat('\n')
+  lcs
+}
+
+
+
+
+
+
+
+
+
+#### PARALLEL 1
+#' Train a Learning Classifier System (LCS), but go faster by running
+#' and merging several agents in parallel on smaller environment subsets.
+#' EXPERIMENTAL.
+#'
+#' @param train_env_df
+#' A data frame containing, specifically, one "state" and one
+#' "class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+#' such as: "00110101". This is a requirement for the current RLCS implementation.
+#' @param run_params
+#' An RLCS_hyperparameters object, for which an object construction is provided.
+#' @param pre_trained_lcs
+#' Optional. Can be used to EVOLVE a pre-trained LCS.
 #' @param n_agents
 #' Default is 0. OPTIONAL. ONLY USED if foreach and doParallel are available.
 #' IF available, a number of parallel cores, as indicated PRIOR to calling RLCS
 #' like so: makeCluster() registerDoParallel()
 #' then RLCS will train n_agents in parallel.
 #' @param split_horizontal
-#' Defaults to FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
-#' WARNING: If used, EXCLUDES OTHER Parallelizing options!!
-#' Splits evenly across N agents (N number of cores/threads) the input dataset.
+#' Defaults to T. If foreach and doParallel are available: Splits evenly across
+#' N agents (N number of cores/threads) the input dataset.
 #' Then trains N agents, and then merges the resulting data.
 #' This can potentially speed-up the process, but will probably over-fit for each
 #' subset, hence probably reducing overall model accuracy.
+#' @param max_pop_size_parallel
+#' Defaults to 10000. OPTIONAL. ONLY USED if foreach and doParallel are available
+#' Applies as last step: additional deletion to contain population sizes after merging.
+#' @param use_gpu
+#' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
+#' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
+#' @export
+#'
+#' @examples
+#' ## Generate running hyperparameters
+#' demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+#' ## One demo dataset for data mining scenario
+#' demo_env1 <- rlcs_demo_secret1()
+#' ## Try to see for yourself what the dataset hides:
+#' demo_env1
+#' ## Generate the model with RLCS:
+#' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model)
+#' plot(rlcs_model)
+rlcs_train_sl_horizontal_split <- function(train_env_df, run_params = RLCS_hyperparameters(),
+                          pre_trained_lcs = NULL,
+                          n_agents = 2,
+                          split_horizontal = T, ## That is but one option!
+                          max_pop_size_parallel = 10000,
+                          use_gpu = F) {
+
+  ## Basic input controls:
+  .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
+  ## TODO Add Running Params Checks here... Use decorators!
+
+  ## Initialization:
+  lcs <- .new_rlcs()
+  ## Re-training, or "online" updates
+  if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## For torch use:
+  backup_gpu_flag <- use_gpu
+  if(use_gpu & requireNamespace("torch", quietly=T)) {
+    use_gpu <- use_gpu
+    gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+  }
+
+
+  ## Using matrices for matching is much faster:
+  # lcs$matrices <- .recalculate_pop_matrices(lcs$pop) ## Poor naming...
+  lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment())
+  lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1))
+  lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
+
+  ##
+  ## Case 2: Parallel agents, each with a part of horizontal input data split.
+  ##
+  if(requireNamespace("foreach", quietly=T) & requireNamespace("doParallel", quietly=T) &
+     n_agents > 1 & split_horizontal) { ## NEW! Parallel processing support
+
+    `%dopar%` <- foreach::`%dopar%` ## not required anymore?
+
+    agents <- foreach::foreach(i = 1:n_agents # , .export = c("use_gpu", "train_env_df", "n_agents", "lcs", "run_params")
+    ) %dopar% { ## Train N agents
+
+      sets_size <- floor(nrow(train_env_df) / n_agents)
+      sub_start <- (i-1)*sets_size+1
+      sub_end <- i*sets_size
+
+      ## Shuffling population, just in case...
+      shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+      train_env_df <- train_env_df[shuffle_indexes, ]
+      sub_df <- train_env_df[sub_start:sub_end,]
+      # environment_conds_mat <- sapply(strsplit(sub_df$state, "", fixed = T), \(x) as.integer(x))
+      # environment_states <- sub_df$state
+      # environment_classes <- sub_df$class
+      #
+      # t_classes_counts <- table(sub_df$class) ## For Coverage - pending use
+
+      library(RLCS) ## Assuming you've gotten the package installed by now...
+
+      size_env <- nrow(sub_df)
+      sub_lcs <- lcs ; lcs <- sub_lcs
+      # lcs <- lcs ## Calling implicitly parent environment value here
+
+
+      lcs <- rlcs_train_sl(sub_df,
+                           run_params = run_params,
+                           pre_trained_lcs = sub_lcs,
+                           use_gpu = use_gpu)
+
+      # if(use_gpu & requireNamespace("torch", quietly=T)) {
+      #   use_gpu <- use_gpu; gpu_type <- gpu_type;
+      # }
+      #
+      # for(epoch in 1:(run_params$get_n_epochs())) {
+      #   for(i in 1:size_env) {
+      #     #lcs <-
+      #     .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+      #                                                i,
+      #                                                sub_df[i, ],
+      #                                                size_env,
+      #                                                epoch,
+      #                                                (epoch-1)*size_env+i, ## train_count
+      #                                                run_params)
+      #   }
+      # }
+
+      ## Sometimes, deletion removes all rules as none are good enough!
+      if(is.null(lcs)) return(NULL)
+      # sub_lcs <- .perfect_coverage_simplifier_sl(sub_lcs, sub_df, t_classes_counts)
+      class(lcs) <- "rlcs"
+      return(lcs)
+    } ## End dopar
+
+    for(j in 1:length(agents)) {
+      print(paste("agent set", j, "length", length(agents[[j]]$pop)))
+      for(i in 1:length(agents[[j]]$pop)) {
+        lcs$pop[[length(lcs$pop)+1]] <- agents[[j]]$pop[[i]]
+      }
+    }
+
+    lcs$pop <- .apply_subsumption_whole_pop_sl(lcs$pop)
+    # .apply_subsumption_whole_pop_sl_env(environment())
+    .apply_deletion_sl_env(environment(), max_pop_size = max_pop_size_parallel)
+    # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
+    print(length(lcs$pop))
+
+    return(lcs) ## End here
+  }
+
+  ## Fallback:
+  print('Missing packages')
+  return(NULL)
+}
+
+
+
+
+
+
+#### PARALLEL 2
+#' Train a Learning Classifier System (LCS). But try to cover more search space
+#' by running and merging several agents in parallel, for the same iterations.
+#' EXPERIMENTAL.
+#'
+#' @param train_env_df
+#' A data frame containing, specifically, one "state" and one
+#' "class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+#' such as: "00110101". This is a requirement for the current RLCS implementation.
+#' @param run_params
+#' An RLCS_hyperparameters object, for which an object construction is provided.
+#' @param pre_trained_lcs
+#' Optional. Can be used to EVOLVE a pre-trained LCS.
+#' @param n_agents
+#' Default is 2. If foreach and doParallel are available, a number of parallel
+#' cores, as indicated PRIOR to calling RLCS like so:
+#' makeCluster() registerDoParallel()
+#' then RLCS will train n_agents in parallel.
 #' @param use_validation
 #' Default is FALSE. OPTIONAL. ONLY USED if foreach and doParallel are available.
 #' When training several models in parallel, this parameter modifies selection of best
@@ -424,10 +706,9 @@
 #' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
 #' print(rlcs_model)
 #' plot(rlcs_model)
-rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
+rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_hyperparameters(),
                           pre_trained_lcs = NULL,
-                          n_agents = 0,
-                          split_horizontal = F, ## That is but one option!
+                          n_agents = 2,
                           use_validation=F,
                           merge_best_n = 0,
                           second_evolution_iterations = 1,
@@ -459,81 +740,7 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
   lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
   ##
-  ## Case 1: Parallel agents, each with a part of horizontal input data split.
-  ##
-  if(requireNamespace("foreach", quietly=T) & requireNamespace("doParallel", quietly=T) &
-     n_agents > 1 & split_horizontal) { ## NEW! Parallel processing support
-
-    `%dopar%` <- foreach::`%dopar%` ## not required anymore?
-
-    agents <- foreach::foreach(i = 1:n_agents # , .export = c("use_gpu", "train_env_df", "n_agents", "lcs", "run_params")
-    ) %dopar% { ## Train N agents
-
-      sets_size <- floor(nrow(train_env_df) / n_agents)
-      sub_start <- (i-1)*sets_size+1
-      sub_end <- i*sets_size
-
-      ## Shuffling population, just in case...
-      shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
-      train_env_df <- train_env_df[shuffle_indexes, ]
-      sub_df <- train_env_df[sub_start:sub_end,]
-      environment_conds_mat <- sapply(strsplit(sub_df$state, "", fixed = T), \(x) as.integer(x))
-      environment_states <- sub_df$state
-      environment_classes <- sub_df$class
-
-      t_classes_counts <- table(sub_df$class) ## For Coverage - pending use
-
-      library(RLCS) ## Assuming you've gotten the package installed by now...
-
-      size_env <- nrow(sub_df)
-      sub_lcs <- lcs ; lcs <- sub_lcs
-      # lcs <- lcs ## Calling implicitly parent environment value here
-
-      if(use_gpu & requireNamespace("torch", quietly=T)) {
-        use_gpu <- use_gpu; gpu_type <- gpu_type;
-      }
-
-      for(epoch in 1:(run_params$get_n_epochs())) {
-        for(i in 1:size_env) {
-          #lcs <-
-          .rlcs_train_one_instance_one_epoch_mat_env(environment(),
-                                                     i,
-                                                     sub_df[i, ],
-                                                     size_env,
-                                                     epoch,
-                                                     (epoch-1)*size_env+i, ## train_count
-                                                     run_params)
-        }
-      }
-
-      ## Sometimes, deletion removes all rules as none are good enough!
-      if(is.null(lcs)) return(NULL)
-      # sub_lcs <- .perfect_coverage_simplifier_sl(sub_lcs, sub_df, t_classes_counts)
-      class(lcs) <- "rlcs"
-      return(lcs)
-    } ## End dopar
-
-    for(j in 1:length(agents)) {
-      print(paste("agent set", j, "length", length(agents[[j]]$pop)))
-      for(i in 1:length(agents[[j]]$pop)) {
-        lcs$pop[[length(lcs$pop)+1]] <- agents[[j]]$pop[[i]]
-      }
-    }
-
-    lcs$pop <- .apply_subsumption_whole_pop_sl(lcs$pop)
-    # .apply_subsumption_whole_pop_sl_env(environment())
-    .apply_deletion_sl_env(environment(), max_pop_size = max_pop_size_parallel)
-    # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
-    print(length(lcs$pop))
-
-    return(lcs) ## End here
-  }
-
-
-
-
-  ##
-  ## Case 2: Parallel, but not horizontal input data split.
+  ## Case 3: Parallel, but not horizontal input data split.
   ##
   ## Instead, full coverage in each agent of all the data. Not faster per-se, but
   ## hopefully better coverage across agent and merging possible with fewer
@@ -569,43 +776,48 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
       agents <- foreach::foreach(i = 1:n_agents
                                  #, .export = c("use_gpu")
                                  , .packages = c("torch")
-                                 ) %dopar% { ## Train N agents
+      ) %dopar% { ## Train N agents
 
         t_shuffle_set <- sample(1:nrow(sub_train_environment),
                                 nrow(sub_train_environment),
                                 replace = F)
         sub_train_environment_shuffle <- sub_train_environment[t_shuffle_set, ]
-        environment_conds_mat <- sapply(strsplit(sub_train_environment_shuffle$state, "", fixed = T), \(x) as.integer(x))
-        environment_states <- sub_train_environment_shuffle$state
-        environment_classes <- sub_train_environment_shuffle$class
+        # environment_conds_mat <- sapply(strsplit(sub_train_environment_shuffle$state, "", fixed = T), \(x) as.integer(x))
+        # environment_states <- sub_train_environment_shuffle$state
+        # environment_classes <- sub_train_environment_shuffle$class
 
         library(RLCS) ## Assuming you've gotten the package installed by now...
 
-        if(backup_gpu_flag & requireNamespace("torch", quietly=T)) {
-          use_gpu <- NULL
-          use_gpu <- backup_gpu_flag
-          gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
-        }
+        # if(backup_gpu_flag & requireNamespace("torch", quietly=T)) {
+        #   use_gpu <- NULL
+        #   use_gpu <- backup_gpu_flag
+        #   gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+        # }
 
         size_env <- nrow(sub_train_environment)
         sub_lcs <- lcs ; lcs <- sub_lcs
 
-        lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
-        lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
-        lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
+        # lcs$matrices <- .recalculate_pop_matrices_env(lcs$pop, environment()) ## Poor naming...
+        # lcs$lengths <- vapply(lcs$pop, \(x) x$length_fixed_bits, numeric(1)) ## Poor naming...
+        # lcs$actions_vec <- .recalculate_actions_vec(lcs$pop)
 
-        for(epoch in 1:(run_params$get_n_epochs())) {
-          for(i in 1:size_env) {
-            #lcs <-
-            .rlcs_train_one_instance_one_epoch_mat_env(environment(),
-                                                       i,
-                                                       sub_train_environment_shuffle[i, ],
-                                                       size_env,
-                                                       epoch,
-                                                       (epoch-1)*size_env+i, ## train_count
-                                                       run_params)
-          }
-        }
+
+        lcs <- rlcs_train_sl(sub_train_environment_shuffle,
+                             run_params = run_params,
+                             pre_trained_lcs = sub_lcs,
+                             use_gpu = backup_gpu_flag)
+        # for(epoch in 1:(run_params$get_n_epochs())) {
+        #   for(i in 1:size_env) {
+        #     #lcs <-
+        #     .rlcs_train_one_instance_one_epoch_mat_env(environment(),
+        #                                                i,
+        #                                                sub_train_environment_shuffle[i, ],
+        #                                                size_env,
+        #                                                epoch,
+        #                                                (epoch-1)*size_env+i, ## train_count
+        #                                                run_params)
+        #   }
+        # }
         ## Sometimes, deletion removes all rules as none are good enough!
         if(is.null(lcs)) return(NULL)
         ##
@@ -693,76 +905,10 @@ rlcs_train_sl <- function(train_env_df, run_params = RLCS_hyperparameters(),
     return(lcs) ## End here
   }
 
-
-
-
-  ##
-  ## Case 3: Default: single-core, full data, basic processing:
-  ##
-  print("Running single-core/thread, sequential")
-  size_env <- nrow(train_env_df)
-  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
-  train_env_df <- train_env_df[shuffle_indexes, ]
-  environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
-  environment_states <- train_env_df$state
-  environment_classes <- train_env_df$class
-
-  t_classes_counts <- table(train_env_df$class) ## For Coverage!!
-
-  ## Expose algorithm to training set:
-  for(epoch in 1:(run_params$get_n_epochs())) {
-    for(i in 1:size_env) {
-      ## Now this part of the algorithm is "necessarily" sequential...
-      #lcs <-
-      .rlcs_train_one_instance_one_epoch_mat_env(environment(),
-                                                 i,
-                                                 train_env_df[i, ],
-                                                 size_env,
-                                                 epoch,
-                                                 (epoch-1)*size_env+i, ## train_count
-                                                 run_params)
-    }
-
-    # if(epoch %% 10 == 0)
-      # plot(lcs) ## Let's monitor progress
-      # Sys.sleep(0.1)
-
-    ## RE-shuffling population, just in case...
-    train_env_df <- train_env_df[sample(1:nrow(train_env_df),
-                                        nrow(train_env_df),
-                                        replace = F), ]
-    environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
-    environment_states <- train_env_df$state
-    environment_classes <- train_env_df$class
-
-    cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
-                    "| Epoch:", epoch,
-                    "Progress Exposure:", (epoch)*size_env,
-                    "Classifiers Count:", length(lcs$pop), "   "
-    ))
-  }
-
-  ## Final simplification: Coverage
-  # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
-  lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
-
-  ## Sometimes, deletion removes all rules as none are good enough!
-  if(is.null(lcs$pop)) return(NULL)
-  class(lcs) <- "rlcs"
-
-  cat('\n')
-  lcs
+  ## Fallback:
+  print('Missing packages')
+  return(NULL)
 }
-
-
-
-
-
-
-
-
-
-
 
 
 

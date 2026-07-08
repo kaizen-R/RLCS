@@ -1,6 +1,8 @@
 library(RLCS)
 
+## Generate a demo dataset
 demo_env1 <- rlcs_demo_secret1()
+## Have a look:
 sample_of_rows <- sample(1:nrow(demo_env1), 10, replace=F)
 print(demo_env1[sample_of_rows,], row.names = F)
 
@@ -15,8 +17,11 @@ demo_params <- RLCS_hyperparameters(
   deletion_trigger = 30,
   deletion_threshold = 0.95)
 
+## Train an RLCS model with some specific hyperparameters
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
+
+## Check out the results
 print(rlcs_model1$pop)
 rlcs_not_bit_4_10()
 
@@ -33,6 +38,7 @@ plot(rlcs_model1)
 get_match_set("00101", rlcs_model1)
 rlcs_predict_sl(data.frame(state="00101", class="1", predicted=-1), rlcs_model1)
 
+## Slightly harder example: More bits strings mean larger search space:
 demo_env1b <- rlcs_not_bit_4_10()
 sample_of_rows <- sample(1:nrow(demo_env1b), 10, replace=F)
 print(demo_env1b[sample_of_rows,], row.names = F)
@@ -56,13 +62,15 @@ print(rlcs_model1b$pop)
 
 
 
-## Let's try a second example:
+## Let's try another, different example:
 demo_env2 <- rlcs_demo_secret2()
 ## Have a look at the exercise:
 print(demo_env2)
 ## Using defaults for Hyper parameters can work,
 ## it's just not necessarily a great idea, either for speed or accuracy...
 rlcs_model2 <- rlcs_train_sl(demo_env2)
+
+## Again you can look at the resulting model/population:
 print(rlcs_model2)
 plot(rlcs_model2)
 
@@ -76,14 +84,15 @@ demo_params <- RLCS_hyperparameters(
   deletion_trigger = 10,
   deletion_threshold = 0.8,
   max_pop_size = 500)
+
 rlcs_model2 <- rlcs_train_sl(demo_env2, demo_params)
+
 print(rlcs_model2)
 plot(rlcs_model2)
 
 
 
-
-## SLOWER, and as always, non-deterministic:
+## Another SLOWER example, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
   n_epochs = 1000,
@@ -95,7 +104,7 @@ rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params)
 print(rlcs_model3)
 plot(rlcs_model3)
 
-## Last example - SLOWER, and as always, non-deterministic:
+## Last example - Much SLOWER even, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = .3,
   rd_trigger = 25,
