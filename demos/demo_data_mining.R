@@ -104,6 +104,11 @@ rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params)
 print(rlcs_model3)
 plot(rlcs_model3)
 
+## new in version 0.1.8, working on a function to simplify populations.
+cleaner_rlcs_model3 <- rlcs_simplify_pop(rlcs_model3, demo_env3)
+print(cleaner_rlcs_model3)
+plot(cleaner_rlcs_model3)
+
 ## Last example - Much SLOWER even, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = .3,

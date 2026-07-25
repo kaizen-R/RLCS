@@ -11,6 +11,12 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.1.8
+
+I came across a Paper that discussed algorithms to simplify XCS populations.
+I here try my hand at it with the new function rlcs_simplify_pop().
+I include an example of using it in the IRIS data mining example.
+
 ## v0.1.7
 
 Version v0.1.7 is all about adding support for GPUs through the torch package.

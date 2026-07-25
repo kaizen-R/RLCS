@@ -59,6 +59,19 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(iris_classifier$pop)
 
+## NEW, Work in progress
+cleaner_iris_classifier <- rlcs_simplify_pop(iris_classifier, train_environment)
+print(cleaner_iris_classifier)
+plot(cleaner_iris_classifier)
+test_environment$predicted <- -1 ## Stands for not found
+test_environment$predicted <- rlcs_predict_sl(test_environment, cleaner_iris_classifier, verbose=F)
+
+# head(test_environment)
+table(test_environment[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
+  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
+}))/nrow(test_environment), 2)))
+length(iris_classifier$pop)
 
 
 ### Visualizing the Model ###

@@ -215,6 +215,63 @@
   lcs
 }
 
+#' Try to simplify a Learning Classifier System (LCS) population.
+#'
+#' By iterating over the rules of a population
+#' assumed sorted already, going backwards, try to evaluate
+#' the quality of the model and make sure you can maintain results while removing
+#' rules one by one. Only remove rules that do not affect results.
+#' @param rlcs_obj
+#' An RLCS model object.
+#' @param train_df
+#' The dataset used for training the model. This COULD be a different dataset,
+#' although results might vary then.
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing a shorter population of rules, ideally.
+#' @export
+#'
+#' @examples
+#' ## Supposing you have trained an RLCS model against the iris dataset as
+#' ## proposed in the documented examples:
+#' cleaner_iris_classifier <- rlcs_simplify_pop(iris_classifier, train_environment)
+#' print(cleaner_iris_classifier)
+#' print(rlcs_model)
+#' plot(rlcs_model)
+rlcs_simplify_pop <- function(rlcs_obj, train_df) {
+  train_df$predicted <- rlcs_predict_sl(train_df, rlcs_obj)
+  t_res <- table(train_df[, c("class", "predicted")])
+  print(t_res)
+  base_accuracy_res <- round(sum(sapply(1:nrow(train_df), \(i) {
+    ifelse(train_df[i, "class"] == train_df[i, "predicted"], 1, 0)
+  }))/nrow(train_df), 4)
+  base_accuracy_res
+
+  recalculated_df <- train_df
+  backup_rlcs_obj <- rlcs_obj
+
+  for(i in length(rlcs_obj$pop):1) {
+    new_rlcs_obj <- rlcs_obj
+
+    new_rlcs_obj$pop[[i]]$numerosity <- 0
+    new_rlcs_obj$pop <- .apply_deletion_no_threshold(new_rlcs_obj$pop)
+    new_rlcs_obj$matrices <- .recalculate_pop_matrices(new_rlcs_obj$pop)
+    new_rlcs_obj$lengths <- vapply(new_rlcs_obj$pop, \(x) x$length_fixed_bits, numeric(1))
+    new_rlcs_obj$actions_vec <- .recalculate_actions_vec(new_rlcs_obj$pop)
+    train_df$predicted <- rlcs_predict_sl(recalculated_df, new_rlcs_obj)
+    new_accuracy_res <- accuracy_res <- round(sum(sapply(1:nrow(train_df), \(i) {
+      ifelse(train_df[i, "class"] == train_df[i, "predicted"], 1, 0)
+    }))/nrow(train_df), 4)
+    if(new_accuracy_res == base_accuracy_res) {
+      # cat("removing rule", i,'\n')
+      rlcs_obj <- new_rlcs_obj
+    }
+
+  }
+  rlcs_obj
+}
+
+
 .apply_deletion_sl_env <- function(env, deletion_limit = 0.6, max_pop_size = 10000) {
 
   env$lcs$pop <- lapply(env$lcs$pop, \(x) {
