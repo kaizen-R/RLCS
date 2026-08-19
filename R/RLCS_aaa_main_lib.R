@@ -403,13 +403,13 @@
     ## Matrices approach!
     if(env$use_gpu) {
       # print("Use Torch!")
-      match_set <- which_cpp(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
+      match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
                                                              torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
                                       torch::torch_matmul(env$lcs$matrices[[4]],
                                                           torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
                            env$lcs$lengths)
     } else {
-      match_set <- which_cpp((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
                           env$lcs$matrices[[2]] %*% ti_cond) ==
                          env$lcs$lengths)
     }
