@@ -219,7 +219,7 @@
 
         if(t_df$match_sizes[i] == t_df$Freq[i]) { ## Full Coverage!
           ## Then delete all entries that have the same match_class, as they are useless
-          to_remove <- which(t_df[i+1:nrow(t_df), "match_class"] == t_df$match_class[i])
+          to_remove <- which_cpp(t_df[i+1:nrow(t_df), "match_class"] == t_df$match_class[i])
           lcs$pop[to_remove] <- lapply(lcs$pop[to_remove], \(item) {
             item$numerosity <- 0
             item

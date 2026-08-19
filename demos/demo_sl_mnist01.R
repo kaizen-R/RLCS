@@ -234,7 +234,16 @@ plot(mnist01_classifier)
 
 cleaner_mnist01_classifier <- rlcs_simplify_pop(mnist01_classifier, train_mnist_bin01_49b)
 plot(cleaner_mnist01_classifier)
+## Let's run our trained Classifiers Set on test mnist_bin01_49b:
+test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
+test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, cleaner_mnist01_classifier)
 
+table(test_mnist_bin01_49b[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
+  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
+}))/nrow(test_mnist_bin01_49b), 2)))
+
+length(cleaner_mnist01_classifier$pop)
 ## OK, finally, let's see a bit about the LCS itself.
 ## This would apply to either single-core/thread or parallel processing.
 

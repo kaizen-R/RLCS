@@ -8,8 +8,8 @@
   ## NEW!
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
   t_vec <- strsplit(condition_string, "", fixed=T)[[1]]
-  which_zeros <- which(t_vec == "0")
-  which_ones <- which(t_vec == "1")
+  which_zeros <- which_cpp(t_vec == "0")
+  which_ones <- which_cpp(t_vec == "1")
   zeros_vector[which_zeros] <- 1
   ones_vector[which_ones] <- 1
 
@@ -121,8 +121,8 @@
   t_cond <- strsplit(condition_string, "", fixed=T)[[1]]
 
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
-  which_zeros <- which(t_cond == "0")
-  which_ones <- which(t_cond == "1")
+  which_zeros <- which_cpp(t_cond == "0")
+  which_ones <- which_cpp(t_cond == "1")
   zeros_vector[which_zeros] <- 1
   ones_vector[which_ones] <- 1
 
@@ -137,8 +137,8 @@
   t_cond <- strsplit(condition_string, "", fixed=T)[[1]]
 
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
-  which_zeros <- which(t_cond == "0")
-  which_ones <- which(t_cond == "1")
+  which_zeros <- which_cpp(t_cond == "0")
+  which_ones <- which_cpp(t_cond == "1")
   zeros_vector[which_zeros] <- 1
   ones_vector[which_ones] <- 1
 
@@ -173,8 +173,8 @@
 
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
 
-  which_zeros <- which(t_cond == "0")
-  which_ones <- which(t_cond == "1")
+  which_zeros <- which_cpp(t_cond == "0")
+  which_ones <- which_cpp(t_cond == "1")
 
   c(t_lengths, length(which_zeros)+length(which_ones))
 }
@@ -361,7 +361,7 @@
     matched_zeros <- t_matrices[[1]] %*% (1-ti_cond)
     matched_ones <- t_matrices[[2]] %*% ti_cond
     matched_lengths <- matched_zeros + matched_ones
-    match_set <- which(matched_lengths == t_lengths)
+    match_set <- which_cpp(matched_lengths == t_lengths)
     # browser()
 
     if(length(match_set) > 0)
@@ -447,7 +447,7 @@
   match_sets_vals <- matrix((env$lcs$matrices[[1]] %*% (1-ti_conds) +
                               env$lcs$matrices[[2]] %*% ti_conds),
                             byrow=F, ncol=nrow(env$lcs$matrices[[1]]))
-  match_sets_matrix <- which(match_sets_vals == env$lcs$lengths, arr.ind=T)
+  match_sets_matrix <- which_cpp(match_sets_vals == env$lcs$lengths, arr.ind=T)
   match_sets <- unique(match_sets_matrix[,1])
   # browser()
 
@@ -492,7 +492,7 @@
     if(match_env_subset_pos[1] == sample_pos)
       return(NULL)
 
-  as.integer(match_sets_matrix[which(match_sets_matrix[,1] == 1), 2])
+  as.integer(match_sets_matrix[which_cpp(match_sets_matrix[,1] == 1), 2])
   # env_subset_pos[match_sets] ## Returning positions matching!
 }
 
@@ -536,7 +536,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   rule_0 <- rlcs_classifier$condition_list$'0'
   rule_1 <- rlcs_classifier$condition_list$'1'
 
-  match_set <- which(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
+  match_set <- which_cpp(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
     env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
     !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
   }, rule_0, rule_1))
@@ -555,7 +555,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
     rule_0 <- pop[[i]]$condition_list$'0'
     rule_1 <- pop[[i]]$condition_list$'1'
 
-    rule_matches <- which(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
+    rule_matches <- which_cpp(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
       env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
       !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
     }, rule_0, rule_1))
@@ -576,7 +576,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 .apply_deletion_no_threshold <- function(pop) {
 
   ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which(sapply(pop, \(x) {
+  survivors_set <- which_cpp(sapply(pop, \(x) {
     if(x$numerosity > 0) return(TRUE)
     FALSE
   }))
@@ -593,7 +593,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
   if(length(env$lcs$pop) < 1) return(NULL)
   ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which(sapply(env$lcs$pop, \(x) {
+  survivors_set <- which_cpp(sapply(env$lcs$pop, \(x) {
     if(x$numerosity > 0) return(TRUE)
     FALSE
   }))
