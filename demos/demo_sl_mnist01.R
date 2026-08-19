@@ -232,6 +232,9 @@ plot(mnist01_classifier)
 ## BONUS
 ##
 
+cleaner_mnist01_classifier <- rlcs_simplify_pop(mnist01_classifier, train_mnist_bin01_49b)
+plot(cleaner_mnist01_classifier)
+
 ## OK, finally, let's see a bit about the LCS itself.
 ## This would apply to either single-core/thread or parallel processing.
 

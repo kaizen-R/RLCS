@@ -10,72 +10,108 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// get_match_set_cpp
-Rcpp::NumericVector get_match_set_cpp(List pop, NumericVector ti_cond);
-RcppExport SEXP _RLCS_get_match_set_cpp(SEXP popSEXP, SEXP ti_condSEXP) {
+// get_correct_set_cpp2
+Rcpp::NumericVector get_correct_set_cpp2(const Rcpp::StringVector& match_pop_actions, const Rcpp::String& t_class);
+RcppExport SEXP _RLCS_get_correct_set_cpp2(SEXP match_pop_actionsSEXP, SEXP t_classSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type ti_cond(ti_condSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_match_set_cpp(pop, ti_cond));
+    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type match_pop_actions(match_pop_actionsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::String& >::type t_class(t_classSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_correct_set_cpp2(match_pop_actions, t_class));
     return rcpp_result_gen;
 END_RCPP
 }
-// get_correct_set_cpp
-Rcpp::NumericVector get_correct_set_cpp(List match_pop, Rcpp::StringVector t_class);
-RcppExport SEXP _RLCS_get_correct_set_cpp(SEXP match_popSEXP, SEXP t_classSEXP) {
+// update_matched_accuracy_cpp2
+int update_matched_accuracy_cpp2(List& pop);
+RcppExport SEXP _RLCS_update_matched_accuracy_cpp2(SEXP popSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type match_pop(match_popSEXP);
-    Rcpp::traits::input_parameter< Rcpp::StringVector >::type t_class(t_classSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_correct_set_cpp(match_pop, t_class));
+    Rcpp::traits::input_parameter< List& >::type pop(popSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_matched_accuracy_cpp2(pop));
     return rcpp_result_gen;
 END_RCPP
 }
 // update_matched_accuracy_cpp
-Rcpp::List update_matched_accuracy_cpp(List pop);
+Rcpp::List update_matched_accuracy_cpp(const List& pop);
 RcppExport SEXP _RLCS_update_matched_accuracy_cpp(SEXP popSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
     rcpp_result_gen = Rcpp::wrap(update_matched_accuracy_cpp(pop));
     return rcpp_result_gen;
 END_RCPP
 }
+// inc_param_count_cpp2
+int inc_param_count_cpp2(List& pop, const String& param_name);
+RcppExport SEXP _RLCS_inc_param_count_cpp2(SEXP popSEXP, SEXP param_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List& >::type pop(popSEXP);
+    Rcpp::traits::input_parameter< const String& >::type param_name(param_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(inc_param_count_cpp2(pop, param_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 // inc_param_count_cpp
-Rcpp::List inc_param_count_cpp(List pop, String param_name);
+Rcpp::List inc_param_count_cpp(const List& pop, const String& param_name);
 RcppExport SEXP _RLCS_inc_param_count_cpp(SEXP popSEXP, SEXP param_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
-    Rcpp::traits::input_parameter< String >::type param_name(param_nameSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
+    Rcpp::traits::input_parameter< const String& >::type param_name(param_nameSEXP);
     rcpp_result_gen = Rcpp::wrap(inc_param_count_cpp(pop, param_name));
     return rcpp_result_gen;
 END_RCPP
 }
 // min_param_count_cpp
-float min_param_count_cpp(List pop, String param_name);
+float min_param_count_cpp(const List& pop, const String& param_name);
 RcppExport SEXP _RLCS_min_param_count_cpp(SEXP popSEXP, SEXP param_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type pop(popSEXP);
-    Rcpp::traits::input_parameter< String >::type param_name(param_nameSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
+    Rcpp::traits::input_parameter< const String& >::type param_name(param_nameSEXP);
     rcpp_result_gen = Rcpp::wrap(min_param_count_cpp(pop, param_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mean_correct_count_cpp
+float mean_correct_count_cpp(const List& pop);
+RcppExport SEXP _RLCS_mean_correct_count_cpp(SEXP popSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
+    rcpp_result_gen = Rcpp::wrap(mean_correct_count_cpp(pop));
+    return rcpp_result_gen;
+END_RCPP
+}
+// which_cpp
+IntegerVector which_cpp(const LogicalVector& x);
+RcppExport SEXP _RLCS_which_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const LogicalVector& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(which_cpp(x));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_RLCS_get_match_set_cpp", (DL_FUNC) &_RLCS_get_match_set_cpp, 2},
-    {"_RLCS_get_correct_set_cpp", (DL_FUNC) &_RLCS_get_correct_set_cpp, 2},
+    {"_RLCS_get_correct_set_cpp2", (DL_FUNC) &_RLCS_get_correct_set_cpp2, 2},
+    {"_RLCS_update_matched_accuracy_cpp2", (DL_FUNC) &_RLCS_update_matched_accuracy_cpp2, 1},
     {"_RLCS_update_matched_accuracy_cpp", (DL_FUNC) &_RLCS_update_matched_accuracy_cpp, 1},
+    {"_RLCS_inc_param_count_cpp2", (DL_FUNC) &_RLCS_inc_param_count_cpp2, 2},
     {"_RLCS_inc_param_count_cpp", (DL_FUNC) &_RLCS_inc_param_count_cpp, 2},
     {"_RLCS_min_param_count_cpp", (DL_FUNC) &_RLCS_min_param_count_cpp, 2},
+    {"_RLCS_mean_correct_count_cpp", (DL_FUNC) &_RLCS_mean_correct_count_cpp, 1},
+    {"_RLCS_which_cpp", (DL_FUNC) &_RLCS_which_cpp, 1},
     {NULL, NULL, 0}
 };
 

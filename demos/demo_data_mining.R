@@ -22,7 +22,7 @@ rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
 
 ## Check out the results
-print(rlcs_model1$pop)
+print(rlcs_model1)
 rlcs_not_bit_4_10()
 
 ## NEW! You could use torch?
@@ -31,7 +31,7 @@ rlcs_not_bit_4_10()
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL,
                              use_gpu = T)
-print(rlcs_model1$pop)
+print(rlcs_model1)
 plot(rlcs_model1)
 
 ## Which rule of the model would match the following "state"?
@@ -96,7 +96,7 @@ plot(rlcs_model2)
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
   n_epochs = 1000,
-  deletion_trigger = 20,
+  deletion_trigger = 250,
   deletion_threshold = 0.95)
 
 demo_env3 <- rlcs_mux6()
@@ -124,6 +124,9 @@ demo_env4 <- rlcs_mux11()
 rlcs_model4 <- rlcs_train_sl(demo_env4, demo_params)
 print(rlcs_model4)
 plot(rlcs_model4)
+cleaner_rlcs_model4 <- rlcs_simplify_pop(rlcs_model4, demo_env4)
+print(cleaner_rlcs_model4)
+plot(cleaner_rlcs_model4)
 
 ## Impossible mining
 ## This should return NULL instead of a model...

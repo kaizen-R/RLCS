@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-bool element_matches(List element, NumericVector ti_cond) {
+bool element_matches(const List& element, const NumericVector& ti_cond) {
   List temp_conds = element("condition_list");
   NumericVector temp_conds_0 = temp_conds("0");
   int j;
@@ -15,50 +15,72 @@ bool element_matches(List element, NumericVector ti_cond) {
   return(true);
 }
 
+// // [[Rcpp::export]]
+// Rcpp::NumericVector get_match_set_cpp(const List& pop, const NumericVector& ti_cond) {
+//   //Rcpp::NumericVector get_match_set_cpp(List pop, NumericVector ti_cond) {
+//   NumericVector matches_indices;
+//   int i;
+//   for(i = 0; i < pop.length(); i++) {
+//     if(element_matches(pop[i], ti_cond)) {
+//       matches_indices.push_back(i+1); // R index is +1
+//     }
+//   }
+//   return(matches_indices);
+// }
+
+// bool string_matches(List element, Rcpp::StringVector t_class) {
+//   Rcpp::StringVector t_action = element("action");
+//   if(t_action(0) == t_class(0)) return(true);
+//   return(false);
+// }
+//
+// // [[Rcpp::export]]
+// Rcpp::NumericVector get_correct_set_cpp(const List& match_pop, const Rcpp::StringVector& t_class) {
+//   NumericVector matches_indices;
+//   int i;
+//   for(i = 0; i < match_pop.length(); i++) {
+//     // Rcout << t_class(0) << "\n";
+//     //
+//     // List element = match_pop[i];
+//     // Rcout << t_class << "\n";
+//     // Rcpp::StringVector t_action = element["action"];
+//     // Rcout << t_action(0) << "\n";
+//     // std::string t_action2 = Rcpp::as<std::string>(element("action"));
+//     // Rcout << t_class << "\n";
+//
+//     // Rcout << t_action << "\n";
+//     if(string_matches(match_pop[i], t_class)) {
+//       matches_indices.push_back(i+1); // R index is +1
+//     }
+//   }
+//   return(matches_indices);
+// }
+
 // [[Rcpp::export]]
-Rcpp::NumericVector get_match_set_cpp(List pop, NumericVector ti_cond) {
+Rcpp::NumericVector get_correct_set_cpp2(const Rcpp::StringVector& match_pop_actions, const Rcpp::String& t_class) {
   NumericVector matches_indices;
+  int i;
+  for(i = 0; i < match_pop_actions.length(); i++) {
+    if(match_pop_actions[i] == t_class) {
+      matches_indices.push_back(i+1); // R index is + 1
+    }
+  }
+  return(matches_indices);
+}
+
+// [[Rcpp::export]]
+int update_matched_accuracy_cpp2(List& pop) {
   int i;
   for(i = 0; i < pop.length(); i++) {
-    if(element_matches(pop[i], ti_cond)) {
-      matches_indices.push_back(i+1); // R index is +1
-    }
+    Rcpp::List elem = pop[i];
+    elem["accuracy"] = float(elem["correct_count"]) / float(elem["match_count"]);
+    pop[i] = elem;
   }
-  return(matches_indices);
-}
-
-bool string_matches(List element, Rcpp::StringVector t_class) {
-  Rcpp::StringVector t_action = element("action");
-  if(t_action(0) == t_class(0)) return(true);
-  return(false);
+  return(0);
 }
 
 // [[Rcpp::export]]
-Rcpp::NumericVector get_correct_set_cpp(List match_pop, Rcpp::StringVector t_class) {
-  NumericVector matches_indices;
-  int i;
-  for(i = 0; i < match_pop.length(); i++) {
-    // Rcout << t_class(0) << "\n";
-    //
-    // List element = match_pop[i];
-    // Rcout << t_class << "\n";
-    // Rcpp::StringVector t_action = element["action"];
-    // Rcout << t_action(0) << "\n";
-    // std::string t_action2 = Rcpp::as<std::string>(element("action"));
-    // Rcout << t_class << "\n";
-
-    // Rcout << t_action << "\n";
-    if(string_matches(match_pop[i], t_class)) {
-      matches_indices.push_back(i+1); // R index is +1
-    }
-  }
-  return(matches_indices);
-}
-
-
-
-// [[Rcpp::export]]
-Rcpp::List update_matched_accuracy_cpp(List pop) {
+Rcpp::List update_matched_accuracy_cpp(const List& pop) {
   int i;
   Rcpp::List L = pop;
   float accuracy = 0.0;
@@ -75,26 +97,36 @@ Rcpp::List update_matched_accuracy_cpp(List pop) {
 }
 
 // [[Rcpp::export]]
-Rcpp::List inc_param_count_cpp(List pop, String param_name) {
+int inc_param_count_cpp2(List& pop, const String& param_name) {
+  int i;
+  for(i = 0; i < pop.length(); i++) {
+    Rcpp::List elem = pop[i];
+    elem[param_name] = int(elem[param_name])+1;
+    pop[i] = elem;
+  }
+  return(0);
+}
+// [[Rcpp::export]]
+Rcpp::List inc_param_count_cpp(const List& pop, const String& param_name) {
   int i;
   Rcpp::List L = pop;
 
   for(i = 0; i < L.length(); i++) {
     Rcpp::List elem = L[i];
-    elem[param_name] = float(elem[param_name])+1;
+    elem[param_name] = int(elem[param_name])+1;
     L[i] = elem;
   }
   // print(L);
   return(L);
 }
 
-
 // [[Rcpp::export]]
-float min_param_count_cpp(List pop, String param_name) {
+float min_param_count_cpp(const List& pop, const String& param_name) {
   int i;
   Rcpp::List L = pop;
   float new_elem = 0.0;
   float best_val = FLT_MAX;
+
   for(i = 0; i < L.length(); i++) {
     Rcpp::List elem = L[i];
     new_elem = float(elem[param_name]);
@@ -102,4 +134,31 @@ float min_param_count_cpp(List pop, String param_name) {
   }
   // print(L);
   return(best_val);
+}
+
+// [[Rcpp::export]]
+float mean_correct_count_cpp(const List& pop) {
+  int i;
+  int t_sum = 0;
+  int t_length = pop.length();
+
+  float mean_val = 0.0;
+
+  for(i = 0; i < t_length; i++) {
+    Rcpp::List elem = pop[i];
+    t_sum += int(elem["correct_count"]);
+  }
+  mean_val = t_sum / t_length;
+  return(mean_val);
+}
+
+// [[Rcpp::export]]
+IntegerVector which_cpp(const LogicalVector& x) {
+  std::vector<int> out;
+  for(int i = 0; i < x.size(); ++i) {
+    if(x[i]) {
+      out.push_back(i + 1); // 1-based indexing like R
+    }
+  }
+  return wrap(out);
 }

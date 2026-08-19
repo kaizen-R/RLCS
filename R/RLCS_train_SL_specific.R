@@ -9,9 +9,19 @@
   inc_param_count_cpp(env$correct_pop, "correct_count")
 }
 
+.inc_correct_count_env2 <- function(env) {
+  inc_param_count_cpp2(env$correct_pop, "correct_count")
+}
+
 .mean_correct_count <- function(pop) {
   # sum(sapply(pop, \(x) x$correct_count)) / length(pop)
   sum(vapply(pop, \(x) x$correct_count, numeric(1))) / length(pop)
+}
+
+.mean_correct_count2 <- function(pop) {
+  # sum(sapply(pop, \(x) x$correct_count)) / length(pop)
+  mean_correct_count_cpp(pop)
+  # sum(vapply(pop, \(x) x$correct_count, numeric(1))) / length(pop)
 }
 
 .mean_match_count <- function(pop) {
@@ -62,6 +72,17 @@
   if(length(match_set) > 0) {
 
     correct_set <- which(env$lcs$actions_vec[match_set] == t_instance_class)
+    if(length(correct_set) > 0) return(correct_set)
+  }
+  NULL ## implicit return
+}
+
+.get_correct_set_env2 <- function(t_instance_class, env, match_set) {
+  # browser()
+  if(length(match_set) > 0) {
+
+    # correct_set <- which(env$lcs$actions_vec[match_set] == t_instance_class)
+    correct_set <- get_correct_set_cpp2(env$lcs$actions_vec[match_set], as.character(t_instance_class))
     if(length(correct_set) > 0) return(correct_set)
   }
   NULL ## implicit return
@@ -251,6 +272,7 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   backup_rlcs_obj <- rlcs_obj
 
   for(i in length(rlcs_obj$pop):1) {
+    cat("checking rule: ", i, '...')
     new_rlcs_obj <- rlcs_obj
 
     new_rlcs_obj$pop[[i]]$numerosity <- 0
@@ -263,9 +285,10 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
       ifelse(train_df[i, "class"] == train_df[i, "predicted"], 1, 0)
     }))/nrow(train_df), 4)
     if(new_accuracy_res == base_accuracy_res) {
-      # cat("removing rule", i,'\n')
+      cat("removing rule", i)
       rlcs_obj <- new_rlcs_obj
     }
+    cat('\n')
 
   }
   rlcs_obj
@@ -343,10 +366,12 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   # match_pop <- .inc_match_count(env$lcs$pop[c(match_set)])
   # match_pop <- .inc_match_count_env(env, match_set)
   match_pop <- env$lcs$pop[c(match_set)]
-  match_pop <- .inc_match_count_env(environment())
+  # match_pop <- .inc_match_count_env(environment())
+  .inc_match_count_env2(environment())
 
   # correct_set <- .get_correct_set(t_instance, match_pop)
-  correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+  # correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+  correct_set <- .get_correct_set_env2(t_instance_class, env, match_set)
 
   if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
@@ -358,10 +383,12 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   }
   else {
     correct_pop <- match_pop[c(correct_set)]
-    correct_pop <- .inc_correct_count_env(environment())
+    # correct_pop <- .inc_correct_count_env(environment())
+    .inc_correct_count_env2(environment())
 
     ## *Second* Rule Discovery HAPPENS HERE NOW
     ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
+
     # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
     # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
     # if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
@@ -1038,10 +1065,13 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
   # print(env$train_env_df[sample_pos, ])
   # print(match_pop)
   # print('--------')
-  match_pop <- .inc_match_count_env(environment())
+
+  # match_pop <- .inc_match_count_env(environment())
+  .inc_match_count_env2(environment())
 
   # correct_set <- .get_correct_set(t_instance, match_pop)
-  correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+  # correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+  correct_set <- .get_correct_set_env2(t_instance_class, env, match_set)
 
   if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
@@ -1053,8 +1083,8 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
   }
   else {
     correct_pop <- match_pop[c(correct_set)]
-    correct_pop <- .inc_correct_count_env(environment())
-
+    # correct_pop <- .inc_correct_count_env(environment())
+    .inc_correct_count_env2(environment())
     ## *Second* Rule Discovery HAPPENS HERE NOW
     ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
     # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {

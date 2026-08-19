@@ -311,6 +311,9 @@
 .inc_match_count_env <- function(env) {
   inc_param_count_cpp(env$match_pop, "match_count")
 }
+.inc_match_count_env2 <- function(env) {
+  inc_param_count_cpp2(env$match_pop, "match_count")
+}
 
 .inc_numerosity_by_condition <- function(pop, item) {
   lapply(pop, \(x, item) {
@@ -338,7 +341,8 @@
 
 .update_matched_accuracy_env <- function(env) {
   ## TODO Could run in problems for VERY high numbers divisions...?
-  env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
+  # env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
+  update_matched_accuracy_cpp2(env$match_pop)
   NULL
 }
 
@@ -399,13 +403,13 @@
     ## Matrices approach!
     if(env$use_gpu) {
       # print("Use Torch!")
-      match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
+      match_set <- which_cpp(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
                                                              torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
                                       torch::torch_matmul(env$lcs$matrices[[4]],
                                                           torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
                            env$lcs$lengths)
     } else {
-      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+      match_set <- which_cpp((env$lcs$matrices[[1]] %*% (1-ti_cond) +
                           env$lcs$matrices[[2]] %*% ti_cond) ==
                          env$lcs$lengths)
     }
