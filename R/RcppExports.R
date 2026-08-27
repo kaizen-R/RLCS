@@ -5,20 +5,16 @@ get_correct_set_cpp2 <- function(match_pop_actions, t_class) {
     .Call(`_RLCS_get_correct_set_cpp2`, match_pop_actions, t_class)
 }
 
-update_matched_accuracy_cpp2 <- function(pop) {
-    .Call(`_RLCS_update_matched_accuracy_cpp2`, pop)
-}
-
-update_matched_accuracy_cpp <- function(pop) {
-    .Call(`_RLCS_update_matched_accuracy_cpp`, pop)
+update_accuracy_cpp2 <- function(pop) {
+    .Call(`_RLCS_update_accuracy_cpp2`, pop)
 }
 
 inc_param_count_cpp2 <- function(pop, param_name) {
     .Call(`_RLCS_inc_param_count_cpp2`, pop, param_name)
 }
 
-inc_param_count_cpp <- function(pop, param_name) {
-    .Call(`_RLCS_inc_param_count_cpp`, pop, param_name)
+inc_match_and_correct_count_cpp2 <- function(match_pop, correct_set) {
+    .Call(`_RLCS_inc_match_and_correct_count_cpp2`, match_pop, correct_set)
 }
 
 min_param_count_cpp <- function(pop, param_name) {

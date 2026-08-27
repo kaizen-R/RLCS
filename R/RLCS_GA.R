@@ -21,8 +21,8 @@
     return(new_pop[[1]]$condition_string)
   }
 
-  n_elements <- sum(sapply(new_pop, \(x) { x$numerosity }))
-
+  # n_elements <- sum(sapply(new_pop, \(x) { x$numerosity }))
+  n_elements <- sum(vapply(new_pop, \(x) { x$numerosity }, numeric(1)))
   t_pop <- lapply(new_pop, \(x) { if(x$numerosity == 0) return(NULL); x })
 
   # ranking <- sapply(t_pop, \(x) {

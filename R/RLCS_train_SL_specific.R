@@ -117,17 +117,29 @@
   NULL
 }
 
+.lcs_best_sort_sl_local_env <- function(env) {
+  env$pop <- unclass(env$pop)
+  if(length(env$pop) == 0) return(NULL)
+
+  ranking <- vapply(env$pop, \(x) {
+    # x$accuracy + 0.01 * (1 - (length(x$condition_list$"0")+length(x$condition_list$"1")) / x$condition_length)
+    # x$accuracy - 0.01 * (length(x$condition_list$"0")+length(x$condition_list$"1")) / x$condition_length
+    x$accuracy - 0.01 * x$length_fixed_bits / x$condition_length
+  }, numeric(1)) ## For same accuracy, more general rules will be preferred.
+  env$pop <- env$pop[order(ranking, decreasing=T)]
+  NULL
+}
+
 ## Another key function here.
 .apply_subsumption_whole_pop_sl <- function(pop) {
 
   if(length(pop) <= 1) return(pop)
 
-  pop <- .lcs_best_sort_sl(pop)
-  # .lcs_best_sort_sl_env(environment())
+  # pop <- .lcs_best_sort_sl(pop)
+  .lcs_best_sort_sl_local_env(environment())
 
   # pop <- .apply_deletion_no_threshold(pop)
-
-  if(length(pop) <= 1) return(pop)
+  # if(length(pop) <= 1) return(pop)
 
   ## Within this function in this case :)
   t_matrices <- .recalculate_pop_matrices(pop)
@@ -138,18 +150,7 @@
 
   subsumers_list <- lapply(1:(pop_size-1), \(item) {
 
-    # if(pop[[item]]$numerosity > 0) { ## Now superfluous in vectorized approach
-
-    # t_zero <- pop[[item]]$condition_list$"0"
-    # t_one <- pop[[item]]$condition_list$"1"
-    # correct_length_values_set <- length(pop[[item]]$condition_list$"0") +
-    #   length(pop[[item]]$condition_list$"1")
-
     correct_length_values_set <- pop[[item]]$length_fixed_bits
-    # cond_string <- pop[[item]]$condition_string
-    # cond_lab <- pop[[item]]$action
-
-    # pop_to_delete <- NULL
 
     ## Alternative approach now, let's see!
     rest_t_matrices_zeros <- t_matrices[[1]][(item+1):pop_size,]
@@ -169,11 +170,11 @@
     )
 
     if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
-      # pop_to_delete <- pop_to_delete + item ## Optimization. POSITIONS
-      return(pop_to_delete + item)
+      return(pop_to_delete + item) ## Optimization. POSITIONS
     }
 
-    return(c()) ## Default: Nothing to delete
+    # return(c()) ## Default: Nothing to delete
+    return(NULL) ## Double check that...
   })
 
   ## Update numerosity for each subsumer - Vectorized version:
@@ -188,8 +189,6 @@
     item_to_clean$numerosity <- 0
     item_to_clean
   }) ## Go this just once!
-
-  # print(length(pop))
 
   pop <- .apply_deletion_no_threshold(pop)
 
@@ -219,7 +218,7 @@
 
         if(t_df$match_sizes[i] == t_df$Freq[i]) { ## Full Coverage!
           ## Then delete all entries that have the same match_class, as they are useless
-          to_remove <- which_cpp(t_df[i+1:nrow(t_df), "match_class"] == t_df$match_class[i])
+          to_remove <- which(t_df[i+1:nrow(t_df), "match_class"] == t_df$match_class[i])
           lcs$pop[to_remove] <- lapply(lcs$pop[to_remove], \(item) {
             item$numerosity <- 0
             item
@@ -305,16 +304,18 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   if(length(env$lcs$pop) > max_pop_size) {
     #env$lcs$pop <-
     .lcs_best_sort_sl_env(env)
-    env$lcs$pop[max_pop_size:length(env$lcs$pop)] <- lapply(env$lcs$pop[max_pop_size:length(env$lcs$pop)], \(x) {
-      x$numerosity <- 0
-      x
-    })
+    # env$lcs$pop[max_pop_size:length(env$lcs$pop)] <- lapply(env$lcs$pop[max_pop_size:length(env$lcs$pop)], \(x) {
+    #   x$numerosity <- 0
+    #   x
+    # })
+    env$lcs$pop[max_pop_size:length(env$lcs$pop)] <- NULL
   }
 
   #env$lcs$pop <- .apply_deletion_no_threshold(env$lcs$pop)
   .apply_deletion_no_threshold_env(env)
   # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
-  env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
+  # env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
+  .recalculate_pop_matrices_env2(env$lcs$pop, env)
   env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
   env$lcs$actions_vec <- .recalculate_actions_vec(env$lcs$pop)
 
@@ -346,6 +347,7 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   # match_set <- .get_match_set_mat_env(t_instance_state, env)
   match_set <- .get_match_set_mat_env2(t_instance_vec, env)
 
+  # print(match_set)
   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
     for(iter in 1:3) { ## Testing more covering for new niches?
       cover_rule <-
@@ -367,24 +369,30 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   # match_pop <- .inc_match_count_env(env, match_set)
   match_pop <- env$lcs$pop[c(match_set)]
   # match_pop <- .inc_match_count_env(environment())
-  .inc_match_count_env2(environment())
 
-  # correct_set <- .get_correct_set(t_instance, match_pop)
-  # correct_set <- .get_correct_set_env(t_instance_class, env, match_set)
+
+
+  ## Changed to fewer function calls, only called if Correct Set is empty:
+  # .inc_match_count_env2(environment())
+
   correct_set <- .get_correct_set_env2(t_instance_class, env, match_set)
 
   if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                               run_params$get_wildcard_prob())
     if(!is.null(cover_rule)) {
-      #env$lcs <-
       .add_valid_rule_to_lcs_env(env, cover_rule, t_instance_class, train_count)
     }
+
+    ## Now we only need to update match count
+    .inc_match_count_env2(environment())
   }
   else {
     correct_pop <- match_pop[c(correct_set)]
-    # correct_pop <- .inc_correct_count_env(environment())
-    .inc_correct_count_env2(environment())
+
+    # .inc_correct_count_env2(environment())
+    ## Here we should update both match and correct count, but in one function call!
+    .inc_match_and_correct_count_env2(environment())
 
     ## *Second* Rule Discovery HAPPENS HERE NOW
     ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
@@ -396,8 +404,10 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
     # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
     if((.min_correct_count_env(environment()) %% run_params$rd_trigger) == 0) {
 
+      ## New: Moved: The idea is to call this only when absolutely needed:
+      .update_matched_accuracy_env(environment()) ## This really only needs to happen here
+
       ## The GA, basically, happens here: Cross-over & Mutation:
-      # print("Triggered Mutation")
       children <- correct_pop |>
         .cross_over_parents_strings_sl(run_params$get_sel_mode(),
                                        run_params$get_tournament_pressure()) |>
@@ -408,7 +418,6 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
         if(.found_same_condition(correct_pop, child)) ## Duplicate rule
           correct_pop <- .inc_numerosity(correct_pop)
         else {
-          #env$lcs <-
           .add_valid_rule_to_lcs_env(env, child, t_instance_class, train_count)
         }
       }
@@ -418,7 +427,7 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 
   ## Update Matched Population statistics into main population
   # env$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
-  .update_matched_accuracy_env(environment())
+  # .update_matched_accuracy_env(environment())
   env$lcs$pop[c(match_set)] <- match_pop
 
   # ## NEW: More rule-discovery
@@ -435,8 +444,12 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 
   ## Apply Deletion by reducing numerosity
   if((train_count %% (run_params$deletion_trigger*size_env)) == 0) {
+
+    update_accuracy_cpp2(env$lcs$pop)
     ## Subsumption is too important to skip, for speed reasons.
     env$lcs$pop <- .apply_subsumption_whole_pop_sl(env$lcs$pop)
+
+
 
     .apply_deletion_sl_env(env,
                            deletion_limit = run_params$get_deletion_threshold(),
@@ -549,6 +562,7 @@ rlcs_train_sl <- function(train_env_df,
     ))
   }
 
+  cat('\n')
   ## Final simplification: Coverage
   # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
   lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
@@ -557,7 +571,7 @@ rlcs_train_sl <- function(train_env_df,
   if(is.null(lcs$pop)) return(NULL)
   class(lcs) <- "rlcs"
 
-  cat('\n')
+
   lcs
 }
 
@@ -1085,6 +1099,7 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
     correct_pop <- match_pop[c(correct_set)]
     # correct_pop <- .inc_correct_count_env(environment())
     .inc_correct_count_env2(environment())
+
     ## *Second* Rule Discovery HAPPENS HERE NOW
     ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
     # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
@@ -1115,8 +1130,11 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
   }
 
   ## Update Matched Population statistics into main population
-  # env$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
-  .update_matched_accuracy_env(environment())
+  env$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+
+  ## Moved to only apply when correct set used for RD
+  # .update_matched_accuracy_env(environment())
+
   env$lcs$pop[c(match_set)] <- match_pop
 
   # ## NEW: More rule-discovery
@@ -1135,6 +1153,9 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
   if((train_count %% (run_params$deletion_trigger*size_env)) == 0) {
     ## Subsumption is too important to skip, for speed reasons.
     env$lcs$pop <- .apply_subsumption_whole_pop_sl(env$lcs$pop)
+
+    # ## More efficient to do it only ever so often on whole pop:
+    # .update_pop_accuracy_env(env)
 
     .apply_deletion_sl_env(env,
                            deletion_limit = run_params$get_deletion_threshold(),
@@ -1287,10 +1308,11 @@ rlcs_train_sl_v2 <- function(train_env_df, run_params = RLCS_hyperparameters(),
                     "Classifiers Count:", length(lcs$pop), "   "
     ))
   }
-
+  cat('\n')
+  print(lcs$pop)
   ## Final simplification: Coverage
   # lcs <- .perfect_coverage_simplifier_sl(lcs, train_env_df, t_classes_counts)
-  lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
+  # lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
 
   ## Sometimes, deletion removes all rules as none are good enough!
   if(is.null(lcs$pop)) return(NULL)

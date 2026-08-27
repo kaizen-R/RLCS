@@ -11,6 +11,11 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.1.9
+
+Some code optimizations that make overall perf slightly better.
+I did however break the GPU support somehow (will be fixed later, not considered urgent).
+
 ## v0.1.8
 
 I came across a Paper that discussed algorithms to simplify XCS populations.

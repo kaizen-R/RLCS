@@ -8,11 +8,12 @@
   ## NEW!
   zeros_vector <- ones_vector <- rep(0, nchar(condition_string))
   t_vec <- strsplit(condition_string, "", fixed=T)[[1]]
-  which_zeros <- which_cpp(t_vec == "0")
-  which_ones <- which_cpp(t_vec == "1")
-  zeros_vector[which_zeros] <- 1
-  ones_vector[which_ones] <- 1
-
+  which_zeros <- which(t_vec == "0")
+  which_ones <- which(t_vec == "1")
+  # zeros_vector[which_zeros] <- 1
+  # ones_vector[which_ones] <- 1
+  zeros_vector[t_vec == "0"] <- 1
+  ones_vector[t_vec == "1"] <- 1
   # length_fixed_bits <- length(which_zeros)+length(which_ones)
   length_fixed_bits <- sum(zeros_vector) + sum(ones_vector)
 
@@ -115,6 +116,20 @@
 
   list(zeros_matrix, ones_matrix)
 }
+
+
+.recalculate_pop_matrices_env2 <- function(pop, env) {
+  zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
+  ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
+  # print(zeros_matrix)
+  if(env$use_gpu & length(zeros_matrix) > 0) zeros_tensor <- torch::torch_tensor(zeros_matrix, dtype = torch::torch_uint8(), device=env$gpu_type)
+  if(env$use_gpu & length(ones_matrix) > 0) ones_tensor <- torch::torch_tensor(ones_matrix, dtype = torch::torch_uint8(), device=env$gpu_type)
+  if(env$use_gpu & length(zeros_matrix) > 0 & length(ones_matrix) > 0)
+    return(list(zeros_matrix, ones_matrix,
+                zeros_tensor, ones_tensor))
+  env$lcs$matrices <- list(zeros_matrix, ones_matrix)
+}
+
 
 .recalculate_pop_matrices_new_rule <- function(t_matrices, condition_string) {
   ## I just want to add a row to either matrices!!
@@ -242,7 +257,6 @@
 
   ## Key here is creating a population structure
   if(is.null(env$lcs)) {
-    #return(.new_rlcs())
     env$lcs <- .new_rlcs()
     return(NULL)
   }
@@ -251,8 +265,11 @@
 
   if(is.null(env$lcs$pop) || length(env$lcs$pop) == 0) {
     env$lcs$pop <- structure(list(t_rule), class = "rlcs_population")
+
     # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
-    env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
+    # env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
+    .recalculate_pop_matrices_env2(env$lcs$pop, env)
+
     env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
     env$lcs$actions_vec <- .recalculate_actions_vec(env$lcs$pop)
     return(NULL)
@@ -302,17 +319,22 @@
 }
 
 ## Augment match count of a set of classifiers
-.inc_match_count <- .inc_param_count("match_count")
+# .inc_match_count <- .inc_param_count("match_count")
 
 # .inc_match_count_env <- function(env, match_set) {
 #   inc_param_count_cpp(env$lcs$pop[c(match_set)], "match_count")
 # }
+#
+# .inc_match_count_env <- function(env) {
+#   inc_param_count_cpp(env$match_pop, "match_count")
+# }
 
-.inc_match_count_env <- function(env) {
-  inc_param_count_cpp(env$match_pop, "match_count")
-}
 .inc_match_count_env2 <- function(env) {
   inc_param_count_cpp2(env$match_pop, "match_count")
+}
+
+.inc_match_and_correct_count_env2 <- function(env) {
+  inc_match_and_correct_count_cpp2(env$match_pop, env$correct_set)
 }
 
 .inc_numerosity_by_condition <- function(pop, item) {
@@ -342,7 +364,14 @@
 .update_matched_accuracy_env <- function(env) {
   ## TODO Could run in problems for VERY high numbers divisions...?
   # env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
-  update_matched_accuracy_cpp2(env$match_pop)
+  update_accuracy_cpp2(env$match_pop)
+  NULL
+}
+
+.update_pop_accuracy_env <- function(env) {
+  ## TODO Could run in problems for VERY high numbers divisions...?
+  # env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
+  update_matched_accuracy_cpp2(env$lcs$pop)
   NULL
 }
 
@@ -371,47 +400,48 @@
   NULL ## implicit return
 }
 
-.get_match_set_mat_env <- function(instance_state, env) {
-  # print(length(pop))
-  if(length(env$lcs$pop) > 0) {
-    # Only part relevant for matching
-    ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
-
-    ## Matrices approach!
-
-    if(env$use_gpu & requireNamespace("torch", quietly=T)) {
-      print("Use Torch!")
-      match_set <- which((torch::torch_matmul(env$lcs$matrices[[1]], (1-ti_cond)) +
-                            torch::torch_matmul(env$lcs$matrices[[2]], ti_cond)) ==
-                           env$lcs$lengths)
-    } else {
-      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
-                            env$lcs$matrices[[2]] %*% ti_cond) ==
-                           env$lcs$lengths)
-    }
-
-    if(length(match_set) > 0)
-      return(match_set)
-  }
-
-  NULL ## implicit return
-}
+# .get_match_set_mat_env <- function(instance_state, env) {
+#   # print(length(pop))
+#   if(length(env$lcs$pop) > 0) {
+#     # Only part relevant for matching
+#     ti_cond <- as.integer(strsplit(instance_state, "", fixed = T)[[1]])
+#
+#     ## Matrices approach!
+#
+#     if(env$use_gpu & requireNamespace("torch", quietly=T)) {
+#       print("Use Torch!")
+#       match_set <- which((torch::torch_matmul(env$lcs$matrices[[1]], (1-ti_cond)) +
+#                             torch::torch_matmul(env$lcs$matrices[[2]], ti_cond)) ==
+#                            env$lcs$lengths)
+#     } else {
+#       match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
+#                             env$lcs$matrices[[2]] %*% ti_cond) ==
+#                            env$lcs$lengths)
+#     }
+#
+#     if(length(match_set) > 0)
+#       return(match_set)
+#   }
+#
+#   NULL ## implicit return
+# }
 
 .get_match_set_mat_env2 <- function(ti_cond, env) {
   if(length(env$lcs$pop) > 0) {
+    t_lcs <- env$lcs
     # Only part relevant for matching
     ## Matrices approach!
     if(env$use_gpu) {
       # print("Use Torch!")
-      match_set <- which(torch::as_array(torch::torch_matmul(env$lcs$matrices[[3]],
+      match_set <- which(torch::as_array(torch::torch_matmul(t_lcs$matrices[[3]],
                                                              torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
-                                      torch::torch_matmul(env$lcs$matrices[[4]],
+                                      torch::torch_matmul(t_lcs$matrices[[4]],
                                                           torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
-                           env$lcs$lengths)
+                           t_lcs$lengths)
     } else {
-      match_set <- which((env$lcs$matrices[[1]] %*% (1-ti_cond) +
-                          env$lcs$matrices[[2]] %*% ti_cond) ==
-                         env$lcs$lengths)
+      match_set <- which((t_lcs$matrices[[1]] %*% (1-ti_cond) +
+                            t_lcs$matrices[[2]] %*% ti_cond) ==
+                           t_lcs$lengths)
     }
     if(length(match_set) > 0)
       return(match_set)
@@ -590,17 +620,23 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
 .apply_deletion_no_threshold_env <- function(env) {
 
-
   if(length(env$lcs$pop) < 1) return(NULL)
+
   ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which_cpp(sapply(env$lcs$pop, \(x) {
+  survivors_set <- which(sapply(env$lcs$pop, \(x) {
     if(x$numerosity > 0) return(TRUE)
     FALSE
   }))
-  if(length(survivors_set) == 0) return(NULL)
+
   ## Ensure you keep class here.
   env$lcs$pop <- env$lcs$pop[survivors_set]
   # pop <- .recalculate_pop_matrices(pop)
+
+  # env$lcs$pop <- lapply(env$lcs$pop, \(x) {
+  #   if(x$numerosity > 0) return(x)
+  #   NULL
+  # })
+  # if(length(env$lcs$pop) == 0) return(NULL)
 
   env$lcs$pop <- structure(env$lcs$pop, class = "rlcs_population")
 }

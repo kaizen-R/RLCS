@@ -22,16 +22,16 @@ rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
 
 ## Check out the results
-print(rlcs_model1)
+print(rlcs_model1$pop)
 rlcs_not_bit_4_10()
 
-## NEW! You could use torch?
-## Testing, for now, actually...
-## Not faster than CPU on Mac M1 with MPS... :(
-rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
-                             pre_trained_lcs = NULL,
-                             use_gpu = T)
-print(rlcs_model1)
+# ## NEW! You could use torch?
+# ## Testing, for now, actually...
+# ## Not faster than CPU on Mac M1 with MPS... :(
+# rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
+#                              pre_trained_lcs = NULL,
+#                              use_gpu = T)
+# print(rlcs_model1)
 plot(rlcs_model1)
 
 ## Which rule of the model would match the following "state"?
