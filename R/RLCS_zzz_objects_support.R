@@ -98,8 +98,75 @@ print.rlcs_population <- function(x, ...) {
   df
 }
 
+#' #' @export
+#' print.rlcs <- function(x, ...) {
+#'   ## x here is an rlcs LCS, which contains a population
+#'   print.rlcs_population(x$pop)
+#' }
+
 #' @export
 print.rlcs <- function(x, ...) {
   ## x here is an rlcs LCS, which contains a population
-  print.rlcs_population(x$pop)
+  # print.rlcs_population(x$pop)
+
+  ## x here is an rlcs LCS, which contains a population
+
+  if(length(x$numerosities[x$numerosities > 0]) == 0) return(NULL)
+  # if(any(sapply(x, \(elem) elem$total_reward != 5))) {
+  #   # browser()
+  #   x <- .lcs_best_sort_rl(x)
+  #   x <- unclass(x)
+  #   l <- lapply(1:length(x), \(i) {
+  #     t_c <- x[[i]]
+  #     data.frame(condition = t_c$condition_string,
+  #                action = t_c$action,
+  #                match_count = t_c$match_count,
+  #                action_count = t_c$action_count,
+  #                reward = t_c$total_reward,
+  #                numerosity = t_c$numerosity,
+  #                first_seen = t_c$first_seen)
+  #   })
+  #   # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
+  #   ## Slower, but no dependency:
+  #   df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
+  #   names(df) <- c("condition", "action", "match_count", "action_count", "reward", "numerosity", "first_seeen")
+  # }
+  #
+  #
+  # else {
+    lcs <- x
+
+    .lcs_best_sort_sl_env3(environment())
+    # x <- unclass(x)
+    valid_positions <- which(lcs$numerosities > 0)
+
+    df <- data.frame(condition = lcs$condition_strings[valid_positions],
+                     action = lcs$actions[valid_positions],
+                     accuracy = lcs$accuracies[valid_positions],
+                     lengths_fixed_bits = lcs$lengths_fixed_bits[valid_positions],
+                     match_count = lcs$match_counts[valid_positions],
+                     correct_count = lcs$correct_counts[valid_positions],
+
+                     numerosity = lcs$numerosities[valid_positions],
+                     first_seen = lcs$rule_first_seens[valid_positions])
+    # print(length(x))
+    # l <- lapply(1:length(x), \(i) {
+    #   t_c <- x[[i]]
+    #   # print(t_c)
+    #   data.frame(condition = t_c$condition_string,
+    #              action = t_c$action,
+    #              match_count = t_c$match_count,
+    #              correct_count = t_c$correct_count,
+    #              accuracy = t_c$accuracy,
+    #              numerosity = t_c$numerosity,
+    #              first_seen = t_c$first_seen)
+    # })
+    # plyr::rbind.fill(l) ## Faster, but adds plyr dependency :(
+    ## Slower, but no dependency:
+    # print(l)
+    # df <- data.frame(matrix(unlist(l), nrow=length(l), byrow=TRUE))
+    names(df) <- c("condition", "action", "accuracy", "lengths_fixed_bits", "match_count", "correct_count", "numerosity", "first_seen")
+  # }
+
+  df
 }

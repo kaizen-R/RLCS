@@ -11,6 +11,15 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.2.0
+
+Moved from lists to matrices/vectors (semi-hidden version). Gained about 12% runtime over v0.1.9.
+Switching to v0.2 because this changes underlying data model.
+This is a first attempt at that, plenty of noise in the code, commented out tests...
+But it works for some of the environments and is faster than before there!
+Still a lot to re-work (predicting, printing), many more tests, clean up...
+Work in progress...
+
 ## v0.1.9
 
 Some code optimizations that make overall perf slightly better.

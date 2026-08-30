@@ -13,6 +13,11 @@
   inc_param_count_cpp2(env$correct_pop, "correct_count")
 }
 
+## CAREFUL HERE CORRECT SET IS NOT RELATIVE ANYMORE!!
+.inc_correct_count_env3 <- function(env, correct_set) {
+  env$lcs$correct_counts[correct_set] <- env$lcs$correct_counts[correct_set] + 1
+}
+
 .mean_correct_count <- function(pop) {
   # sum(sapply(pop, \(x) x$correct_count)) / length(pop)
   sum(vapply(pop, \(x) x$correct_count, numeric(1))) / length(pop)
@@ -47,6 +52,11 @@
 .min_correct_count_env <- function(env) {
   min_param_count_cpp(env$correct_pop, "correct_count")
 }
+
+.min_correct_count_env3 <- function(env, correct_set) {
+  min(env$lcs$correct_counts[correct_set])
+}
+
 
 .min_match_count <- function(pop) {
   min(vapply(pop, \(x) x$match_count, numeric(1)))
@@ -88,6 +98,18 @@
   NULL ## implicit return
 }
 
+.get_correct_set_env3 <- function(t_instance_class, env, match_set) {
+  # browser()
+  if(length(match_set) > 0) {
+
+    # correct_set <- which(env$lcs$actions_vec[match_set] == t_instance_class)
+    correct_pos <- which(env$lcs$actions[match_set] == t_instance_class)
+    correct_set <- match_set[correct_pos] ## NOT relative positions
+    if(length(correct_set) > 0) return(correct_set)
+  }
+  NULL ## implicit return
+}
+
 ## KEY function:
 ## Classifiers are better or worse. CHOOSING THE BEST ones is important
 ## For SL, accuracy is top priority, followed by generality
@@ -114,6 +136,43 @@
     x$accuracy - 0.01 * x$length_fixed_bits / x$condition_length
   }, numeric(1)) ## For same accuracy, more general rules will be preferred.
   env$lcs$pop <- env$lcs$pop[order(ranking, decreasing=T)]
+  NULL
+}
+
+.lcs_best_sort_sl_env3 <- function(env) {
+
+  if(is.null(env$lcs)) return(NULL)
+  if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
+
+  ## Now this here is important: Numerosity SHOULD play a role, shouldn't it?
+  ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length
+  # ranking <- env$lcs$accuracy - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$condition_length + 0.01 * env$lcs$numerosities
+  sorted_entries <- order(ranking, decreasing=T)
+
+  env$lcs$condition_strings <- env$lcs$condition_strings[sorted_entries]
+  env$lcs$actions <- env$lcs$actions[sorted_entries]
+  env$lcs$rule_first_seens <- env$lcs$rule_first_seens[sorted_entries]
+
+  env$lcs$match_counts <- env$lcs$match_counts[sorted_entries]
+  env$lcs$correct_counts <- env$lcs$correct_counts[sorted_entries]
+  env$lcs$numerosities <- env$lcs$numerosities[sorted_entries]
+  env$lcs$accuracies <- env$lcs$accuracies[sorted_entries]
+
+  ## For RL: Total Reward starts at 5, not at 0:
+  env$lcs$action_counts <- env$lcs$action_counts[sorted_entries]
+  env$lcs$total_rewards <- env$lcs$total_rewards[sorted_entries]
+
+  ## New. Found in some LCS explanations out there... Just wasn't in RLCS
+  ## yet.
+  env$lcs$coverage_epoch_correct_count <- env$lcs$coverage_epoch_correct_count[sorted_entries]
+
+  ## Now add space to matching matrices
+  env$lcs$matrix_conditions_vecs <- env$lcs$matrix_conditions_vecs[sorted_entries,]
+  env$lcs$matrix_match_0s <- env$lcs$matrix_match_0s[sorted_entries,]
+  env$lcs$matrix_match_1s <- env$lcs$matrix_match_1s[sorted_entries,]
+  ## Faster to compare later
+  env$lcs$lengths_fixed_bits <- env$lcs$lengths_fixed_bits[sorted_entries]
+
   NULL
 }
 
@@ -193,6 +252,120 @@
   pop <- .apply_deletion_no_threshold(pop)
 
   pop
+}
+
+.apply_subsumption_whole_pop_sl3 <- function(env) {
+
+  if(is.null(env$lcs)) return(NULL)
+  if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
+
+  # browser()
+
+  .lcs_best_sort_sl_env3(env)
+
+  # pop <- .apply_deletion_no_threshold(pop)
+  # if(length(pop) <= 1) return(pop)
+
+  ## Within this function in this case :)
+  t_labs <- env$lcs$actions
+
+  useful_pos <- which(env$lcs$numerosities > 0)
+
+  # cat('\n', useful_pos, '\na')
+  # browser()
+  subsumers_list <- list()
+
+  for(t_pos in useful_pos[1:(length(useful_pos)-1)]) { ## If this all works, will move it to C++...
+    ## For comparisons:
+    rest_pos <- useful_pos[which(useful_pos > t_pos)] ## Careful, we don't want relative positions here!
+    rest_t_matrices_zeros <- env$lcs$matrix_match_0s[rest_pos,]
+    rest_t_matrices_ones <- env$lcs$matrix_match_1s[rest_pos,]
+
+    ## Remember the rules are sorted by accuracy and generality already!
+    subsumer_must_match_zeros <- rest_t_matrices_zeros  %*% env$lcs$matrix_match_0s[t_pos, ]
+    subsumer_must_match_ones <- rest_t_matrices_ones  %*% env$lcs$matrix_match_1s[t_pos, ]
+
+    subsumed_must_be_different_zero <-  rest_t_matrices_zeros %*%  env$lcs$matrix_match_1s[t_pos, ]
+    subsumed_must_be_different_one <- rest_t_matrices_ones %*% env$lcs$matrix_match_0s[t_pos, ]
+
+    pop_to_delete <- which(
+      ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+        (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+        (t_labs[rest_pos] == t_labs[t_pos])
+    )
+
+    ## Return positions to be deleted from population
+    if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+      subsumers_list[[length(subsumers_list)+1]] <- (pop_to_delete + t_pos) ## Optimization. POSITIONS
+    } else {
+      subsumers_list[[length(subsumers_list)+1]] <- NA
+    }
+  }
+
+  if(length(subsumers_list)>0) {
+    # browser()
+    subsumers_positions <- which(!is.na(subsumers_list))
+    # browser()
+    env$lcs$numerosities[subsumers_positions] <- vapply(subsumers_positions, \(i) {
+      env$lcs$numerosities[i] + length(subsumers_list[[i]])
+    }, numeric(1)) ## Go this just once!
+
+    pop_to_delete <- unique(unlist(subsumers_list)) ## Reduce operations
+    env$lcs$numerosities[pop_to_delete] <- 0 ## Go this just once!
+    ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
+    # .apply_deletion_no_threshold3(env)
+  }
+
+
+
+
+  # pop_size <- length(pop)
+  #
+  # subsumers_list <- lapply(1:(pop_size-1), \(item) {
+  #
+  #   correct_length_values_set <- pop[[item]]$length_fixed_bits
+  #
+  #   ## Alternative approach now, let's see!
+  #   rest_t_matrices_zeros <- t_matrices[[1]][(item+1):pop_size,]
+  #   rest_t_matrices_ones <- t_matrices[[2]][(item+1):pop_size,]
+  #
+  #   ## Remember the rules are sorted by accuracy and generality already!
+  #   subsumer_must_match_zeros <- rest_t_matrices_zeros  %*% t_matrices[[1]][item,]
+  #   subsumer_must_match_ones <- rest_t_matrices_ones  %*% t_matrices[[2]][item,]
+  #
+  #   subsumed_must_be_different_zero <-  rest_t_matrices_zeros %*% t_matrices[[2]][item,]
+  #   subsumed_must_be_different_one <- rest_t_matrices_ones %*% t_matrices[[1]][item,]
+  #
+  #   pop_to_delete <- which(
+  #     ((subsumer_must_match_zeros+subsumer_must_match_ones) == correct_length_values_set) &
+  #       (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+  #       (t_labs[(item+1):pop_size] == t_labs[item])
+  #   )
+  #
+  #   if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+  #     return(pop_to_delete + item) ## Optimization. POSITIONS
+  #   }
+  #
+  #   # return(c()) ## Default: Nothing to delete
+  #   return(NULL) ## Double check that...
+  # })
+  #
+  # ## Update numerosity for each subsumer - Vectorized version:
+  # subsumers_positions <- which(sapply(subsumers_list, \(x) !is.null(x)))
+  # pop[subsumers_positions] <- lapply(subsumers_positions, \(i) {
+  #   pop[[i]]$numerosity <- pop[[i]]$numerosity + length(subsumers_list[[i]])
+  #   pop[[i]]
+  # }) ## Go this just once!
+  #
+  # pop_to_delete <- unique(unlist(subsumers_list)) ## Reduce operations
+  # pop[pop_to_delete] <- lapply(pop[pop_to_delete], \(item_to_clean) {
+  #   item_to_clean$numerosity <- 0
+  #   item_to_clean
+  # }) ## Go this just once!
+  #
+  # pop <- .apply_deletion_no_threshold(pop)
+  #
+  # pop
 }
 
 .validate_SL_train_df <- function(train_env_df) {
@@ -321,6 +494,31 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 
   NULL
 }
+
+.apply_deletion_sl_env3 <- function(env, deletion_limit = 0.6, max_pop_size = 10000) {
+
+  env$lcs$numerosities[env$lcs$accuracies < deletion_limit] <- 0
+
+  positions_nums <- which(env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0)
+  # positions_nums <- which(env$lcs$valid_rules)
+
+  if(length(positions_nums) > max_pop_size) {
+    env$lcs$numerosities[positions_nums[(max_pop_size+1):length(positions_nums)]] <- 0
+    # env$lcs$valid_rules[positions_nums[(max_pop_size+1):length(positions_nums)]] <- FALSE
+  }
+
+
+  #env$lcs$pop <- .apply_deletion_no_threshold(env$lcs$pop)
+  .apply_deletion_no_threshold_env3(env)
+  # env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
+  # env$lcs$matrices <- .recalculate_pop_matrices_env(env$lcs$pop, env)
+  # .recalculate_pop_matrices_env2(env$lcs$pop, env)
+  # env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
+  # env$lcs$actions_vec <- .recalculate_actions_vec(env$lcs$pop)
+
+  NULL
+}
+
 
 .rlcs_train_one_instance_one_epoch_mat_env <- function(env,
                                                        sample_pos,
@@ -574,6 +772,298 @@ rlcs_train_sl <- function(train_env_df,
 
   lcs
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## NEW: Try to use only matrices and vectors now...
+.rlcs_train_one_instance_one_epoch_mat_env3 <- function(env,
+                                                       sample_pos,
+                                                       t_instance,
+                                                       size_env, ## Used for Subsumption Freq.
+                                                       n_epoch, ## Used for Subsumption Freq.
+                                                       train_count, ## train_count
+                                                       run_params ## Algorithm Hyperparameters
+) {
+  ######
+  ## Main process for R LCS Training
+  ######
+
+  # ## Do we want to try using torch?
+  # if(env$use_gpu) { use_gpu <- env$use_gpu; gpu_type <- env$gpu_type }
+
+  ## ADD ERROR CONTROL
+  t_instance_state <- env$environment_states[sample_pos] ## this is a vector
+  t_instance_vec <- env$environment_conds_mat[, sample_pos] ## matrix version better?
+  t_instance_class <- env$environment_classes[sample_pos]
+
+  match_set <- .get_match_set_mat_env3(t_instance_vec, env)
+
+  # browser()
+  # print(match_set)
+  if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
+    for(iter in 1:3) { ## Testing more covering for new niches?
+      cover_rule <-
+        .generate_cover_rule_for_unmatched_instance(t_instance_state,
+                                                    run_params$get_wildcard_prob())
+      if(!is.null(cover_rule)) {
+        .add_valid_rule_to_lcs_env_mat(env, cover_rule,
+                                   t_instance_class,
+                                   train_count)
+      }
+
+    } ## END TESTING MORE COVERING FOR NEW NICHES
+    return(NULL)
+  }
+
+  # print("Matched")
+  ## Faster to work with only match population until need to review overall population
+
+  .inc_match_count_env3(env, match_set)
+
+
+  ## Changed to fewer function calls, only called if Correct Set is empty:
+  # .inc_match_count_env2(environment())
+
+  # correct_set <- .get_correct_set_env2(t_instance_class, env, match_set)
+  correct_set <- .get_correct_set_env3(t_instance_class, env, match_set)
+
+  if(is.null(correct_set) || length(correct_set) == 0) { ## COVERING needed
+    cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
+                                                              run_params$get_wildcard_prob())
+    if(!is.null(cover_rule)) {
+      .add_valid_rule_to_lcs_env_mat(env, cover_rule, t_instance_class, train_count)
+    }
+  }
+  else {
+    # correct_pop <- match_pop[c(correct_set)]
+
+    # .inc_correct_count_env2(environment())
+    ## Here we should update both match and correct count, but in one function call!
+    # .inc_match_and_correct_count_env2(environment())
+    .inc_correct_count_env3(env, correct_set)
+    # browser()
+    ## *Second* Rule Discovery HAPPENS HERE NOW
+    ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
+
+    # if(round(.mean_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if(round(.mean_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if((.min_correct_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    # if((.min_correct_count(correct_pop) %% run_params$rd_trigger) == 0) {
+    # if((.min_match_count(correct_pop) %% run_params$get_rd_trigger()) == 0) {
+    if((.min_correct_count_env3(env, correct_set) %% run_params$rd_trigger) == 0) {
+
+      ## New: Moved: The idea is to call this only when absolutely needed:
+      .update_accuracy_env3(env, match_set) ## This really only needs to happen here
+
+      ## The GA, basically, happens here: Cross-over & Mutation:
+      # children <- correct_pop |>
+      #   .cross_over_parents_strings_sl(run_params$get_sel_mode(),
+      #                                  run_params$get_tournament_pressure()) |>
+      #   sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob())
+
+
+      # browser()
+      children <- .cross_over_parents_strings_sl_env3(env, correct_set, run_params$get_sel_mode(),
+                                       run_params$get_tournament_pressure()) |>
+        sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob())
+
+      # cat('\n', children, '\n\n')
+      ## In some cases, we have only one child.
+      for(child in children) {
+        pos_duplicated <- .found_same_condition3(env, correct_set, child)
+        if(pos_duplicated != 0) ## Duplicate rule
+          env$lcs$numerosities[pos_duplicated] <- env$lcs$numerosities[pos_duplicated] + 1
+        else {
+          .add_valid_rule_to_lcs_env_mat(env, child, t_instance_class, train_count)
+        }
+      }
+    }
+    # match_pop[c(correct_set)] <- correct_pop
+  }
+
+  ## Update Matched Population statistics into main population
+  # env$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+  # .update_matched_accuracy_env(environment())
+  # env$lcs$pop[c(match_set)] <- match_pop
+
+  # ## NEW: More rule-discovery
+  # ## OK, matched, correct set, but what if there is not enough correctset?
+  # if(length(correct_set) < 2) { ## COVERING enforced
+  #   cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
+  #                                                             run_params$get_wildcard_prob())
+  #   if(!is.null(cover_rule)) {
+  #     # lcs <- .add_valid_rule_to_lcs(lcs, cover_rule,
+  #     #                               t_instance$class, train_count)
+  #     .add_valid_rule_to_lcs_env(env, cover_rule, t_instance$class, train_count)
+  #   }
+  # }
+
+  ## Apply Deletion by reducing numerosity
+  if((train_count %% (run_params$deletion_trigger*size_env)) == 0) {
+
+    # browser()
+    # update_accuracy_cpp2(env$lcs$pop)
+    .update_pop_accuracy_env3(env)
+
+    if(!is.numeric(env$lcs$numerosities)) browser() ## Check when numerosities become list?
+
+
+    ## Subsumption is too important to skip, for speed reasons.
+    # env$lcs$pop <- .apply_subsumption_whole_pop_sl(env$lcs$pop)
+    .apply_subsumption_whole_pop_sl3(env)
+
+
+    .apply_deletion_sl_env3(env,
+                           deletion_limit = run_params$get_deletion_threshold(),
+                           max_pop_size = run_params$get_max_pop_size())
+    # print(env$lcs)
+  }
+
+  NULL
+}
+
+#' Train a Learning Classifier System (LCS).
+#'
+#' @param train_env_df
+#' A data frame containing, specifically, one "state" and one
+#' "class" column. The "state" column MUST contain strings made of ONLY 0 and 1,
+#' such as: "00110101". This is a requirement for the current RLCS implementation.
+#' @param run_params
+#' An RLCS_hyperparameters object, for which an object construction is provided.
+#' @param pre_trained_lcs
+#' Optional. Can be used to EVOLVE a pre-trained LCS.
+#' @param use_gpu
+#' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
+#' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#'
+#' @returns
+#' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
+#' @export
+#'
+#' @examples
+#' ## Generate running hyperparameters
+#' demo_params <- RLCS_hyperparameters(n_epochs = 400, deletion_trigger = 40, deletion_threshold = 0.9)
+#' ## One demo dataset for data mining scenario
+#' demo_env1 <- rlcs_demo_secret1()
+#' ## Try to see for yourself what the dataset hides:
+#' demo_env1
+#' ## Generate the model with RLCS:
+#' rlcs_model <- rlcs_train_sl(demo_env1, demo_params)
+#' print(rlcs_model)
+#' plot(rlcs_model)
+rlcs_train_sl3 <- function(train_env_df,
+                          run_params = RLCS_hyperparameters(),
+                          pre_trained_lcs = NULL,
+                          use_gpu = F) {
+
+  ## Basic input controls:
+  .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
+  ## TODO Add Running Params Checks here... Use decorators!
+
+  ## Initialization:
+  lcs <- .new_rlcs2(train_env_df$state[1])
+  ## Re-training, or "online" updates
+  if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## For torch use:
+  backup_gpu_flag <- use_gpu
+  if(use_gpu & requireNamespace("torch", quietly=T)) {
+    use_gpu <- use_gpu
+    gpu_type <- ifelse(torch::cuda_is_available(), "cuda", ifelse(torch::backends_mps_is_available(), "mps", "cpu"))
+  }
+
+
+  ##
+  ## Case 1: Default: single-core, full data, basic processing:
+  ##
+  print("Running single-core/thread, sequential")
+  size_env <- nrow(train_env_df)
+  shuffle_indexes <- sample(1:nrow(train_env_df), nrow(train_env_df), replace = F)
+  train_env_df <- train_env_df[shuffle_indexes, ]
+  environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
+  environment_states <- train_env_df$state
+  environment_classes <- train_env_df$class
+
+  t_classes_counts <- table(train_env_df$class) ## For Coverage!!
+
+  ## Expose algorithm to training set:
+  for(epoch in 1:(run_params$get_n_epochs())) {
+    for(i in 1:size_env) {
+      ## Now this part of the algorithm is "necessarily" sequential...
+      #lcs <-
+      .rlcs_train_one_instance_one_epoch_mat_env3(environment(),
+                                                 i,
+                                                 train_env_df[i, ],
+                                                 size_env,
+                                                 epoch,
+                                                 (epoch-1)*size_env+i, ## train_count
+                                                 run_params)
+      # browser()
+    }
+
+    # if(epoch %% 10 == 0)
+    # plot(lcs) ## Let's monitor progress
+    # Sys.sleep(0.1)
+
+    ## RE-shuffling population, just in case...
+    train_env_df <- train_env_df[sample(1:nrow(train_env_df),
+                                        nrow(train_env_df),
+                                        replace = F), ]
+    environment_conds_mat <- sapply(strsplit(train_env_df$state, "", fixed = T), \(x) as.integer(x))
+    environment_states <- train_env_df$state
+    environment_classes <- train_env_df$class
+
+    # Sys.sleep(0.5)
+    cat('\r', paste("Complete:", round(100*epoch/run_params$get_n_epochs()), "%",
+                    "| Epoch:", epoch,
+                    "Progress Exposure:", (epoch)*size_env,
+                    "Classifiers Count:", length(which(lcs$numerosities > 0)), "   "
+    ))
+  }
+
+  cat('\n')
+  ## Final simplification: Coverage
+  # lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
+
+  ## Sometimes, deletion removes all rules as none are good enough!
+  if(!any(lcs$numerosities > 0)) return(NULL)
+  class(lcs) <- "rlcs"
+
+  ## Compact the LCS by removing all entries that have numerosity 0:
+  ## TBD
+  lcs
+}
+
+
+
+
+
+
+
+
+
 
 
 

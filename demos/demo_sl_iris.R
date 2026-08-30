@@ -47,6 +47,13 @@ iris_classifier <- rlcs_train_sl(train_environment,
 # set.seed(1234)
 # profvis::profvis(rlcs_train_sl(train_environment,
 #                                iris_hyperparameters))
+#
+# set.seed(1234)
+# profvis::profvis(RLCS:::rlcs_train_sl3(train_environment,
+#                                iris_hyperparameters))
+# iris_classifier <- RLCS:::rlcs_train_sl3(train_environment,
+#                                  iris_hyperparameters)
+
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 

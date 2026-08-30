@@ -20,10 +20,17 @@ demo_params <- RLCS_hyperparameters(
 ## Train an RLCS model with some specific hyperparameters
 rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
-
 ## Check out the results
 print(rlcs_model1$pop)
 rlcs_not_bit_4_10()
+
+## WIP for v0.2.0, major update of underlying data model for RLCS populations
+rlcs_model1_test <- RLCS:::rlcs_train_sl3(demo_env1, demo_params,
+                             pre_trained_lcs = NULL)
+print(rlcs_model1_test)
+profvis::profvis(RLCS:::rlcs_train_sl3(demo_env1, demo_params,
+                                       pre_trained_lcs = NULL))
+
 
 # ## NEW! You could use torch?
 # ## Testing, for now, actually...
