@@ -62,6 +62,12 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 length(penguins_classifier$pop)
 plot(penguins_classifier)
 
+
+microbenchmark::microbenchmark(
+  rlcs_train_sl(train_environment, penguins_hyperparameters),
+  RLCS:::rlcs_train_sl3(train_environment, penguins_hyperparameters),
+  times = 3L
+)
 head(print(penguins_classifier$pop), 100)
 get_match_set(test_environment[1, "state"], penguins_classifier)
 penguins_classifier$pop[[get_match_set(test_environment[1, "state"], penguins_classifier)[1]]]

@@ -180,3 +180,15 @@ IntegerVector which_cpp(const LogicalVector& x) {
   }
   return wrap(out);
 }
+
+// [[Rcpp::export]]
+Rcpp::NumericVector which_valid_rules_cpp(const Rcpp::NumericVector& numerosities, const Rcpp::NumericVector& lengths_fixed_bits) {
+  NumericVector matches_indices;
+
+  for(int i = 0; i < numerosities.length(); i++) {
+    if((numerosities(i) > 0) && (lengths_fixed_bits(i) > 0)) {
+      matches_indices.push_back(i+1); // R index is + 1
+    }
+  }
+  return(matches_indices);
+}

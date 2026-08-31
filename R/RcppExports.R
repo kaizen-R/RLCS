@@ -29,3 +29,7 @@ which_cpp <- function(x) {
     .Call(`_RLCS_which_cpp`, x)
 }
 
+which_valid_rules_cpp <- function(numerosities, lengths_fixed_bits) {
+    .Call(`_RLCS_which_valid_rules_cpp`, numerosities, lengths_fixed_bits)
+}
+

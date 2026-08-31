@@ -22,12 +22,13 @@ rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
 ## Check out the results
 print(rlcs_model1$pop)
-rlcs_not_bit_4_10()
+# rlcs_not_bit_4_10()
 
 ## WIP for v0.2.0, major update of underlying data model for RLCS populations
 rlcs_model1_test <- RLCS:::rlcs_train_sl3(demo_env1, demo_params,
                              pre_trained_lcs = NULL)
 print(rlcs_model1_test)
+plot(rlcs_model1_test)
 profvis::profvis(RLCS:::rlcs_train_sl3(demo_env1, demo_params,
                                        pre_trained_lcs = NULL))
 
@@ -39,7 +40,7 @@ profvis::profvis(RLCS:::rlcs_train_sl3(demo_env1, demo_params,
 #                              pre_trained_lcs = NULL,
 #                              use_gpu = T)
 # print(rlcs_model1)
-plot(rlcs_model1)
+# plot(rlcs_model1)
 
 ## Which rule of the model would match the following "state"?
 get_match_set("00101", rlcs_model1)
@@ -78,6 +79,12 @@ print(demo_env2)
 rlcs_model2 <- rlcs_train_sl(demo_env2)
 
 ## Again you can look at the resulting model/population:
+print(rlcs_model2$pop)
+# plot(rlcs_model2)
+
+rlcs_model2 <- RLCS:::rlcs_train_sl3(demo_env2)
+
+## Again you can look at the resulting model/population:
 print(rlcs_model2)
 plot(rlcs_model2)
 
@@ -93,11 +100,13 @@ demo_params <- RLCS_hyperparameters(
   max_pop_size = 500)
 
 rlcs_model2 <- rlcs_train_sl(demo_env2, demo_params)
+print(rlcs_model2$pop)
+# plot(rlcs_model2)
 
+rlcs_model2 <- RLCS:::rlcs_train_sl3(demo_env2, demo_params)
+## Again you can look at the resulting model/population:
 print(rlcs_model2)
 plot(rlcs_model2)
-
-
 
 ## Another SLOWER example, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
@@ -108,13 +117,26 @@ demo_params <- RLCS_hyperparameters(
 
 demo_env3 <- rlcs_mux6()
 rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params)
-print(rlcs_model3)
-plot(rlcs_model3)
-
+print(rlcs_model3$pop)
+# plot(rlcs_model3)
 ## new in version 0.1.8, working on a function to simplify populations.
 cleaner_rlcs_model3 <- rlcs_simplify_pop(rlcs_model3, demo_env3)
+print(cleaner_rlcs_model3$pop)
+
+## New way is a bit faster
+rlcs_model3 <- RLCS:::rlcs_train_sl3(demo_env3, demo_params)
+print(rlcs_model3)
+plot(rlcs_model3)
+cleaner_rlcs_model3 <- RLCS:::rlcs_simplify_pop3(rlcs_model3, demo_env3)
 print(cleaner_rlcs_model3)
 plot(cleaner_rlcs_model3)
+
+microbenchmark::microbenchmark(
+  rlcs_train_sl(demo_env3, demo_params),
+  RLCS:::rlcs_train_sl3(demo_env3, demo_params),
+  times = 10L
+)
+
 
 ## Last example - Much SLOWER even, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
@@ -129,9 +151,17 @@ demo_params <- RLCS_hyperparameters(
 
 demo_env4 <- rlcs_mux11()
 rlcs_model4 <- rlcs_train_sl(demo_env4, demo_params)
+print(rlcs_model4$pop)
+# plot(rlcs_model4)
+cleaner_rlcs_model4 <- rlcs_simplify_pop(rlcs_model4, demo_env4)
+print(cleaner_rlcs_model4$pop)
+# plot(cleaner_rlcs_model4)
+
+
+rlcs_model4 <- RLCS:::rlcs_train_sl3(demo_env4, demo_params)
 print(rlcs_model4)
 plot(rlcs_model4)
-cleaner_rlcs_model4 <- rlcs_simplify_pop(rlcs_model4, demo_env4)
+cleaner_rlcs_model4 <- RLCS:::rlcs_simplify_pop3(rlcs_model4, demo_env4)
 print(cleaner_rlcs_model4)
 plot(cleaner_rlcs_model4)
 

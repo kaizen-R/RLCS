@@ -91,6 +91,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// which_valid_rules_cpp
+Rcpp::NumericVector which_valid_rules_cpp(const Rcpp::NumericVector& numerosities, const Rcpp::NumericVector& lengths_fixed_bits);
+RcppExport SEXP _RLCS_which_valid_rules_cpp(SEXP numerositiesSEXP, SEXP lengths_fixed_bitsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type numerosities(numerositiesSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type lengths_fixed_bits(lengths_fixed_bitsSEXP);
+    rcpp_result_gen = Rcpp::wrap(which_valid_rules_cpp(numerosities, lengths_fixed_bits));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_RLCS_get_correct_set_cpp2", (DL_FUNC) &_RLCS_get_correct_set_cpp2, 2},
@@ -100,6 +112,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_RLCS_min_param_count_cpp", (DL_FUNC) &_RLCS_min_param_count_cpp, 2},
     {"_RLCS_mean_correct_count_cpp", (DL_FUNC) &_RLCS_mean_correct_count_cpp, 1},
     {"_RLCS_which_cpp", (DL_FUNC) &_RLCS_which_cpp, 1},
+    {"_RLCS_which_valid_rules_cpp", (DL_FUNC) &_RLCS_which_valid_rules_cpp, 2},
     {NULL, NULL, 0}
 };
 

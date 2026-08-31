@@ -86,11 +86,12 @@
   # cat('\n', pos_to_update, '\n')
 
   ## If NO empty slot, add to all components, n_entries by n_entries for efficiency:
-  n_entries <- 50
+  n_entries <- max(10, round(env$lcs$model_initial_space / 10, 0))
+
   if(!any(env$lcs$numerosities == 0)) {
   # if(length(pos_to_update) == 0) {
     ## Prepare next position insert:
-    pos_to_update <- length(env$lcs$numerosity) + 1
+    pos_to_update <- length(env$lcs$numerosities) + 1
 
     ## Prepare space for upcoming new rule entries
     env$lcs$condition_strings <- c(env$lcs$condition_strings, character(n_entries))
@@ -105,7 +106,7 @@
 
     ## For RL: Total Reward starts at 5, not at 0:
     env$lcs$action_counts <- c(env$lcs$action_counts, rep(1, n_entries))
-    env$lcs$total_rewards <- c(env$lcs$rule_total_reward, rep(5, n_entries))
+    env$lcs$total_rewards <- c(env$lcs$total_rewards, rep(5, n_entries))
 
     ## New. Found in some LCS explanations out there... Just wasn't in RLCS
     ## yet.
@@ -119,7 +120,7 @@
     env$lcs$matrix_match_1s <- rbind(env$lcs$matrix_match_1s,
                                      matrix(numeric(condition_length*n_entries), byrow = T, nrow=n_entries))
     ## Faster to compare later
-    env$lcs$lengths_fixed_bits <- c(env$lcs$lengths_fixed_bits, numeric(n_entries))
+    env$lcs$lengths_fixed_bits <- c(env$lcs$lengths_fixed_bits, rep(-1, n_entries))
     # env$lcs$valid_rules <- c(env$lcs$valid_rules, logical(n_entries)) ## Equivalent to rep F 10
   } else {
     pos_to_update <- which(env$lcs$numerosities == 0)[1]
@@ -158,12 +159,12 @@
   structure(x, class = "rlcs")
 }
 
-.new_rlcs2 <- function(sample_state_from_environment) {
+.new_rlcs2 <- function(sample_state_from_environment, n_entries = 500) {
     lcs <- list()
-
+    lcs$model_initial_space <- n_entries
     ## We initialize an empty model with several spaces pre-reserved
     ## for processing efficiency reasons:
-    n_entries <- 1000
+
 
     ## Initialization of matrices requires known sample string length
     ## IMPORTANT: We consider a fixed length for all sample states
@@ -192,7 +193,7 @@
     lcs$matrix_match_0s <- matrix(numeric(condition_length*n_entries), byrow = T, nrow=n_entries)
     lcs$matrix_match_1s <- matrix(numeric(condition_length*n_entries), byrow = T, nrow=n_entries)
     ## Faster to compare later
-    lcs$lengths_fixed_bits <- numeric(n_entries)
+    lcs$lengths_fixed_bits <- rep(-1, n_entries) #numeric(n_entries)
     # lcs$valid_rules <- logical(n_entries) ## equivalent to initialize to false
     structure(lcs, class = "rlcs")
     return(lcs)
@@ -257,7 +258,6 @@
   list(zeros_matrix, ones_matrix)
 }
 
-
 .recalculate_pop_matrices_env2 <- function(pop, env) {
   zeros_matrix <- t(as.matrix(sapply(pop, \(x) x$zeros_pos_vector)))
   ones_matrix <- t(as.matrix(sapply(pop, \(x) x$ones_pos_vector)))
@@ -269,7 +269,6 @@
                 zeros_tensor, ones_tensor))
   env$lcs$matrices <- list(zeros_matrix, ones_matrix)
 }
-
 
 .recalculate_pop_matrices_new_rule <- function(t_matrices, condition_string) {
   ## I just want to add a row to either matrices!!
@@ -470,7 +469,7 @@
 
   ## Key here is creating a population structure
   if(is.null(env$lcs)) {
-    env$lcs <- .new_rlcs2(condition_string)
+    env$lcs <- .new_rlcs2(condition_string, n_entries=100)
     return(NULL)
   }
 
@@ -585,7 +584,6 @@
 
 .update_accuracy_env3 <- function(env, positions) {
   ## TODO Could run in problems for VERY high numbers divisions...?
-  # env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
   env$lcs$accuracies[positions] <- env$lcs$correct_counts[positions] / env$lcs$match_counts[positions]
   NULL
 }
@@ -605,7 +603,7 @@
 .update_pop_accuracy_env3 <- function(env) {
   ## TODO Could run in problems for VERY high numbers divisions...?
   # env$match_pop <- update_matched_accuracy_cpp(env$match_pop)
-  .update_accuracy_env3(env, which(env$lcs$numerosities != 0 & env$lcs$lengths_fixed_bits > 0))
+  .update_accuracy_env3(env, which(env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0))
   # .update_accuracy_env3(env, which(env$lcs$valid_rules))
   NULL
 }
@@ -688,8 +686,10 @@
 ## New full matrix / vectors approach
 .get_match_set_mat_env3 <- function(ti_cond, env) {
 
-  if(any(env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0)) {
-  # if(any(env$lcs$valid_rules)) {
+  valid_set <- env$lcs$numerosities > 0
+  # if(any(env$lcs$numerosities > 0) & any(env$lcs$lengths_fixed_bits > 0)) {
+  if(any(valid_set)) {
+
     # if(env$use_gpu) {
     #   # print("Use Torch!")
     #   match_set <- which(torch::as_array(torch::torch_matmul(t_lcs$matrices[[3]],
@@ -703,9 +703,26 @@
                          env$lcs$lengths_fixed_bits
     # }
     if(any(match_set)) {
-      match_set <- which(match_set[env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0])
-      if(length(match_set) > 0)
+      # match_set <- which(match_set[env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0])
+      # if(length(match_set) > 0)
+      #   return(match_set)
+
+      # match_set_bool <- match_set[env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0]
+      match_set_bool <- match_set[valid_set]
+      # match_set_bool <- match_set[which_valid_rules_cpp(env$lcs$numerosities, env$lcs$lengths_fixed_bits)]
+
+
+      ## Saving a function call
+
+
+      if(any(match_set_bool)) {
+        match_set <- which(match_set_bool)
+        env$lcs$match_counts[match_set] <- env$lcs$match_counts[match_set]+1
         return(match_set)
+      }
+
+
+
       # return(which(match_set)[env$lcs$valid_rules[match_set]])
     }
   }
@@ -878,6 +895,24 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
   match_sets_lengths
 }
 
+.reverse_match_set_size3 <- function(env, rlcs_environment) {
+  # print(pop)
+  match_sets_lengths <- c()
+  for(i in 1:length(env$lcs$condition_strings)) {
+    rule_0 <- which(env$lcs$matrix_match_0s[i,] == 1)
+    rule_1 <- which(env$lcs$matrix_match_1s[i,] == 1)
+
+    rule_matches <- which_cpp(sapply(rlcs_environment$state, \(item, rule_0, rule_1) {
+      env_entry <- as.integer(strsplit(item, "", fixed = T)[[1]])
+      !(any(env_entry[rule_0] != 0) || any(env_entry[rule_1] != 1))
+    }, rule_0, rule_1))
+
+    match_sets_lengths <- c(match_sets_lengths, length(rule_matches))
+  }
+
+  match_sets_lengths
+}
+
 .found_same_condition <- function(pop, item) {
   any(sapply(pop, \(x, item) {
     if(x$condition_string == item) return(TRUE)
@@ -886,11 +921,14 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 }
 
 .found_same_condition3 <- function(env, correct_set, item) {
-  matched_condition <- (env$lcs$conditions_strings[correct_set] == item)
+  # browser()
+  matched_condition <- (env$lcs$condition_strings[correct_set] == item)
+
   if(any(matched_condition)) {
-    return(which(correct_set[matched_condition]))
+    # print(matched_condition)
+    return(correct_set[matched_condition])
   }
-  return(0)
+  return(c())
 }
 
 
@@ -948,7 +986,9 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
   env$lcs$match_counts <- env$lcs$match_counts[survivors_set]
   env$lcs$correct_counts <- env$lcs$correct_counts[survivors_set]
+
   env$lcs$numerosities <- env$lcs$numerosities[survivors_set]
+
   env$lcs$accuracies <- env$lcs$accuracies[survivors_set]
 
   ## For RL: Total Reward starts at 5, not at 0:
@@ -970,42 +1010,7 @@ reverse_match_set <- function(rlcs_classifier, rlcs_environment) {
 
   env$lcs <- structure(env$lcs, class = "rlcs")
 }
-# .apply_deletion_no_threshold_env3 <- function(env) {
-#
-#   if(is.null(env$lcs)) return(NULL)
-#   if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
-#
-#   ## Works nicely with subsumption to remove unnecessary classifiers:
-#   survivors_set <- which(sapply(env$lcs$pop, \(x) {
-#     if(x$numerosity > 0) return(TRUE)
-#     FALSE
-#   }))
-#
-#   ## Ensure you keep class here.
-#   env$lcs$pop <- env$lcs$pop[survivors_set]
-#   # pop <- .recalculate_pop_matrices(pop)
-#
-#   # env$lcs$pop <- lapply(env$lcs$pop, \(x) {
-#   #   if(x$numerosity > 0) return(x)
-#   #   NULL
-#   # })
-#   # if(length(env$lcs$pop) == 0) return(NULL)
-#
-#   env$lcs$pop <- structure(env$lcs$pop, class = "rlcs_population")
-# }
 
-## Bad: Old doesn't mean it should be discarded.
-# keep_only_newer_individuals <- function(pop, first_seen_threshold, accuracy=1) {
-#
-#   ## Works nicely with subsumption to remove unnecessary classifiers:
-#   survivors_set <- which(sapply(pop, \(x) {
-#     if(x$first_seen > first_seen_threshold && x$accuracy >= accuracy) return(TRUE)
-#     FALSE
-#   }))
-#   if(length(survivors_set) == 0) return(NULL)
-#   ## Ensure you keep class here.
-#   structure(pop[c(survivors_set)], class = "rlcs_population")
-# }
 
 ## Particularly useful function for parallel runs, which is not a default.
 .remove_duplicate_rules <- function(pop) {

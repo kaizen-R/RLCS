@@ -14,18 +14,54 @@ print.rlcs_rule <- function(x, ...) {
   .new_rlcs(NextMethod())
 }
 
+#' #' @export
+#' plot.rlcs <- function(x, ...) {
+#'
+#'   if(is.null(x)) return(NULL)
+#'   pop <- x$pop
+#'   nbits <- pop[[1]]$condition_length
+#'
+#'   t_m <- matrix(rep(0, nbits^2), byrow = T, nrow=nbits)
+#'
+#'   for(i in 1:length(x$pop)) {
+#'     t_cond_0 <- pop[[i]]$condition_list$"0"
+#'     t_cond_1 <- pop[[i]]$condition_list$"1"
+#'     filled_bits <- length(t_cond_0)+length(t_cond_1)
+#'     for(j in 1:nbits) {
+#'       if(j %in% c(t_cond_0, t_cond_1))
+#'         t_m[filled_bits, j] <- t_m[filled_bits, j]+1
+#'     }
+#'   }
+#'
+#'   stats::heatmap(t_m, Rowv=NA, Colv=NA, scale="none",
+#'           main="LCS focus", xlab="bit", ylab="# Used Bits",
+#'           col=grDevices::cm.colors(max(t_m)))
+#'   graphics::persp(1:nbits, 1:nbits, t_m, theta = 150, phi = 30,
+#'         expand=0.5,
+#'         col="lightgreen",
+#'         shade=0.75,
+#'         ticktype = "detailed",
+#'         xlab = "# bits involved in rule", ylab="variable (bit)",
+#'         zlab = "# ocurrences of bit",
+#'         main="LCS Focus")
+#' }
+
 #' @export
 plot.rlcs <- function(x, ...) {
 
   if(is.null(x)) return(NULL)
-  pop <- x$pop
-  nbits <- pop[[1]]$condition_length
+  lcs <- x
+
+  nbits <- lcs$conditions_length
 
   t_m <- matrix(rep(0, nbits^2), byrow = T, nrow=nbits)
 
-  for(i in 1:length(x$pop)) {
-    t_cond_0 <- pop[[i]]$condition_list$"0"
-    t_cond_1 <- pop[[i]]$condition_list$"1"
+  for(i in 1:length(lcs$condition_strings)) {
+    # t_cond_0 <- pop[[i]]$condition_list$"0"
+    # t_cond_1 <- pop[[i]]$condition_list$"1"
+    t_cond_0 <- which(lcs$matrix_match_0s[i,] == 1)
+    t_cond_1 <- which(lcs$matrix_match_1s[i,] == 1)
+
     filled_bits <- length(t_cond_0)+length(t_cond_1)
     for(j in 1:nbits) {
       if(j %in% c(t_cond_0, t_cond_1))
@@ -34,17 +70,18 @@ plot.rlcs <- function(x, ...) {
   }
 
   stats::heatmap(t_m, Rowv=NA, Colv=NA, scale="none",
-          main="LCS focus", xlab="bit", ylab="# Used Bits",
-          col=grDevices::cm.colors(max(t_m)))
+                 main="LCS focus", xlab="bit", ylab="# Used Bits",
+                 col=grDevices::cm.colors(max(t_m)))
   graphics::persp(1:nbits, 1:nbits, t_m, theta = 150, phi = 30,
-        expand=0.5,
-        col="lightgreen",
-        shade=0.75,
-        ticktype = "detailed",
-        xlab = "# bits involved in rule", ylab="variable (bit)",
-        zlab = "# ocurrences of bit",
-        main="LCS Focus")
+                  expand=0.5,
+                  col="lightgreen",
+                  shade=0.75,
+                  ticktype = "detailed",
+                  xlab = "# bits involved in rule", ylab="variable (bit)",
+                  zlab = "# ocurrences of bit",
+                  main="LCS Focus")
 }
+
 
 #' @export
 print.rlcs_population <- function(x, ...) {

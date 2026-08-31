@@ -48,12 +48,6 @@ iris_classifier <- rlcs_train_sl(train_environment,
 # profvis::profvis(rlcs_train_sl(train_environment,
 #                                iris_hyperparameters))
 #
-# set.seed(1234)
-# profvis::profvis(RLCS:::rlcs_train_sl3(train_environment,
-#                                iris_hyperparameters))
-# iris_classifier <- RLCS:::rlcs_train_sl3(train_environment,
-#                                  iris_hyperparameters)
-
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 
@@ -68,6 +62,7 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(iris_classifier$pop)
 
+
 ## NEW, Work in progress
 cleaner_iris_classifier <- rlcs_simplify_pop(iris_classifier, train_environment)
 print(cleaner_iris_classifier)
@@ -80,8 +75,44 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier$pop)
+length(cleaner_iris_classifier$pop)
 
+
+## Full matrices/vectors approach, new in v0.2.0:
+set.seed(1234)
+profvis::profvis(RLCS:::rlcs_train_sl3(train_environment,
+                               iris_hyperparameters))
+iris_classifier3 <- RLCS:::rlcs_train_sl3(train_environment,
+                                 iris_hyperparameters)
+
+test_environment$predicted <- -1 ## Stands for not found
+test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, iris_classifier3, verbose=F)
+
+# head(test_environment)
+table(test_environment[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
+  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
+}))/nrow(test_environment), 2)))
+length(iris_classifier3$condition_strings)
+
+cleaner_iris_classifier3 <- RLCS:::rlcs_simplify_pop3(iris_classifier3, train_environment)
+print(cleaner_iris_classifier3)
+# plot(cleaner_iris_classifier3)
+test_environment$predicted <- -1 ## Stands for not found
+test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, cleaner_iris_classifier3, verbose=F)
+
+# head(test_environment)
+table(test_environment[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
+  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
+}))/nrow(test_environment), 2)))
+length(cleaner_iris_classifier3$condition_strings)
+
+microbenchmark::microbenchmark(
+  rlcs_train_sl(train_environment, iris_hyperparameters),
+  RLCS:::rlcs_train_sl3(train_environment, iris_hyperparameters),
+  times = 5L
+)
 
 ### Visualizing the Model ###
 

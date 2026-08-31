@@ -147,3 +147,50 @@ rlcs_SL_stats <- function(runtime, train_size, test_env_res) {
 #   return(ret_set)
 # }
 #
+
+rlcs_predict_sl3 <- function(test_env_df, lcs, verbose=F) {
+  # browser()
+  # pop <- lcs$pop
+  ret_set <- c()
+
+
+  possible_classes <- unique(lcs$actions)
+
+  # for(i in 1:nrow(test_env_df)) {
+  ret_list <- lapply(1:nrow(test_env_df), \(i) {
+    lcs <- lcs
+    match_set <- .get_match_set_mat_env3(as.numeric(strsplit(test_env_df$state[i], "", fixed = T)[[1]]), environment())
+
+    if(length(match_set) > 0) {
+      t_recommendation <- c()
+
+      for(k in 1:length(possible_classes)) {
+        # t_recommendation[k] <- sum(sapply(pop[match_set], \(x) {
+        #   if(x$action == possible_classes[k])
+        #     return(x$numerosity*x$accuracy)
+        #   0
+        # }))
+        correct_set <- .get_correct_set_env3(possible_classes[k], environment(), match_set)
+        t_recommendation[k] <- sum(lcs$accuracies[correct_set]*lcs$numerosities[correct_set])
+      }
+
+      predicted_actions <- as.character(possible_classes[which(t_recommendation == max(t_recommendation))])
+      if(length(predicted_actions) > 1)
+        return("rlcs_doubt")
+      # ret_set <- c(ret_set, "rlcs_doubt")
+      else
+        return(predicted_actions)
+      # ret_set <- c(ret_set, predicted_actions)
+    } else {
+      if(verbose) print("NO suitable rule for this instance.")
+      # ret_set <- c(ret_set, "rlcs_no_match")
+      return("rlcs_no_match")
+    }
+  })
+
+
+
+  # }
+
+  return(unlist(ret_list))
+}

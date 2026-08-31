@@ -37,16 +37,16 @@ temp_seeds <- sample(1:1000, 5, replace = F)
 ## Training RLCS on this combination of training/testing dataset
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = 0.3, ## Probability that covering will choose a wildcard char
-  rd_trigger = 18, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
+  rd_trigger = 20, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.25,
   parents_selection_mode <- "tournament",
-  tournament_pressure = 6,
+  tournament_pressure = 8,
   ## Most important parameters to vary so far:
   n_epochs = 800, ## Epochs to repeat process on train set
   deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.95,
-  max_pop_size=800
+  max_pop_size = 600
 )
 ## We make it particularly... Short, this time, see next:
 iris_hyperparameters_1 <- RLCS_hyperparameters(
@@ -99,9 +99,9 @@ for(i in temp_seeds) {
 
   ## New: Validation subset, so that we can compare accuracy / F1 score...
   ## Of different agents, and then keep and consolidate each one.
-  iris_classifier <- rlcs_train_sl_parallel_search_space(
+  iris_classifier <- RLCS:::rlcs_train_sl_parallel_search_space3(
       train_environment,
-      run_params = iris_hyperparameters_1,
+      run_params = iris_hyperparameters,
       # pre_trained_lcs = iris_classifier,
       n_agents = run_par_count,
       use_validation = T,
@@ -129,7 +129,7 @@ for(i in temp_seeds) {
   print(length(iris_classifier))
   ## Let's see how we could do testing:
   test_environment$predicted <- -1 ## Stands for not found
-  test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier, verbose=F)
+  test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, iris_classifier, verbose=F)
 
   # head(test_environment)
   print(Sys.time() - t_start_iter)
@@ -139,7 +139,7 @@ for(i in temp_seeds) {
     ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
   }))/nrow(test_environment), 4)
   # print(paste("Accuracy:", rlcs_accuracy))
-  length(iris_classifier)
+  length(iris_classifier$condition_strings)
 
 
 

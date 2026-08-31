@@ -1,5 +1,6 @@
 ## Genetic Algorithm functions
 .mutate_condition_string <- function(cond_string, t_instance_state, mut_prob) {
+
   mut_point <- which(stats::runif(nchar(t_instance_state)) < mut_prob)
   if(length(mut_point) > 0) {
     t_state <- strsplit(t_instance_state, "", fixed = T)[[1]]
@@ -10,9 +11,12 @@
                           t_state[i], ## SPECIFY
                           '#') ## GENERALIZE
     }
+
     if(all(t_cond == "#")) return(cond_string) ## DISCARD ALL WILDCARD
+
     cond_string <- paste(t_cond, collapse = "")
   }
+
   return(cond_string)
 }
 
@@ -116,33 +120,22 @@
 
 
 .ga_run_one_tournament_sl3b <- function(env, correct_set, tournament_pressure) {
-  # browser()
+
   if(length(correct_set) == 1) {
     return(env$lcs$condition_strings[correct_set])
   }
 
-  # if(length(correct_set) > 1) browser()
-  # n_elements <- sum(sapply(new_pop, \(x) { x$numerosity }))
-  # n_elements <- sum(vapply(new_pop, \(x) { x$numerosity }, numeric(1)))
-
   positive_numerosities_positions <- which(env$lcs$numerosities > 0)
-  # browser()
-  # positive_numerosities_positions <- which(env$lcs$valid_rules)
   valid_set <- positive_numerosities_positions[positive_numerosities_positions %in% correct_set]
 
   if(length(valid_set) < 2)  return(env$lcs$condition_strings[valid_set])
 
-  # if(!is.integer(valid_set)) browser()
   t_numerosities <- env$lcs$numerosities[valid_set]
   n_elements <- sum(t_numerosities)
 
-  # t_pop <- lapply(new_pop, \(x) { if(x$numerosity == 0) return(NULL); x })
   t_pop <- env$lcs$condition_strings[valid_set]
-  # t_pop_ranks <- rep(0, length(t_pop))
-
 
   extract_n <- min(n_elements, tournament_pressure)
-
 
   ranking <- env$lcs$accuracies[valid_set] - (0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$conditions_length)
   # ranking <- env$lcs$accuracies[valid_set] - 0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$condition_length + 0.01 * env$lcs$numerosities[valid_set]
@@ -151,63 +144,17 @@
 
   sorted_numerosities <- env$lcs$numerosities[valid_set][ranking]
   sorted_numerosities <- sorted_numerosities[!is.na(sorted_numerosities)]
-  # cat('\n', valid_set, '--', sorted_numerosities, '\n')
-  # if(length(valid_set) > 1) browser()
-  # parents_condition_strings <- c("", "")
+
   pop_indices_parents_pop <- unlist(sapply(1:length(sorted_numerosities), \(x) rep(x, sorted_numerosities[x])))
-  # cat('\n', pop_indices_parents_pop, '\n')
 
   p1_index <- min(sample(pop_indices_parents_pop, extract_n))
-  ## Now forcing mixing parents more often:
-  t_remove <- which(pop_indices_parents_pop == p1_index)
-  # cat('\n', t_remove, extract_n, length(t_remove), '\n')
-  p2_index <- min(sample(array(pop_indices_parents_pop[-t_remove]), min(extract_n, length(pop_indices_parents_pop[-t_remove]))))
-  # cat('\n', p1_index, p2_index, '\n')
-  # parents_indices <- sort(c(p1_index, p2_index))
+  p2_index <- min(sample(pop_indices_parents_pop, extract_n))
+  # ## Now forcing mixing parents more often:
+  # t_remove <- which(pop_indices_parents_pop == p1_index)
+  # # cat('\n', t_remove, extract_n, length(t_remove), '\n')
+  # p2_index <- min(sample(array(pop_indices_parents_pop[-t_remove]), min(extract_n, length(pop_indices_parents_pop[-t_remove]))))
+
   parents_condition_strings <- c(t_pop[p1_index], t_pop[p2_index])
-
-  # print(parents_condition_strings)
-
-  # # p1_index <- min(sample.int(n_elements, extract_n))
-  # # p2_index <- min(sample.int(n_elements, extract_n))
-  # #
-  # p1_index <- min(sample.int(n_elements, extract_n))
-  # t_p2_index <- sample.int(n_elements, extract_n)
-  # p2_index <- min(t_p2_index) ## Default
-  # # if(n_elements > 1) {
-  # #   p2_index <-
-  # # }
-  # parents_indices <- sort(c(p1_index, p2_index))
-  #
-  # parents_condition_strings <- c("", "")
-  #
-  # for(j in 1:2) {
-  #   temp_index <- parents_indices[j]
-  #
-  #   t_pop_ranks[1] <- 0
-  #
-  #   for(i in 2:length(t_pop)) {
-  #
-  #     if(i == length(t_pop)) { ## We're at last item
-  #       parents_condition_strings[j] <- t_pop[i]
-  #
-  #       if(j == 1) { ## Last item AND first parent, means second parent is the same:
-  #         parents_condition_strings[2] <- t_pop[i]
-  #       }
-  #
-  #       return(parents_condition_strings)
-  #     }
-  #
-  #     last_rank <- t_pop_ranks[i-1] + 1
-  #     new_rank <-  last_rank + t_numerosities[i-1]
-  #
-  #     if(last_rank <= temp_index && new_rank > temp_index) {
-  #       parents_condition_strings[j] <- t_pop[i-1]
-  #       break ## Continue to next j
-  #     }
-  #     t_pop_ranks[i] <- new_rank
-  #   }
-  # } ## I really need to review this logic...
 
   return(parents_condition_strings)
 } ## I really would need to revisit this some day!

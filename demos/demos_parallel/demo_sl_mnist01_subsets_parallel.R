@@ -201,6 +201,10 @@ mnist01_par_classifier <- rlcs_train_sl_horizontal_split(train_mnist_bin01_49b,
                                         mnist_hyperparameters,
                                         n_agents = run_par_count,
                                         max_pop_size_parallel = 800) ## NEW!
+# mnist01_par_classifier <- RLCS:::rlcs_train_sl_horizontal_split3(train_mnist_bin01_49b,
+#                                                          mnist_hyperparameters,
+#                                                          n_agents = run_par_count,
+#                                                          max_pop_size_parallel = 800) ## NEW!
 
 stopCluster(cluster) ## Don't forget that :)
 
@@ -213,6 +217,7 @@ print(t_end_par - t_start_par)
 
 test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
 test_mnist_bin01_49b$predicted <- rlcs_predict_sl(test_mnist_bin01_49b, mnist01_par_classifier)
+# test_mnist_bin01_49b$predicted <- RLCS:::rlcs_predict_sl3(test_mnist_bin01_49b, mnist01_par_classifier)
 
 table(test_mnist_bin01_49b[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {

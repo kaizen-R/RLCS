@@ -178,6 +178,7 @@ mnist_hyperparameters <- RLCS_hyperparameters(
 t_start <- Sys.time()
 
 mnist01_classifier <- structure(list(), class="rlcs_population")
+set.seed(1234)
 for(i in 1:1) { ## Can be double pass for example, but still sequential
   mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
                                       mnist_hyperparameters,
@@ -214,8 +215,8 @@ res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[1],],
                                        mnist01_classifier)
 
 ## Visualize LCS
-par(mfrow=c(1,1))
-plot(mnist01_classifier)
+# par(mfrow=c(1,1))
+# plot(mnist01_classifier)
 
 # ## Visualize LCS per Class: 0
 # plot(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
@@ -246,6 +247,62 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
 length(cleaner_mnist01_classifier$pop)
 ## OK, finally, let's see a bit about the LCS itself.
 ## This would apply to either single-core/thread or parallel processing.
+
+## New in v0.2.0, all matrices approach. WIP, but will supersede base code.
+t_start <- Sys.time()
+
+set.seed(1234)
+# mnist01_classifier3 <- structure(list(), class="rlcs_population")
+for(i in 1:1) { ## Can be double pass for example, but still sequential
+  mnist01_classifier3 <- RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,
+                                      mnist_hyperparameters)
+}
+
+t_end <- Sys.time()
+
+print(t_end - t_start) ## 12 seconds instead of 31!!
+
+## Check resulting model:
+
+## Let's run our trained Classifiers Set on test mnist_bin01_49b:
+test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
+test_mnist_bin01_49b$predicted <- RLCS:::rlcs_predict_sl3(test_mnist_bin01_49b, mnist01_classifier3)
+
+table(test_mnist_bin01_49b[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
+  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
+}))/nrow(test_mnist_bin01_49b), 2)))
+
+length(mnist01_classifier3$condition_strings)
+
+## Let's see if the whole matrix move made a difference here too:
+cleaner_mnist01_classifier3 <- RLCS:::rlcs_simplify_pop3(mnist01_classifier3, train_mnist_bin01_49b)
+# plot(cleaner_mnist01_classifier)
+## Let's run our trained Classifiers Set on test mnist_bin01_49b:
+test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
+test_mnist_bin01_49b$predicted <- RLCS:::rlcs_predict_sl3(test_mnist_bin01_49b, cleaner_mnist01_classifier3)
+
+table(test_mnist_bin01_49b[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
+  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
+}))/nrow(test_mnist_bin01_49b), 2)))
+
+length(cleaner_mnist01_classifier3$condition_strings)
+
+
+microbenchmark::microbenchmark(
+  rlcs_train_sl(train_mnist_bin01_49b, mnist_hyperparameters),
+  RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,mnist_hyperparameters),
+  # rlcs_simplify_pop(mnist01_classifier, train_mnist_bin01_49b),
+  # RLCS:::rlcs_simplify_pop3(mnist01_classifier3, train_mnist_bin01_49b),
+  times=1L
+)
+
+profvis::profvis(
+  RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,
+                        mnist_hyperparameters)
+)
+
 
 ## This is how one rule looks like, in a given classifier:
 print_mnist_number_49b(mnist01_classifier$pop[[457]]$condition_string)
