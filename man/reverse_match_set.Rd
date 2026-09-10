@@ -4,10 +4,12 @@
 \alias{reverse_match_set}
 \title{Returns all rlcs_environment entries (data frame row indices) that match a Classifier/Rule}
 \usage{
-reverse_match_set(rlcs_classifier, rlcs_environment)
+reverse_match_set(rlcs_classifier, position, rlcs_environment)
 }
 \arguments{
 \item{rlcs_classifier}{A Population of Classifiers, pre-trained.}
+
+\item{position}{the rule identifier within the population you want to check}
 
 \item{rlcs_environment}{An RLCS environment (data frame inc. a "state" variable)}
 }

@@ -15,11 +15,9 @@ full_dataset <- cbind(iris, rlcs_iris$model)
 set.seed(123) ## Only for "reproducibility", as the algorithm is stochastic
 ## Let's shuffle the data a bit:
 full_dataset <- full_dataset[sample(1:nrow(full_dataset), nrow(full_dataset), replace = F), ]
-# head(full_dataset, n=3)
 
 ## Train-test separation:
 train_set <- sample(1:nrow(full_dataset), size = round(0.8*nrow(full_dataset)), replace = F)
-# train_set <- sample(1:nrow(full_dataset), size = 127, replace = F)
 train_environment <- full_dataset[train_set,]
 test_environment <- full_dataset[-train_set,]
 # head(test_environment, n=3)
@@ -28,7 +26,7 @@ test_environment <- full_dataset[-train_set,]
 iris_hyperparameters <- RLCS_hyperparameters(
   wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
   rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.25,
+  mutation_probability = 0.2,
   parents_selection_mode <- "tournament",
   tournament_pressure = 8,
   ## Most important parameters to vary so far:
@@ -44,10 +42,6 @@ t_start <- Sys.time()
 ## This here is the training. That's all there is to it!
 iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters)
-# set.seed(1234)
-# profvis::profvis(rlcs_train_sl(train_environment,
-#                                iris_hyperparameters))
-#
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 
@@ -69,56 +63,16 @@ print(cleaner_iris_classifier)
 plot(cleaner_iris_classifier)
 test_environment$predicted <- -1 ## Stands for not found
 test_environment$predicted <- rlcs_predict_sl(test_environment, cleaner_iris_classifier, verbose=F)
-
-# head(test_environment)
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(cleaner_iris_classifier$pop)
-
-
-## Full matrices/vectors approach, new in v0.2.0:
-set.seed(1234)
-profvis::profvis(RLCS:::rlcs_train_sl3(train_environment,
-                               iris_hyperparameters))
-iris_classifier3 <- RLCS:::rlcs_train_sl3(train_environment,
-                                 iris_hyperparameters)
-
-test_environment$predicted <- -1 ## Stands for not found
-test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, iris_classifier3, verbose=F)
-
-# head(test_environment)
-table(test_environment[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
-  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
-}))/nrow(test_environment), 2)))
-length(iris_classifier3$condition_strings)
-
-cleaner_iris_classifier3 <- RLCS:::rlcs_simplify_pop3(iris_classifier3, train_environment)
-print(cleaner_iris_classifier3)
-# plot(cleaner_iris_classifier3)
-test_environment$predicted <- -1 ## Stands for not found
-test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, cleaner_iris_classifier3, verbose=F)
-
-# head(test_environment)
-table(test_environment[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
-  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
-}))/nrow(test_environment), 2)))
-length(cleaner_iris_classifier3$condition_strings)
-
-microbenchmark::microbenchmark(
-  rlcs_train_sl(train_environment, iris_hyperparameters),
-  RLCS:::rlcs_train_sl3(train_environment, iris_hyperparameters),
-  times = 5L
-)
+length(cleaner_iris_classifier$condition_strings)
 
 ### Visualizing the Model ###
 
 ## So what does it all look like?
-print(iris_classifier$pop[[1]])
-head(print(iris_classifier), 10)
+print(iris_classifier)
 plot(iris_classifier)
 
 ## Visualize how some of the generated rules correspond to the actual data:
@@ -127,7 +81,7 @@ library(ggplot2)
 
 ## Let's look at three example rules:
 for(example in c(1, 3, 4)) {
-  sample_result_set <- reverse_match_set(iris_classifier$pop[[example]], full_dataset)
+  sample_result_set <- reverse_match_set(iris_classifier, example, full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
 
@@ -148,15 +102,10 @@ for(example in c(1, 3, 4)) {
 ## Sorted by accuracy and generality, the LCS first few rules are informative:
 head(print(iris_classifier), 20)
 
-## *** DECODING IS WORK IN PROGRESS FOR NEW VERSION OF ROSETTA, APOLOGIES ***
-rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[3]], rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier$pop[[4]], rlcs_iris)
+## Decoding rules from an RLCS population, using rosetta_stone object:
+rlcs_rosetta_decode_rule(iris_classifier, 1, rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier, 3, rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier, 4, rlcs_iris)
 
 
-## DECODING RESULTS FOR INTERPRETATION
-test_environment[1,]
-get_match_set(test_environment[1, "state"], iris_classifier)
-## Use 1 of the matches, then:
-rlcs_rosetta_decode_rule(iris_classifier$pop[[1]], rlcs_iris)
 

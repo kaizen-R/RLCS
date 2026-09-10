@@ -44,13 +44,6 @@ iris_classifier <- rlcs_train_sl(train_environment,
                               iris_hyperparameters,
                               pre_trained_lcs = NULL)
 
-# ## SECRET TRICK: You can keep only the best rules of your model.
-# ## (IF you're willing to accept the cost on Accuracy...)
-# iris_classifier <- RLCS:::.apply_deletion_sl(
-#   iris_classifier,
-#   deletion_limit = 0.99,
-#   max_pop_size = 400)
-
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 
@@ -63,7 +56,7 @@ table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier$pop)
+length(iris_classifier$condition_strings)
 
 
 ## Training several agents, one can also
@@ -84,56 +77,32 @@ registerDoParallel(cluster)
 t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
-# iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
-#   train_environment,
-#   iris_hyperparameters,
-#   pre_trained_lcs = NULL,
-#   n_agents=run_par_count,
-#   use_validation=T)
-iris_classifier_parallel <- RLCS:::rlcs_train_sl_parallel_search_space3(
+iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
   train_environment,
   iris_hyperparameters,
   pre_trained_lcs = NULL,
   n_agents=run_par_count,
   use_validation=T)
 
-
-# ## SECRET TRICK: You can keep only the best rules of your model.
-# ## (IF you're willing to accept the cost on Accuracy...)
-# iris_classifier <- RLCS:::.apply_deletion_sl(
-#   iris_classifier,
-#   deletion_limit = 0.99,
-#   max_pop_size = 400)
-
 t_end <- Sys.time()
 print(t_end - t_start) ## Training Runtime.
 
 ## Let's see how we could do testing:
 test_environment$predicted <- -1 ## Stands for not found
-# test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier_parallel, verbose=F)
-test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, iris_classifier_parallel, verbose=F)
+test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier_parallel, verbose=F)
 
 # head(test_environment)
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-length(iris_classifier_parallel$pop)
 length(iris_classifier_parallel$condition_strings)
 
 
 t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
-# iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
-#   train_environment,
-#   iris_hyperparameters,
-#   pre_trained_lcs = NULL,
-#   n_agents=run_par_count,
-#   # use_validation=T,
-#   merge_best_n = 3
-# )
-iris_classifier_parallel <- RLCS:::rlcs_train_sl_parallel_search_space3(
+iris_classifier_parallel <- rlcs_train_sl_parallel_search_space(
   train_environment,
   iris_hyperparameters,
   pre_trained_lcs = NULL,
@@ -147,15 +116,13 @@ print(t_end - t_start) ## Training Runtime.
 
 ## Let's see how we could do testing:
 test_environment$predicted <- -1 ## Stands for not found
-# test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier_parallel, verbose=F)
-test_environment$predicted <- RLCS:::rlcs_predict_sl3(test_environment, iris_classifier_parallel, verbose=F)
+test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier_parallel, verbose=F)
 
 # head(test_environment)
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
 }))/nrow(test_environment), 2)))
-# length(iris_classifier_parallel$pop)
 length(iris_classifier_parallel$condition_strings)
 
 stopCluster(cluster) ## Don't forget that :)

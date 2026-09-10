@@ -10,76 +10,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// get_correct_set_cpp2
-Rcpp::NumericVector get_correct_set_cpp2(const Rcpp::StringVector& match_pop_actions, const Rcpp::String& t_class);
-RcppExport SEXP _RLCS_get_correct_set_cpp2(SEXP match_pop_actionsSEXP, SEXP t_classSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type match_pop_actions(match_pop_actionsSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::String& >::type t_class(t_classSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_correct_set_cpp2(match_pop_actions, t_class));
-    return rcpp_result_gen;
-END_RCPP
-}
-// update_accuracy_cpp2
-int update_accuracy_cpp2(List& pop);
-RcppExport SEXP _RLCS_update_accuracy_cpp2(SEXP popSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List& >::type pop(popSEXP);
-    rcpp_result_gen = Rcpp::wrap(update_accuracy_cpp2(pop));
-    return rcpp_result_gen;
-END_RCPP
-}
-// inc_param_count_cpp2
-int inc_param_count_cpp2(List& pop, const String& param_name);
-RcppExport SEXP _RLCS_inc_param_count_cpp2(SEXP popSEXP, SEXP param_nameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List& >::type pop(popSEXP);
-    Rcpp::traits::input_parameter< const String& >::type param_name(param_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(inc_param_count_cpp2(pop, param_name));
-    return rcpp_result_gen;
-END_RCPP
-}
-// inc_match_and_correct_count_cpp2
-int inc_match_and_correct_count_cpp2(List& match_pop, const NumericVector correct_set);
-RcppExport SEXP _RLCS_inc_match_and_correct_count_cpp2(SEXP match_popSEXP, SEXP correct_setSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List& >::type match_pop(match_popSEXP);
-    Rcpp::traits::input_parameter< const NumericVector >::type correct_set(correct_setSEXP);
-    rcpp_result_gen = Rcpp::wrap(inc_match_and_correct_count_cpp2(match_pop, correct_set));
-    return rcpp_result_gen;
-END_RCPP
-}
-// min_param_count_cpp
-float min_param_count_cpp(const List& pop, const String& param_name);
-RcppExport SEXP _RLCS_min_param_count_cpp(SEXP popSEXP, SEXP param_nameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
-    Rcpp::traits::input_parameter< const String& >::type param_name(param_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(min_param_count_cpp(pop, param_name));
-    return rcpp_result_gen;
-END_RCPP
-}
-// mean_correct_count_cpp
-float mean_correct_count_cpp(const List& pop);
-RcppExport SEXP _RLCS_mean_correct_count_cpp(SEXP popSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type pop(popSEXP);
-    rcpp_result_gen = Rcpp::wrap(mean_correct_count_cpp(pop));
-    return rcpp_result_gen;
-END_RCPP
-}
 // which_cpp
 IntegerVector which_cpp(const LogicalVector& x);
 RcppExport SEXP _RLCS_which_cpp(SEXP xSEXP) {
@@ -91,28 +21,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// which_valid_rules_cpp
-Rcpp::NumericVector which_valid_rules_cpp(const Rcpp::NumericVector& numerosities, const Rcpp::NumericVector& lengths_fixed_bits);
-RcppExport SEXP _RLCS_which_valid_rules_cpp(SEXP numerositiesSEXP, SEXP lengths_fixed_bitsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type numerosities(numerositiesSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type lengths_fixed_bits(lengths_fixed_bitsSEXP);
-    rcpp_result_gen = Rcpp::wrap(which_valid_rules_cpp(numerosities, lengths_fixed_bits));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_RLCS_get_correct_set_cpp2", (DL_FUNC) &_RLCS_get_correct_set_cpp2, 2},
-    {"_RLCS_update_accuracy_cpp2", (DL_FUNC) &_RLCS_update_accuracy_cpp2, 1},
-    {"_RLCS_inc_param_count_cpp2", (DL_FUNC) &_RLCS_inc_param_count_cpp2, 2},
-    {"_RLCS_inc_match_and_correct_count_cpp2", (DL_FUNC) &_RLCS_inc_match_and_correct_count_cpp2, 2},
-    {"_RLCS_min_param_count_cpp", (DL_FUNC) &_RLCS_min_param_count_cpp, 2},
-    {"_RLCS_mean_correct_count_cpp", (DL_FUNC) &_RLCS_mean_correct_count_cpp, 1},
     {"_RLCS_which_cpp", (DL_FUNC) &_RLCS_which_cpp, 1},
-    {"_RLCS_which_valid_rules_cpp", (DL_FUNC) &_RLCS_which_valid_rules_cpp, 2},
     {NULL, NULL, 0}
 };
 

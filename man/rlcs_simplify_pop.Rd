@@ -24,8 +24,16 @@ rules one by one. Only remove rules that do not affect results.
 \examples{
 ## Supposing you have trained an RLCS model against the iris dataset as
 ## proposed in the documented examples:
+rlcs_iris <- rlcs_rosetta_stone(iris, class_col=5)
+full_dataset <- cbind(iris, rlcs_iris$model)
+full_dataset <- full_dataset[sample(1:nrow(full_dataset), nrow(full_dataset), replace = FALSE), ]
+## Train-test separation:
+train_set <- sample(1:nrow(full_dataset), size = round(0.8*nrow(full_dataset)), replace = FALSE)
+train_environment <- full_dataset[train_set,]
+test_environment <- full_dataset[-train_set,]
+iris_classifier <- rlcs_train_sl(train_environment)
 cleaner_iris_classifier <- rlcs_simplify_pop(iris_classifier, train_environment)
 print(cleaner_iris_classifier)
-print(rlcs_model)
-plot(rlcs_model)
+print(cleaner_iris_classifier)
+plot(cleaner_iris_classifier)
 }

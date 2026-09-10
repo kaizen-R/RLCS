@@ -14,7 +14,7 @@ library(RLCS) ## Well, yes...
 
 ## Poorly put together, quick and dirty
 rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
-  pop <- lcs$pop
+  # pop <- lcs$pop
 
   example_visual <- test_env_df
   example_visual_v <- strsplit(example_visual$sharp_image, "", fixed=T)[[1]]
@@ -26,13 +26,11 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
     return(correct_class)
   match_set <- get_match_set(test_env_df$state, lcs)
   res_pos <- sapply(match_set, \(i) {
-    if(pop[[i]]$action == correct_class) return(T)
+    if(lcs$actions[i] == correct_class) return(T)
     F
   })
   res_pos <- match_set[which(res_pos)]
 
-  res <- pop[res_pos]
-  # res <- res[res$action == correct_class]
   print(paste("Matched Rules Tot.:", length(match_set)))
   print(paste("Of which correct classification:", length(res_pos)))
 
@@ -43,10 +41,10 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
   })
   t_m_orig <- matrix(x_clean, nrow=7, byrow = T)
 
-  # browser()
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
+
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
       if(item == '0') return(t_numerosity)
@@ -54,30 +52,33 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
   t_m_0 <- round((t_mm - mean(t_mm))/(max(t_mm)-min(t_mm))*10)
 
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
+
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
-      if(item == '1') return(t_numerosity);
+      if(item == '1') return(t_numerosity)
       return(0)
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
   t_m_1 <- round((t_mm - mean(t_mm))/(max(t_mm)-min(t_mm))*10)
 
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
 
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
       if(item == '#') return(0);
@@ -85,6 +86,7 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
@@ -110,7 +112,6 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
   }
 
   imageM(example_visual_m, main = "MNIST formatted 28x28 binary")
-
 
   imageM(t_m_orig, col=my_pal_1, main="Compressed 7x7")
   imageM(t_m_0, col=my_pal_1, main="Pixel=0")
@@ -176,13 +177,10 @@ mnist_hyperparameters <- RLCS_hyperparameters(
 ## One-thread training - About
 ######
 t_start <- Sys.time()
-
-mnist01_classifier <- structure(list(), class="rlcs_population")
 set.seed(1234)
 for(i in 1:1) { ## Can be double pass for example, but still sequential
   mnist01_classifier <- rlcs_train_sl(train_mnist_bin01_49b,
-                                      mnist_hyperparameters,
-                                      pre_trained_lcs = mnist01_classifier)
+                                      mnist_hyperparameters)
 }
 
 t_end <- Sys.time()
@@ -200,7 +198,7 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
 
-length(mnist01_classifier$pop)
+length(mnist01_classifier$condition_strings)
 
 ## This is tailored to this specific example, but hopefully it helps show
 ## What the "model", as a set of rules, is actually "thinking"
@@ -214,25 +212,11 @@ disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
 res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[1],],
                                        mnist01_classifier)
 
-## Visualize LCS
-# par(mfrow=c(1,1))
-# plot(mnist01_classifier)
-
-# ## Visualize LCS per Class: 0
-# plot(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-# length(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-# print(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 0) return(T); F}))])
-#
-# ## Visualize LCS per Class: 1
-# plot(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-# length(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-# print(mnist01_classifier[which(sapply(mnist01_classifier, \(x) {if(x$action == 1) return(T); F}))])
-
-
 ##
 ## BONUS
 ##
 
+## Still a bit slow
 cleaner_mnist01_classifier <- rlcs_simplify_pop(mnist01_classifier, train_mnist_bin01_49b)
 plot(cleaner_mnist01_classifier)
 ## Let's run our trained Classifiers Set on test mnist_bin01_49b:
@@ -244,87 +228,21 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
 
-length(cleaner_mnist01_classifier$pop)
+length(cleaner_mnist01_classifier$condition_strings)
 ## OK, finally, let's see a bit about the LCS itself.
 ## This would apply to either single-core/thread or parallel processing.
 
-## New in v0.2.0, all matrices approach. WIP, but will supersede base code.
-t_start <- Sys.time()
-
-set.seed(1234)
-# mnist01_classifier3 <- structure(list(), class="rlcs_population")
-for(i in 1:1) { ## Can be double pass for example, but still sequential
-  mnist01_classifier3 <- RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,
-                                      mnist_hyperparameters)
-}
-
-t_end <- Sys.time()
-
-print(t_end - t_start) ## 12 seconds instead of 31!!
-
-## Check resulting model:
-
-## Let's run our trained Classifiers Set on test mnist_bin01_49b:
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-test_mnist_bin01_49b$predicted <- RLCS:::rlcs_predict_sl3(test_mnist_bin01_49b, mnist01_classifier3)
-
-table(test_mnist_bin01_49b[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
-  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
-}))/nrow(test_mnist_bin01_49b), 2)))
-
-length(mnist01_classifier3$condition_strings)
-
-## Let's see if the whole matrix move made a difference here too:
-cleaner_mnist01_classifier3 <- RLCS:::rlcs_simplify_pop3(mnist01_classifier3, train_mnist_bin01_49b)
-# plot(cleaner_mnist01_classifier)
-## Let's run our trained Classifiers Set on test mnist_bin01_49b:
-test_mnist_bin01_49b$predicted <- -1 ## Stands for not found
-test_mnist_bin01_49b$predicted <- RLCS:::rlcs_predict_sl3(test_mnist_bin01_49b, cleaner_mnist01_classifier3)
-
-table(test_mnist_bin01_49b[, c("class", "predicted")])
-print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
-  ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
-}))/nrow(test_mnist_bin01_49b), 2)))
-
-length(cleaner_mnist01_classifier3$condition_strings)
-
-
-microbenchmark::microbenchmark(
-  rlcs_train_sl(train_mnist_bin01_49b, mnist_hyperparameters),
-  RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,mnist_hyperparameters),
-  # rlcs_simplify_pop(mnist01_classifier, train_mnist_bin01_49b),
-  # RLCS:::rlcs_simplify_pop3(mnist01_classifier3, train_mnist_bin01_49b),
-  times=1L
-)
-
-profvis::profvis(
-  RLCS:::rlcs_train_sl3(train_mnist_bin01_49b,
-                        mnist_hyperparameters)
-)
-
-
 ## This is how one rule looks like, in a given classifier:
-print_mnist_number_49b(mnist01_classifier$pop[[457]]$condition_string)
+print_mnist_number_49b(cleaner_mnist01_classifier$condition_strings[7])
 ## Can you tell what class it matches?
 ## Hint: a 0 will have an empty middle across the central lines...
-mnist01_classifier$pop[[457]]$action
+mnist01_classifier$actions[7]
 
 ## We have seen a visual, but a less visual option is to ask for rules scoring:
 print_mnist_number(test_mnist_bin01_49b$sharp_image[5])
 rlcs_predict_sl(test_mnist_bin01_49b[5,], mnist01_classifier, verbose = T)
+rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[5,], cleaner_mnist01_classifier)
+
 print_mnist_number(test_mnist_bin01_49b$sharp_image[nrow(test_mnist_bin01_49b)-5])
 rlcs_predict_sl(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], mnist01_classifier, verbose = T)
-
-
-
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[7,], mnist01_classifier)
-res <- rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-15,], mnist01_classifier)
-
-## Example wrong classification. Note number of disagreeing rules, though...
-## Wrongly classified. See HOW THE MODEL TELLS YOU it's doubting?
-disagreed <- which(test_mnist_bin01_49b$class != test_mnist_bin01_49b$predicted)
-types <- test_mnist_bin01_49b[disagreed,"predicted"]
-rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[disagreed[which(types %in% c('0', '1'))][1],],
-                                       mnist01_classifier)
-
+rlcs_visualize_predict_mnist49b(test_mnist_bin01_49b[nrow(test_mnist_bin01_49b)-5,], cleaner_mnist01_classifier)

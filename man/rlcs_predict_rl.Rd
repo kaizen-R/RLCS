@@ -5,13 +5,16 @@
 \title{Predict an Action for a given input set of states}
 \usage{
 rlcs_predict_rl(
-  pop,
+  lcs,
+  match_set,
   verbose = F,
   possible_actions = c("left", "right", "up", "down")
 )
 }
 \arguments{
-\item{pop}{A trained RLCS model population, consisting of a population of classifiers.}
+\item{lcs}{A trained RLCS model, with a population of classifiers.}
+
+\item{match_set}{positions for matching rules. In RL, we focus on this to limit processing times.}
 
 \item{verbose}{Detail or not the results? Defaults to FALSE.}
 

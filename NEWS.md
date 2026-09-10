@@ -11,6 +11,14 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.2.1
+
+Cleaned up code, fully functional (except for GPU support, currently not included).
+Built on top of v0.2.0 with full matrix approach (lists discarded).
+Reinforcement learning scenarios work again (not included in demos).
+All demos and tests passed, removed most of commented code and debug calls.
+One issue on my dev setup with some weird C++ call warnings but as this is currently not used, this is not worrying.
+
 ## v0.2.0
 
 Moved from lists to matrices/vectors (semi-hidden version). Gained about 12% runtime over v0.1.9.

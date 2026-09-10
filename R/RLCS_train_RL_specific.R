@@ -1,215 +1,218 @@
 ## Reinforcement Learning-specific versions of TRAINING functions
-.inc_action_count <- .inc_param_count("action_count")
 
-.mean_action_count <- function(pop) {
-  sum(sapply(pop, \(x) x$action_count)) / length(pop)
+.inc_action_count_env <- function(env, action_set) {
+  env$lcs$action_counts[action_set] <- env$lcs$action_counts[action_set]+1
 }
 
-.min_action_count <- function(pop) {
-  min(sapply(pop, \(x) x$action_count))
+.mean_action_count_env <- function(env, action_set) {
+  if(length(action_set) < 1) return(-1)
+  mean(env$lcs$action_counts[action_set])
 }
 
-.get_action_set <- function(chosen_action, match_pop) {
-  if(length(match_pop) > 0)
-    return(which(sapply(match_pop, \(item) {
-      item$action == chosen_action
-    })))
+.get_action_set_env <- function(chosen_action, env, match_set) {
+  if(length(match_set) > 0)
+    return(match_set[which(env$lcs$actions[match_set] == chosen_action)])
+    # return(which(sapply(match_pop, \(item) {
+    #   item$action == chosen_action
+    # })))
   NULL ## implicit return
 }
 
 ## Similar to get_action_set in a way
-.get_rule_to_be_updated <- function(t_instance_string, chosen_action, lcs) {
-  match_set <- get_match_set(t_instance_string, lcs)
-  if(is.null(match_set)) return(c())
-
-  also_good_action <- which(sapply(lcs$pop[match_set], \(x) return(x$action == chosen_action)))
-  return(match_set[also_good_action])
-  # which(sapply(pop, \(x) {
-  #   ## Because there was an action, there was a t_instance_string
-  #   # if(x$action == chosen_action &&
-  #   #    !is.null(get_match_set(t_instance_string, list(x))))
-  #   #   return(T)
-  #   # F
-  #   return(x$action == chosen_action &&
-  #            !is.null(get_match_set(t_instance_string, list(x))))
-  # }))
-}
-
 .get_rule_to_be_updated_env <- function(t_instance_string, chosen_action, env) {
 
-  match_set <- .get_match_set_mat_env(t_instance_string, env)
+  match_set <- .get_match_set_mat_env3(as.numeric(strsplit(t_instance_string, "")[[1]]), env)
   # match_set <- get_match_set(t_instance_string, lcs)
   if(is.null(match_set)) return(c())
 
-  also_good_action <- which(sapply(env$lcs$pop[match_set], \(x) return(x$action == chosen_action)))
+  # also_good_action <- which(sapply(env$lcs$pop[match_set], \(x) return(x$action == chosen_action)))
+  also_good_action <- which(env$lcs$actions[match_set] == chosen_action)
   return(match_set[also_good_action])
 }
 
+.lcs_best_sort_rl_env3 <- function(env) {
 
-.lcs_best_sort_rl <- function(pop) {
-  if(length(pop) == 0) return(NULL)
-  ranking <- sapply(pop, \(x) {
-    x$total_reward +
-      0.01 * (1 - (length(x$condition_list$"0")+length(x$condition_list$"1")) / x$condition_length)
-  })
+  if(is.null(env$lcs)) return(NULL)
+  if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
+
   # browser()
-  pop[order(ranking, decreasing=T)]
-}
+  ## Now this here is important: Numerosity SHOULD play a role, shouldn't it?
+  ranking <- env$lcs$total_rewards - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length
+  # ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length + 0.01 * env$lcs$numerosities
+  sorted_entries <- order(ranking, decreasing=T)
 
+  env$lcs$condition_strings <- env$lcs$condition_strings[sorted_entries]
+  env$lcs$actions <- env$lcs$actions[sorted_entries]
+  env$lcs$rule_first_seens <- env$lcs$rule_first_seens[sorted_entries]
 
-## TODO: Improve here, use matrices to go (much) faster...
-.apply_subsumption_rl <- function(pop) {
-  ## Careful here: It's dangerous to sort action population without a thought!
-  ## Population here is from the action set.
-  ## But it's also in this case a *subset of the match set*.
-  ## Sorting would change rules order within the match set and overall population.
-  ## Thankfully, action population should never be very large...
-  ## And yes, that makes this function intricately dependent on the rest... :(
+  env$lcs$match_counts <- env$lcs$match_counts[sorted_entries]
+  env$lcs$correct_counts <- env$lcs$correct_counts[sorted_entries]
+  env$lcs$numerosities <- env$lcs$numerosities[sorted_entries]
+  env$lcs$accuracies <- env$lcs$accuracies[sorted_entries]
 
-  if(length(pop) > 1) { ## Useless otherwise, but should be > 20 in fact :D
+  ## For RL: Total Reward starts at 5, not at 0:
+  env$lcs$action_counts <- env$lcs$action_counts[sorted_entries]
+  env$lcs$total_rewards <- env$lcs$total_rewards[sorted_entries]
+  # print(sorted_entries)
+  # print(env$lcs$total_rewards)
+  # if(any(!is.numeric(env$lcs$total_rewards))) browser()
 
-    ## TRICK HERE!! See comments above
-    pop <- .lcs_best_sort_rl(pop)
+  ## New. Found in some LCS explanations out there... Just wasn't in RLCS
+  ## yet.
+  env$lcs$coverage_epoch_correct_count <- env$lcs$coverage_epoch_correct_count[sorted_entries]
 
-    ## Well, in later steps:
-    ## I overwrite match_pop[c(action_set)] with newly sorted action_pop!!
-
-    for(item in 1:(length(pop)-1)) {
-      if(pop[[item]]$numerosity > 0) { ## Skip rules already "deleted"
-
-        t_zero <- pop[[item]]$condition_list$"0"
-        t_one <- pop[[item]]$condition_list$"1"
-        cond_lab <- pop[[item]]$action
-
-        t_rew <- pop[[item]]$total_reward
-
-        pop_to_delete <-
-          ## RELATIVE POSITIONS!! we need item as base.
-          which(sapply(pop[(item+1):length(pop)],
-                       \(x, t_lab, t_zero, t_one) {
-
-                         if(x$numerosity > 0 && x$action == t_lab &&
-                            x$total_reward < t_rew) {
-                           t_other_cond_0 <- x$condition_list$"0"
-                           t_other_cond_1 <- x$condition_list$"1"
-
-                           return(all((length(t_zero) <= length(t_other_cond_0)) ||
-                                        (length(t_one) <= length(t_other_cond_1)),
-                                      t_zero %in% t_other_cond_0,
-                                      t_one %in% t_other_cond_1))
-                         }
-
-                         return(F)
-                       }, cond_lab, t_zero, t_one))
-
-        if(length(pop_to_delete) > 0) { ## Subsumption applied!
-          print(pop[[item]]$action) ## For visual progress tracking
-
-          pop_to_delete <- pop_to_delete + item ## Vectorized, start at item position
-
-          pop[[item]]$numerosity <- pop[[item]]$numerosity + length(pop_to_delete)
-
-          pop[pop_to_delete] <- lapply(pop[pop_to_delete],
-                                       \(item) {
-                                         item$numerosity <- 0
-                                         item })
-        }
-      }
-    }
-  }
-  pop
-}
-
-.apply_deletion_rl <- function(lcs, deletion_limit = 0.0, max_pop_size = 1000) {
-
-  lcs$pop <- lapply(lcs$pop, \(x) {
-    if(x$total_reward < deletion_limit) x$numerosity <- 0
-    x
-  })
-
-  if(length(lcs$pop) > max_pop_size) {
-    lcs$pop <- .lcs_best_sort_rl(lcs$pop) ## Should this happen more often??
-    lcs$pop[max_pop_size:length(lcs$pop)] <- lapply(lcs$pop[max_pop_size:length(lcs$pop)], \(x) {
-      x$numerosity <- 0
-      x
-    })
-  }
-
-  ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which(sapply(lcs$pop, \(x) {
-    x$numerosity > 0
-  }))
-
-  lcs$pop <- lcs$pop[c(survivors_set)]
-  lcs$matrices <- .recalculate_pop_matrices(lcs$pop)
-  lcs$lengths <- .lengths_fixed_bits(lcs$pop)
-
-  lcs
-}
-
-.apply_deletion_rl_env <- function(env, deletion_limit = 0.0, max_pop_size = 1000) {
-
-  env$lcs$pop <- lapply(env$lcs$pop, \(x) {
-    # if(x$total_reward < deletion_limit) x$numerosity <- 0
-    if(abs(x$total_reward) < deletion_limit) x$numerosity <- 0 ## New approach:
-    ## Here we keep only the MOST INFORMATIVE rules...
-    x
-  })
-
-  if(length(env$lcs$pop) > max_pop_size) {
-    env$lcs$pop <- .lcs_best_sort_rl(env$lcs$pop) ## Should this happen more often??
-    env$lcs$pop[max_pop_size:length(env$lcs$pop)] <- lapply(env$lcs$pop[max_pop_size:length(env$lcs$pop)], \(x) {
-      x$numerosity <- 0
-      x
-    })
-  }
-
-  ## Works nicely with subsumption to remove unnecessary classifiers:
-  survivors_set <- which(sapply(env$lcs$pop, \(x) {
-    x$numerosity > 0
-  }))
-
-  env$lcs$pop <- env$lcs$pop[c(survivors_set)]
-  env$lcs$matrices <- .recalculate_pop_matrices(env$lcs$pop)
-  env$lcs$lengths <- .lengths_fixed_bits(env$lcs$pop)
+  ## Now add space to matching matrices
+  env$lcs$matrix_conditions_vecs <- env$lcs$matrix_conditions_vecs[sorted_entries,]
+  env$lcs$matrix_match_0s <- env$lcs$matrix_match_0s[sorted_entries,]
+  env$lcs$matrix_match_1s <- env$lcs$matrix_match_1s[sorted_entries,]
+  ## Faster to compare later
+  env$lcs$lengths_fixed_bits <- env$lcs$lengths_fixed_bits[sorted_entries]
 
   NULL
 }
 
-## Implementation of TD, with alpha 0.1
-.update_action_reward_td <- function(A_pop, reward, alpha = 0.1) {
-  lapply(A_pop, \(x) {
-    x$total_reward <- x$total_reward + alpha * (reward - x$total_reward)
-    x
-  })
+## Another key function here.
+.apply_subsumption_whole_pop_rl <- function(env,deletion_limit = .6, max_pop_size = 10000) {
+
+  if(is.null(env$lcs)) return(NULL)
+  if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
+
+  # browser()
+
+  # print(env$lcs)
+
+  .apply_deletion_no_threshold_env3(env)
+  .lcs_best_sort_rl_env3(env)
+
+  ## Within this function in this case :)
+  t_labs <- env$lcs$actions
+
+  useful_pos <- which(env$lcs$numerosities > 0)
+  if(length(useful_pos) < 2) {
+    print("Not enough valid population to run subsumption")
+    return(NULL)
+  }
+
+  subsumers_list <- list()
+
+  for(t_pos in useful_pos[1:(length(useful_pos)-1)]) { ## If this all works, will move it to C++...
+    ## For comparisons:
+    rest_pos <- useful_pos[which(useful_pos > t_pos)] ## Careful, we don't want relative positions here!
+    rest_t_matrices_zeros <- env$lcs$matrix_match_0s[rest_pos,]
+    rest_t_matrices_ones <- env$lcs$matrix_match_1s[rest_pos,]
+
+    ## Remember the rules are sorted by accuracy and generality already!
+    subsumer_must_match_zeros <- rest_t_matrices_zeros  %*% env$lcs$matrix_match_0s[t_pos, ]
+    subsumer_must_match_ones <- rest_t_matrices_ones  %*% env$lcs$matrix_match_1s[t_pos, ]
+
+    subsumed_must_be_different_zero <-  rest_t_matrices_zeros %*%  env$lcs$matrix_match_1s[t_pos, ]
+    subsumed_must_be_different_one <- rest_t_matrices_ones %*% env$lcs$matrix_match_0s[t_pos, ]
+
+    pop_to_delete <- which(
+      ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+        (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+        (t_labs[rest_pos] == t_labs[t_pos]) & (env$lcs$total_rewards[rest_pos] < env$lcs$total_rewards[t_pos])
+    )
+
+    ## Return positions to be deleted from population
+    if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
+      subsumers_list[[length(subsumers_list)+1]] <- (pop_to_delete + t_pos) ## Optimization. POSITIONS
+    } else {
+      subsumers_list[[length(subsumers_list)+1]] <- NA
+    }
+  }
+
+  # browser()
+  subsumers_positions <- which(!is.na(subsumers_list))
+  if(length(subsumers_positions)>0) {
+    env$lcs$numerosities[subsumers_positions] <- vapply(subsumers_positions, \(i) {
+      env$lcs$numerosities[i] + length(subsumers_list[[i]])
+    }, numeric(1)) ## Go this just once!
+
+    pop_to_delete <- unique(unlist(subsumers_list[which(!is.na(subsumers_list))])) ## Reduce operations
+    env$lcs$numerosities[pop_to_delete] <- 0 ## Go this just once!
+    ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
+    .apply_deletion_rl_env(env,
+                           deletion_limit = deletion_limit,
+                           max_pop_size = max_pop_size)
+  }
+
+  # print(env$lcs)
 }
+
+.apply_deletion_rl_env <- function(env, deletion_limit = 0.6, max_pop_size = 10000) {
+
+  env$lcs$numerosities[env$lcs$total_rewards < deletion_limit] <- 0
+
+  # positions_nums <- which(env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0)
+  positions_nums <- which(env$lcs$numerosities > 0)
+  # positions_nums <- which(env$lcs$valid_rules)
+
+  if(length(positions_nums) > max_pop_size) {
+    env$lcs$numerosities[positions_nums[(max_pop_size+1):length(positions_nums)]] <- 0
+    # env$lcs$valid_rules[positions_nums[(max_pop_size+1):length(positions_nums)]] <- FALSE
+  }
+
+
+  #env$lcs$pop <- .apply_deletion_no_threshold(env$lcs$pop)
+  .apply_deletion_no_threshold_env3(env)
+
+
+  NULL
+}
+
+
+## Implementation of TD, with alpha 0.1
+# .update_action_reward_td <- function(A_pop, reward, alpha = 0.1) {
+#   lapply(A_pop, \(x) {
+#     x$total_reward <- x$total_reward + alpha * (reward - x$total_reward)
+#     x
+#   })
+# }
 
 ## Sample Average Reward update
-.update_action_reward_sa <- function(A_pop, reward) {
-  lapply(A_pop, \(x) {
-    x$total_reward <- x$total_reward + 1/x$action_count * (reward - x$total_reward)
-    x
-  })
+.update_action_reward_sa_env <- function(env, action_set, reward) {
+  env$lcs$total_rewards[action_set] <- env$lcs$total_rewards[action_set] +
+                                             ((reward - env$lcs$total_rewards[action_set]) /
+                                                env$lcs$action_counts[action_set])
 }
 
 ## Implementation of TD, with alpha 0.1
-.update_last_action_reward_td <- function(last_pop, action_pop, alpha = 0.1) {
-  current_action_set_reward <- mean(sapply(action_pop, \(x) x$total_reward))
-
-  lapply(last_pop, \(x) {
-    x$total_reward <- x$total_reward + alpha * (current_action_set_reward - x$total_reward)
-    x
-  })
-}
+# .update_last_action_reward_td <- function(last_pop, action_pop, alpha = 0.1) {
+#   current_action_set_reward <- mean(sapply(action_pop, \(x) x$total_reward))
+#
+#   lapply(last_pop, \(x) {
+#     x$total_reward <- x$total_reward + alpha * (current_action_set_reward - x$total_reward)
+#     x
+#   })
+# }
 
 ## Sample Average Reward update
-.update_last_action_reward_sa <- function(last_pop, action_pop) {
+.update_last_action_reward_sa <- function(env, last_action_set, action_set) {
   ## My judgement call here, really...
-  current_action_set_reward <- mean(sapply(action_pop, \(x) x$total_reward))
-  lapply(last_pop, \(x) {
-    x$total_reward <- x$total_reward + 1/x$action_count * (current_action_set_reward - x$total_reward)
-    x
-  })
+  ## Instead of updating current move with future reward, I'm doing it backwards
+  ## If rules have disappeared, this might be better in fact...
+  if(length(last_action_set) > 0) {
+    current_action_set_reward <- round(mean(env$lcs$total_rewards[action_set]), 8)
+
+    env$lcs$total_rewards[last_action_set] <- env$lcs$total_rewards[last_action_set] +
+      0.5 *
+      ## We're updating a past action, so current reward should participate only a little...
+      ## Then again, that's not quite correct in any specific way either...
+      ((current_action_set_reward - env$lcs$total_rewards[last_action_set]) /
+         env$lcs$action_counts[last_action_set])
+  }
+}
+
+.update_accuracy_rl_env3 <- function(env, positions) {
+  ## TODO Could run in problems for VERY high numbers divisions...?
+  env$lcs$accuracies[positions] <- env$lcs$action_counts[positions] / env$lcs$match_counts[positions]
+  NULL
+}
+
+.update_matched_accuracy_rl_env3 <- function(env) {
+  .update_accuracy_rl_env3(env, env$match_set)
+  NULL
 }
 
 .rlcs_rl_one_movement_mat_env <- function(t_step, agents, world,
@@ -223,7 +226,6 @@
 
   if(verbose == T) {
     Sys.sleep(0.2)
-    # dev.off()
     world$get_world_plot()
   }
 
@@ -232,32 +234,27 @@
   for(j in 1:n_agents) {
 
     t_agent <- 1000+j
-    ## Adding MEMORY
-    if(!is.null(agents[[j]]$lcs) && length(agents[[j]]$lcs$pop) > 0 && !is.null(agents[[j]]$chosen_action)) { ## There was an action before
-      agents[[j]]$last_action <- which(sapply(agents[[j]]$lcs$pop, \(x) {
-        ## Because there was an action, there was a last_instance_string
-        if(x$action == agents[[j]]$chosen_action && !is.null(get_match_set(last_instance_string, list(x))))
-          return(T)
-        F
-      }))
-    }
-
-
-    ## Using ENVIRONMENTS to save on sending large LCS objects back and forth:
     lcs <- agents[[j]]$lcs
 
+    ## Adding MEMORY for backwards reward updating...
+    if(!is.null(lcs) &&
+       any(lcs$numerosities > 0) &&
+       !is.null(agents[[j]]$chosen_action)) {
+      ## There was an action before
+      t_match_set <- .get_match_set_mat_env3(as.numeric(strsplit(last_instance_string, "")[[1]]), environment())
+      agents[[j]]$last_action <- t_match_set[which(lcs$actions[t_match_set] == agents[[j]]$chosen_action)]
+    }
+
+    ## Using ENVIRONMENTS to save on sending large LCS objects back and forth:
     action_set <- c()
+    reward <- 0
 
     t_instance_string <- world$get_agent_env(t_agent)
 
-    # browser()
-    # match_set <- .get_match_set_mat(t_instance_string, agents[[j]]$lcs)
-    match_set <- .get_match_set_mat_env(t_instance_string, environment())
-
-    # browser()
+    match_set <- .get_match_set_mat_env3(as.numeric(strsplit(t_instance_string, "")[[1]]),
+                                         environment())
 
     train_count <- n_epoch <- i
-
     subsumption_applied <- F
 
     ## Not part of LCS, supplementary mechanism to favor exploration
@@ -271,16 +268,20 @@
     curiosity <- 20 ## Default curiosity
     if (i <= warm_up) curiosity <- 10 ## Warm up steps
     if((explore_exploit_mechanism == 2) && (i > warm_up)) {
+
       if(agents[[j]]$internal_status > agents[[j]]$internal_threshold_exploit) {
         curiosity <- 3 ## Well fed: Become somewhat more curious
       }
+
       if(agents[[j]]$internal_status > agents[[j]]$internal_threshold_explore) {
         curiosity <- 30 ## Expert: Become less curious
       }
-    }
-    if((explore_exploit_mechanism == 2) && (i %% curiosity == 0))
-      decide_explore = T
 
+    }
+
+    if((explore_exploit_mechanism == 2) && (i %% curiosity == 0)) {
+      decide_explore = T
+    }
 
     if (is.null(match_set) || length(match_set) == 0 || ## COVERING needed
         ((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
@@ -294,281 +295,93 @@
 
         if(((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
            decide_explore) { ## Agent is "not hungry"
-          # match_pop <- agents[[j]]$lcs$pop[c(match_set)]
-          match_pop <- lcs$pop[c(match_set)]
-          all_tested_actions <- sapply(match_pop, \(x) x$action) |> unique()
+
+          all_tested_actions <- lcs$actions[match_set] |> unique()
+
+          if(any(is.na(lcs$total_rewards))) browser()
 
           ## Cleverer than random exploration:
           not_tested_yet <- !(possible_actions %in% all_tested_actions)
+
           if(any(not_tested_yet))
             agents[[j]]$chosen_action <- sample(possible_actions[which(not_tested_yet)], 1)
           else {
-            recommended_action <- rlcs_predict_rl(match_pop)
+            recommended_action <- rlcs_predict_rl(lcs, match_set)
             not_recommended_actions <- !(possible_actions %in% recommended_action)
             agents[[j]]$chosen_action <- sample(possible_actions[which(not_recommended_actions)], 1)
           }
         }
 
-        # lcs <- .add_valid_rule_to_lcs(lcs, cover_rule, agents[[j]]$chosen_action, train_count)
-        .add_valid_rule_to_lcs_env(environment(), cover_rule, agents[[j]]$chosen_action, train_count)
+        added_rule_pos <- .add_valid_rule_to_lcs_env_mat(environment(), cover_rule, agents[[j]]$chosen_action, train_count)
 
         reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
-        ## Not part of LCS, instead creating an internal "state" of the agent:
-        agents[[j]]$internal_status <- agents[[j]]$internal_status + reward
 
-        # rule_to_be_updated <- .get_rule_to_be_updated(t_instance_string, agents[[j]]$chosen_action, lcs)
-        rule_to_be_updated <- .get_rule_to_be_updated_env(t_instance_string, agents[[j]]$chosen_action, environment())
-
-        ## Trick: Set alpha to 1.0 to take max reward directly
-        # agents[[j]]$lcs$pop[rule_to_be_updated] <- .update_action_reward_td(agents[[j]]$lcs$pop[rule_to_be_updated], reward, alpha=1)
-        lcs$pop[rule_to_be_updated] <- .update_action_reward_sa(lcs$pop[rule_to_be_updated], reward)
+        ## Working more locally here, on the new rule only:
+        .update_action_reward_sa_env(environment(), c(added_rule_pos), reward)
       }
     } else { ## Exploit known Actions
       ## Faster to work with only match population until need to review overall population
-      match_pop <- .inc_match_count(lcs$pop[c(match_set)])
+      agents[[j]]$chosen_action <- rlcs_predict_rl(lcs, match_set)
 
-      agents[[j]]$chosen_action <- rlcs_predict_rl(match_pop, verbose = F, possible_actions = possible_actions)
+      action_set <- .get_action_set_env(agents[[j]]$chosen_action, environment(), match_set)
 
-      action_set <- .get_action_set(agents[[j]]$chosen_action, match_pop)
-
-      action_pop <- .inc_action_count(match_pop[c(action_set)])
-      # match_pop[c(action_set)] <- action_pop
+      .inc_action_count_env(environment(), action_set)
 
       ## *Second* Rule Discovery HAPPENS HERE NOW
       ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
-      if(round(.mean_action_count(action_pop) %% rd_trigger) == 0) {
+      if(round(.mean_action_count_env(environment(), action_set) %% rd_trigger) == 0) {
         # print("Kicking GA")
         ## The GA, basically, happens here: Cross-over & Mutation:
-        children <- action_pop |>
-          .cross_over_parents_strings_rl(parents_selection_mode, tournament_pressure)
-        children <- children |>
-          sapply(.mutate_condition_string, t_instance_string, mutation_probability)
+        children <- .cross_over_parents_strings_rl_env3(environment(), action_set, parents_selection_mode,
+                                                        tournament_pressure)
 
-        ## In some cases, we have only one child.
-        for(child in children) {
-          if(.found_same_condition(action_pop, child))  ## Duplicate rule
-            # match_pop[c(action_set)] <- action_pop |>
-            action_pop <- action_pop |> .inc_numerosity_by_condition(child)
-          else {
-            # lcs <- .add_valid_rule_to_lcs(lcs, child, agents[[j]]$chosen_action, train_count)
-            .add_valid_rule_to_lcs_env(environment(), child, agents[[j]]$chosen_action, train_count)
+        if(!is.null(children)) {
+          children <- sapply(children, .mutate_condition_string, t_instance_string, mutation_probability)
+
+          ## In some cases, we have only one child.
+          for(child in children) {
+            pos_duplicated <- .found_same_condition3(environment(), action_set, child)
+            if(length(pos_duplicated) > 0) { ## Duplicate rule
+              lcs$numerosities[pos_duplicated] <- lcs$numerosities[pos_duplicated] + 1
+            } else {
+              .add_valid_rule_to_lcs_env_mat(environment(), child, agents[[j]]$chosen_action, train_count)
+            }
           }
         }
       }
 
-      if(length(action_pop) > 20) {
-        subsumption_applied <- T
-        action_pop |> .apply_subsumption_rl() -> action_pop
-      }
-
       reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
-      ## Not part of LCS, instead creating an internal "state" of the agent:
-      agents[[j]]$internal_status <- agents[[j]]$internal_status + reward
 
       ## Trick: Set alpha to 1.0 to take max reward directly
       # match_pop[c(action_set)] <- .update_action_reward_td(action_pop, reward, alpha = 1)
-      match_pop[c(action_set)] <- .update_action_reward_sa(action_pop, reward)
-
-      ## Update Matched Population statistics into main population
-      lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
+      .update_action_reward_sa_env(environment(), action_set, reward)
 
       ## Leveraging Memory to pass on reward... One step in the past, given
       ## the agent only "sees" two steps ahead MAX.
-      # agents[[j]]$lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_td(agents[[j]]$lcs$pop[agents[[j]]$last_action], action_pop, alpha = 0.1)
-      lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_sa(lcs$pop[agents[[j]]$last_action], action_pop)
+      .update_last_action_reward_sa(environment(), agents[[j]]$last_action, action_set)
+      ## That is in fact equivalent to updating current move with future rewards,
+      ## I'm just doing it backwards
 
+      ## Subsumption affects lists of rules,
+      ## !! if you apply before last action set update, you break it...!!
+      if(length(action_set) > 20) {
+        subsumption_applied <- T
+        .apply_subsumption_whole_pop_rl(environment())
+      }
     }
 
-    if((subsumption_applied && length(which(sapply(lcs$pop, \(x) x$numerosity == 0))) > 0) ||
-       ((i %% 1000) == 0 || length(lcs$pop) > max_pop_size)) {
-      before_deletion <- length(lcs$pop)
-      # lcs <- .apply_deletion_rl(lcs, deletion_threshold, max_pop_size)
+    ## Not part of LCS, instead creating an internal "state" of the agent:
+    agents[[j]]$internal_status <- max(-1, agents[[j]]$internal_status + reward)
+
+    if(!subsumption_applied && ## Otherwise would be redundant...
+       ((i %% 1000) == 0 || length(lcs$condition_strings) > max_pop_size)) {
       .apply_deletion_rl_env(environment(), deletion_threshold, max_pop_size)
-
-      # print(paste("Deletion Applied", before_deletion, " -> ", length(lcs$pop)))
     }
-    if(!is.null(lcs$pop)) class(lcs) <- "rlcs"
+
+    if(!is.null(lcs)) class(lcs) <- "rlcs"
 
     agents[[j]]$lcs <- lcs
   }
 
-
-  # world$get_world_matrix()
-
   return(list(agents = agents, world = world, last_instance_string = t_instance_string))
 }
-
-
-# .rlcs_rl_one_movement_mat <- function(t_step, agents, world,
-#                                       possible_actions,
-#                                       explore_turn,
-#                                       last_instance_string = NULL,
-#                                       explore_exploit_mechanism = 1,
-#                                       warm_up = 2000,
-#                                       verbose = FALSE) {
-#
-#   if(verbose == T) {
-#     Sys.sleep(0.2)
-#     # dev.off()
-#     world$get_world_plot()
-#   }
-#
-#   n_agents <- length(agents)
-#   i <- t_step
-#   for(j in 1:n_agents) {
-#     t_agent <- 1000+j
-#     ## Adding MEMORY
-#     if(!is.null(agents[[j]]$lcs) && length(agents[[j]]$lcs$pop) > 0 && !is.null(agents[[j]]$chosen_action)) { ## There was an action before
-#       agents[[j]]$last_action <- which(sapply(agents[[j]]$lcs$pop, \(x) {
-#         ## Because there was an action, there was a last_instance_string
-#         if(x$action == agents[[j]]$chosen_action && !is.null(get_match_set(last_instance_string, list(x))))
-#           return(T)
-#         F
-#       }))
-#     }
-#
-#     action_set <- c()
-#
-#     t_instance_string <- world$get_agent_env(t_agent)
-#
-#     # browser()
-#     match_set <- .get_match_set_mat(t_instance_string, agents[[j]]$lcs)
-#
-#     # browser()
-#
-#     train_count <- n_epoch <- i
-#
-#     subsumption_applied <- F
-#
-#     ## Not part of LCS, supplementary mechanism to favor exploration
-#     if(agents[[j]]$internal_status > agents[[j]]$max_internal_status)
-#       agents[[j]]$internal_status <- agents[[j]]$max_internal_status
-#
-#     agents[[j]]$internal_status <- agents[[j]]$internal_status - 1
-#
-#     ## Alternative choice to decide to explore more or less:
-#     decide_explore <- F
-#     curiosity <- 20 ## Default curiosity
-#     if (i <= warm_up) curiosity <- 10 ## Warm up steps
-#     if((explore_exploit_mechanism == 2) && (i > warm_up)) {
-#       if(agents[[j]]$internal_status > agents[[j]]$internal_threshold_exploit) {
-#         curiosity <- 3 ## Well fed: Become somewhat more curious
-#       }
-#       if(agents[[j]]$internal_status > agents[[j]]$internal_threshold_explore) {
-#         curiosity <- 30 ## Expert: Become less curious
-#       }
-#     }
-#     if((explore_exploit_mechanism == 2) && (i %% curiosity == 0))
-#       decide_explore = T
-#
-#
-#     if (is.null(match_set) || length(match_set) == 0 || ## COVERING needed
-#         ((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
-#         decide_explore) { ## Agent is "not hungry"
-#
-#       cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_string, wildcard_prob)
-#
-#       if(!is.null(cover_rule)) {
-#         if(is.null(match_set) || length(match_set) == 0) ## COVERING needed
-#           agents[[j]]$chosen_action <- sample(possible_actions, 1)
-#
-#         if(((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
-#            decide_explore) { ## Agent is "not hungry"
-#           match_pop <- agents[[j]]$lcs$pop[c(match_set)]
-#           all_tested_actions <- sapply(match_pop, \(x) x$action) |> unique()
-#
-#           ## Cleverer than random exploration:
-#           not_tested_yet <- !(possible_actions %in% all_tested_actions)
-#           if(any(not_tested_yet))
-#             agents[[j]]$chosen_action <- sample(possible_actions[which(not_tested_yet)], 1)
-#           else {
-#             recommended_action <- rlcs_predict_rl(match_pop)
-#             not_recommended_actions <- !(possible_actions %in% recommended_action)
-#             agents[[j]]$chosen_action <- sample(possible_actions[which(not_recommended_actions)], 1)
-#           }
-#         }
-#
-#         agents[[j]]$lcs <- .add_valid_rule_to_lcs(agents[[j]]$lcs, cover_rule, agents[[j]]$chosen_action, train_count)
-#
-#         reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
-#         ## Not part of LCS, instead creating an internal "state" of the agent:
-#         agents[[j]]$internal_status <- agents[[j]]$internal_status + reward
-#
-#         # browser()
-#         rule_to_be_updated <- .get_rule_to_be_updated(t_instance_string, agents[[j]]$chosen_action, agents[[j]]$lcs)
-#
-#         ## Trick: Set alpha to 1.0 to take max reward directly
-#         # agents[[j]]$lcs$pop[rule_to_be_updated] <- .update_action_reward_td(agents[[j]]$lcs$pop[rule_to_be_updated], reward, alpha=1)
-#         agents[[j]]$lcs$pop[rule_to_be_updated] <- .update_action_reward_sa(agents[[j]]$lcs$pop[rule_to_be_updated], reward)
-#       }
-#     } else { ## Exploit known Actions
-#       ## Faster to work with only match population until need to review overall population
-#       match_pop <- .inc_match_count(agents[[j]]$lcs$pop[c(match_set)])
-#
-#       agents[[j]]$chosen_action <- rlcs_predict_rl(match_pop, verbose = F, possible_actions = possible_actions)
-#
-#       action_set <- .get_action_set(agents[[j]]$chosen_action, match_pop)
-#
-#       action_pop <- .inc_action_count(match_pop[c(action_set)])
-#       match_pop[c(action_set)] <- action_pop
-#
-#       ## *Second* Rule Discovery HAPPENS HERE NOW
-#       ## Rule discovery happens only AFTER A RULE HAS HAD SOME TIME
-#       if(round(.mean_action_count(action_pop) %% rd_trigger) == 0) {
-#         # print("Kicking GA")
-#         ## The GA, basically, happens here: Cross-over & Mutation:
-#         children <- action_pop |>
-#           .cross_over_parents_strings_rl(parents_selection_mode, tournament_pressure)
-#         children <- children |>
-#           sapply(.mutate_condition_string, t_instance_string, mutation_probability)
-#
-#         ## In some cases, we have only one child.
-#         for(child in children) {
-#           if(.found_same_condition(action_pop, child))  ## Duplicate rule
-#             match_pop[c(action_set)] <- action_pop |>
-#               .inc_numerosity_by_condition(child)
-#           else {
-#             agents[[j]]$lcs <- .add_valid_rule_to_lcs(agents[[j]]$lcs,
-#                                                              child, agents[[j]]$chosen_action,
-#                                                              train_count)
-#           }
-#         }
-#       }
-#
-#       if(length(action_pop) > 20) {
-#         subsumption_applied <- T
-#         action_pop |> .apply_subsumption_rl() -> action_pop
-#       }
-#
-#       reward <- world$move_agent_and_get_reward(t_agent, agents[[j]]$chosen_action)
-#       ## Not part of LCS, instead creating an internal "state" of the agent:
-#       agents[[j]]$internal_status <- agents[[j]]$internal_status + reward
-#
-#       ## Trick: Set alpha to 1.0 to take max reward directly
-#       # match_pop[c(action_set)] <- .update_action_reward_td(action_pop, reward, alpha = 1)
-#       match_pop[c(action_set)] <- .update_action_reward_sa(action_pop, reward)
-#
-#       ## Update Matched Population statistics into main population
-#       agents[[j]]$lcs$pop[c(match_set)] <- .update_matched_accuracy(match_pop)
-#
-#       ## Leveraging Memory to pass on reward... One step in the past, given
-#       ## the agent only "sees" two steps ahead MAX.
-#       # agents[[j]]$lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_td(agents[[j]]$lcs$pop[agents[[j]]$last_action], action_pop, alpha = 0.1)
-#       agents[[j]]$lcs$pop[agents[[j]]$last_action] <- .update_last_action_reward_sa(agents[[j]]$lcs$pop[agents[[j]]$last_action], action_pop)
-#
-#     }
-#
-#     if((subsumption_applied && length(which(sapply(agents[[j]]$lcs$pop, \(x) x$numerosity == 0))) > 0) ||
-#        ((i %% 1000) == 0 && length(agents[[j]]$lcs$pop) > max_pop_size)) {
-#       before_deletion <- length(agents[[j]]$lcs$pop)
-#       agents[[j]]$lcs <- .apply_deletion_rl(agents[[j]]$lcs, deletion_threshold, max_pop_size)
-#
-#       print(paste("Deletion Applied", before_deletion, " -> ", length(agents[[j]]$lcs$pop)))
-#     }
-#     if(!is.null(agents[[j]]$lcs$pop)) class(agents[[j]]$lcs) <- "rlcs"
-#   }
-#
-#   # world$get_world_matrix()
-#
-#   return(list(agents = agents, world = world, last_instance_string = t_instance_string))
-# }

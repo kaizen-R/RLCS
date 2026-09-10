@@ -1,7 +1,7 @@
 Package: RLCS
 Type: Package
 Title: Learning Classifier System for Binary Input Strings
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person(
       "Nicolas", "Leconte-Demarsy",
@@ -10,11 +10,12 @@ Authors@R: c(
     )
   )
 Description: A rather simple implementation of J. H. Holland's "Learning Classifier System".
-    This is a Michigan style LCS.
+    This is a Michigan style LCS, built based on XCS (by Wilson) descriptions but with some simplifications.
     An LCS is "natively" interpretable ML algorithm in that it generates rules as its output model(s).
     Said rules can be "read".
     This implementation accepts only binary strings as "state" for input, and any set of classes.
-    It is also a somewhat slow algorithm to be trained.
+    Some supporting functions help with that ("rosetta stone" states encoders/decoders).
+    It is also a somewhat slow algorithm to be trained, although it got better.
     However, said drawbacks are compensated by an interpretable output, and given enough time (depending on training data), it can be used to do Supervised Learning.
     The same package can be used to do data mining, as some examples (included) demonstrate. 
     Although not demonstrated/included in demos, the RLCS package allows for Reinforcement Learning scenarios as well.
@@ -28,4 +29,4 @@ Suggests:
 Config/testthat/edition: 3
 Depends: 
     R (>= 4.1.0)
-RoxygenNote: 7.3.2
+Config/roxygen2/version: 8.1.0

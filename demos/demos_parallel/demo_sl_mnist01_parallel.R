@@ -12,23 +12,24 @@ library(RLCS) ## Well, yes...
 ##
 
 ## Poorly put together, quick and dirty
-rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
+rlcs_visualize_predict_mnist49b <- function(test_env_df, lcs) {
+  # pop <- lcs$pop
+
   example_visual <- test_env_df
   example_visual_v <- strsplit(example_visual$sharp_image, "", fixed=T)[[1]]
   example_visual_m <- matrix(1-as.integer(example_visual_v), nrow=28, byrow = F)
 
-  correct_class <- rlcs_predict_sl(test_env_df, pop, verbose=F)
+  correct_class <- rlcs_predict_sl(test_env_df, lcs, verbose=F)
+
   if(correct_class %in% c("rlcs_doubt", "rlcs_no_match"))
     return(correct_class)
-  match_set <- get_match_set(test_env_df$state, pop)
+  match_set <- get_match_set(test_env_df$state, lcs)
   res_pos <- sapply(match_set, \(i) {
-    if(pop[[i]]$action == correct_class) return(T)
+    if(lcs$actions[i] == correct_class) return(T)
     F
   })
   res_pos <- match_set[which(res_pos)]
 
-  res <- pop[res_pos]
-  # res <- res[res$action == correct_class]
   print(paste("Matched Rules Tot.:", length(match_set)))
   print(paste("Of which correct classification:", length(res_pos)))
 
@@ -39,10 +40,10 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
   })
   t_m_orig <- matrix(x_clean, nrow=7, byrow = T)
 
-  # browser()
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
+
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
       if(item == '0') return(t_numerosity)
@@ -50,30 +51,33 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
   t_m_0 <- round((t_mm - mean(t_mm))/(max(t_mm)-min(t_mm))*10)
 
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
+
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
-      if(item == '1') return(t_numerosity);
+      if(item == '1') return(t_numerosity)
       return(0)
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
   t_m_1 <- round((t_mm - mean(t_mm))/(max(t_mm)-min(t_mm))*10)
 
+  t_m <- sapply(res_pos, \(i) {
+    t_string <- lcs$condition_strings[i]
+    t_numerosity <- lcs$numerosities[i]
 
-  t_m <- sapply(res, \(x) {
-    t_string <- x$condition_string
-    t_numerosity <- x$numerosity
     t_row <- strsplit(t_string, "", fixed=T)[[1]]
     x_clean <- sapply(t_row, \(item) {
       if(item == '#') return(0);
@@ -81,6 +85,7 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
     })
     as.numeric(x_clean)
   })
+
   t_m <- sapply(1:nrow(t_m), \(i) sum(t_m[i, ]))
   t_mm <- matrix(t_m, nrow=7, byrow = T)
   t_mm <- t_mm + min(t_mm)
@@ -106,7 +111,6 @@ rlcs_visualize_predict_mnist49b <- function(test_env_df, pop) {
   }
 
   imageM(example_visual_m, main = "MNIST formatted 28x28 binary")
-
 
   imageM(t_m_orig, col=my_pal_1, main="Compressed 7x7")
   imageM(t_m_0, col=my_pal_1, main="Pixel=0")
@@ -226,6 +230,6 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_mnist_bin01_49b), \(i) {
   ifelse(test_mnist_bin01_49b[i, "class"] == test_mnist_bin01_49b[i, "predicted"], 1, 0)
 }))/nrow(test_mnist_bin01_49b), 2)))
 
-length(mnist01_classifier$pop)
+length(mnist01_classifier$condition_strings)
 
 

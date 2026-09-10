@@ -186,7 +186,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 #'
 #' @export
 #'
-rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
+rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
   these_2_match <- function(x_fixed, y_rule) {
     x1 <- strsplit(x_fixed,"")[[1]]
     y1 <- strsplit(y_rule,"")[[1]]
@@ -199,8 +199,9 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
     return(TRUE)
   }
 
-  rule_cond <- rule$condition_string
-  print(paste("Rule Condition String:", rule_cond, " and action:", rule$action))
+  rule_cond <- rlcs_model$condition_strings[rule_id]
+  rule_action <- rlcs_model$actions[rule_id]
+  print(paste("Rule Condition String:", rule_cond, " and action:", rule_action))
 
   tncols <- length(rosetta_stone_obj$nbits)
   total_bits_covered <- 0
@@ -238,13 +239,11 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
 
     }
 
-    # browser()
     if(length(candidates) == 2^tnbits) {
       # print(paste(rosetta_stone_obj$var_names[i], "can take any value"))
     } else {
 
       cat("AND ")
-      # print(paste(rosetta_stone_obj$var_names[i], ":", paste(tbits_tcol, collapse="")))
 
       if(is.na(rosetta_stone_obj$factor_vals[[i]])) {
         print(paste(rosetta_stone_obj$var_names[i], ":"))
@@ -266,8 +265,6 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
           cat(candidates_between_res_set[[1]], '\n')
 
         candidate_ranges <- candidates_between_res_set[which(sapply(candidates_between_res_set, \(x) { ifelse(length(x) > 1, T, F) }))]
-
-        # print(candidate_ranges)
 
         if(length(candidate_ranges) == 1) {
           cat(paste("Values in range:", paste(candidate_ranges[[1]], collapse="-")), '\n')
@@ -297,22 +294,12 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
               if(j == length(candidate_ranges))
                 cat(paste(" - End range:", current_item[2], '\n'))
             }
-
-
           } ## end for streaks
         } ## More than one range
 
         ## Last value a Greather than?
         if(length(candidates_between_res_set[[length(candidates_between_res_set)]]) == 1)
           cat(candidates_between_res_set[[length(candidates_between_res_set)]], '\n')
-
-
-        # # print(candidates_between_res_set)
-        # sapply(candidates_between_res_set, \(x) {
-        #   # print(x)
-        #   if(length(x) > 1) print(paste("between: ", paste(x, collapse="-")))
-        #   else print(x)
-        # })
       }
 
       if(!is.na(rosetta_stone_obj$factor_vals[[i]])) {
@@ -325,3 +312,4 @@ rlcs_rosetta_decode_rule <- function(rule, rosetta_stone_obj) {
   }
   cat('\n')
 }
+
