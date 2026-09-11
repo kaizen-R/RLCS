@@ -13,13 +13,13 @@ rlcs_predict_sl <- function(test_env_df, lcs, verbose=F) {
 
   ret_list <- lapply(1:nrow(test_env_df), \(i) {
     lcs <- lcs
-    match_set <- .get_match_set_mat_env3(as.numeric(strsplit(test_env_df$state[i], "", fixed = T)[[1]]), environment())
+    match_set <- .get_match_set_mat_env3_no_update(as.numeric(strsplit(test_env_df$state[i], "", fixed = T)[[1]]), environment())
 
     if(length(match_set) > 0) {
       t_recommendation <- c()
 
       for(k in 1:length(possible_classes)) {
-        correct_set <- .get_correct_set_env3(possible_classes[k], environment(), match_set)
+        correct_set <- .get_correct_set_env3_no_update(possible_classes[k], environment(), match_set)
         t_recommendation[k] <- sum(lcs$accuracies[correct_set]*lcs$numerosities[correct_set])
       }
 

@@ -172,9 +172,20 @@
 
 ## Sample Average Reward update
 .update_action_reward_sa_env <- function(env, action_set, reward) {
-  env$lcs$total_rewards[action_set] <- env$lcs$total_rewards[action_set] +
-                                             ((reward - env$lcs$total_rewards[action_set]) /
-                                                env$lcs$action_counts[action_set])
+  # print("In .update_action_reward_sa_env, before")
+  # print(reward)
+  # print(action_set)
+  # print(env$lcs$total_rewards[action_set])
+
+  if(!is.null(action_set) && length(action_set) > 0) {
+    env$lcs$total_rewards[action_set] <- env$lcs$total_rewards[action_set] +
+      ((reward - env$lcs$total_rewards[action_set]) /
+         env$lcs$action_counts[action_set])
+  }
+  #
+  # print("In .update_action_reward_sa_env, after")
+  # print(env$lcs$total_rewards[action_set])
+
 }
 
 ## Implementation of TD, with alpha 0.1
@@ -193,14 +204,28 @@
   ## Instead of updating current move with future reward, I'm doing it backwards
   ## If rules have disappeared, this might be better in fact...
   if(length(last_action_set) > 0) {
+
     current_action_set_reward <- round(mean(env$lcs$total_rewards[action_set]), 8)
 
-    env$lcs$total_rewards[last_action_set] <- env$lcs$total_rewards[last_action_set] +
-      0.5 *
-      ## We're updating a past action, so current reward should participate only a little...
-      ## Then again, that's not quite correct in any specific way either...
-      ((current_action_set_reward - env$lcs$total_rewards[last_action_set]) /
-         env$lcs$action_counts[last_action_set])
+    if(!is.nan(current_action_set_reward)) {
+      # print("In .update_last_ action_reward_sa_env, before")
+      # print(current_action_set_reward)
+      # print(action_set)
+      # print(last_action_set)
+      # print(env$lcs$total_rewards[last_action_set])
+
+      env$lcs$total_rewards[last_action_set] <- env$lcs$total_rewards[last_action_set] +
+        0.5 *
+        ## We're updating a past action, so current reward should participate only a little...
+        ## Then again, that's not quite correct in any specific way either...
+        ((current_action_set_reward - env$lcs$total_rewards[last_action_set]) /
+           env$lcs$action_counts[last_action_set])
+      #
+      # print("In .update_last_ action_reward_sa_env, after")
+      # print(env$lcs$total_rewards[last_action_set])
+    }
+
+
   }
 }
 

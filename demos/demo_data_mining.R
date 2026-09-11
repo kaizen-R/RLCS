@@ -74,14 +74,14 @@ plot(rlcs_model2)
 
 ## We could make it just as good on average, but a bit faster
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = .4,
-  rd_trigger = 25,
-  mutation_probability = .1,
-  tournament_pressure = 8,
-  n_epochs = 200,
-  deletion_trigger = 10,
-  deletion_threshold = 0.8,
-  max_pop_size = 500)
+  wildcard_prob = .5,
+  rd_trigger = 20,
+  mutation_probability = .08,
+  tournament_pressure = 5,
+  n_epochs = 120,
+  deletion_trigger = 30,
+  deletion_threshold = 0.6,
+  max_pop_size = 1000)
 
 rlcs_model2 <- rlcs_train_sl(demo_env2, demo_params)
 print(rlcs_model2)

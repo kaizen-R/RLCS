@@ -316,6 +316,34 @@
   NULL ## implicit return
 }
 
+## Version not updating the LCS match scores
+.get_match_set_mat_env3_no_update <- function(ti_cond, env) {
+
+  valid_set <- env$lcs$numerosities > 0
+  if(any(valid_set)) {
+    # if(env$use_gpu) {
+    #   # print("Use Torch!")
+    #   match_set <- which(torch::as_array(torch::torch_matmul(t_lcs$matrices[[3]],
+    #                                                          torch::torch_tensor(1-ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type)) +
+    #                                        torch::torch_matmul(t_lcs$matrices[[4]],
+    #                                                            torch::torch_tensor(ti_cond, dtype = torch::torch_uint8(), device=env$gpu_type))) ==
+    #                        t_lcs$lengths)
+    # } else {
+    match_set <- (env$lcs$matrix_match_0s %*% (1-ti_cond) +
+                    env$lcs$matrix_match_1s %*% ti_cond) ==
+      env$lcs$lengths_fixed_bits
+    # }
+    if(any(match_set)) {
+      match_set_bool <- match_set[valid_set]
+
+      if(any(match_set_bool)) {
+        match_set <- which(match_set_bool)
+        return(match_set)
+      }
+    }
+  }
+  NULL ## implicit return
+}
 # ## Idea: Do matching once, multiple env samples at a time, how would that go?
 # .get_match_set_mat_env3 <- function(sample_pos, env, train_count) {
 #

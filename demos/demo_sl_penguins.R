@@ -17,6 +17,8 @@ train_set <- sample(1:nrow(full_dataset),size = round(0.8*nrow(full_dataset)), r
 train_environment <- full_dataset[train_set,]
 test_environment <- full_dataset[-train_set,]
 # head(test_environment, n=3)
+nrow(train_environment)
+nchar(full_dataset$state[1])
 
 ## Hyperparameters are key for performance of RLCS:
 penguins_hyperparameters <- RLCS_hyperparameters(
@@ -26,10 +28,10 @@ penguins_hyperparameters <- RLCS_hyperparameters(
   parents_selection_mode <- "tournament",
   tournament_pressure = 8,
   ## Most important parameters to vary so far:
-  n_epochs = 800, ## Epochs to repeat process on train set
+  n_epochs = 400, ## Epochs to repeat process on train set
   deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.99,
-  max_pop_size = 250
+  max_pop_size = 600
 )
 
 ## Doubling process with intermediate cleanup

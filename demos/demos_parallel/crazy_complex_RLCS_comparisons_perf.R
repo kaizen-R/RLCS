@@ -37,16 +37,16 @@ temp_seeds <- sample(1:1000, 10, replace = F)
 ## Training RLCS on this combination of training/testing dataset
 ## Hyperparameters are key for performance of RLCS:
 iris_hyperparameters <- RLCS_hyperparameters(
-  wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
+  wildcard_prob = 0.4, ## Probability that covering will choose a wildcard char
   rd_trigger = 20, ## Smaller means more rules generated through GA tournament
-  mutation_probability = 0.2,
+  mutation_probability = 0.1,
   parents_selection_mode <- "tournament",
   tournament_pressure = 8,
   ## Most important parameters to vary so far:
-  n_epochs = 180, ## Epochs to repeat process on train set
-  deletion_trigger = 30, ## Number of epochs in between subsumption & deletion
+  n_epochs = 400, ## Epochs to repeat process on train set
+  deletion_trigger = 100, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.75,
-  max_pop_size = 1000
+  max_pop_size = 800
 )
 
 ## Then make it faster
@@ -60,7 +60,7 @@ iris_hyperparameters_2 <- RLCS_hyperparameters(
   n_epochs = 80, ## Epochs to repeat process on train set
   deletion_trigger = 20, ## Number of epochs in between subsumption & deletion
   deletion_threshold = 0.95,
-  max_pop_size=600
+  max_pop_size=1000
 )
 
 
@@ -186,7 +186,7 @@ for(i in temp_seeds) {
   plot(ggplot(res_df)+
     geom_line(aes(x=iteration, y=accuracy, colour=algo)))
 
-  Sys.sleep(2)
+  Sys.sleep(1)
 }
 
 stopCluster(cluster) ## Don't forget that :)

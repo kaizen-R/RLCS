@@ -25,6 +25,18 @@
   NULL ## implicit return
 }
 
+## Version not updating the LCS correct scores
+.get_correct_set_env3_no_update <- function(t_instance_class, env, match_set) {
+  if(length(match_set) > 0) { ## Match set is supposed to only contain valid entries
+    correct_pos <- which(env$lcs$actions[match_set] == t_instance_class)
+    correct_set <- match_set[correct_pos] ## NOT relative positions
+    if(length(correct_set) > 0) {
+      return(correct_set)
+    }
+  }
+  NULL ## implicit return
+}
+
 ## KEY function:
 ## Classifiers are better or worse. CHOOSING THE BEST ones is important
 ## For SL, accuracy is top priority, followed by generality
@@ -500,9 +512,10 @@ rlcs_train_sl <- function(train_env_df,
   }
 
   cat('\n')
-  ## Final simplification: Coverage
-  # lcs <- .perfect_coverage_simplifier_sl_env(lcs, environment(), train_env_df, t_classes_counts)
-  .perfect_coverage_simplifier_sl_env3(environment(), train_env_df, t_classes_counts)
+
+  ## Final simplification: Coverage: This is not mandatory, but could be useful.
+  ## To be reworked.
+  # .perfect_coverage_simplifier_sl_env3(environment(), train_env_df, t_classes_counts)
 
   ## Sometimes, deletion removes all rules as none are good enough!
   if(!any(lcs$numerosities > 0)) return(NULL)
