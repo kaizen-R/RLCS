@@ -98,8 +98,8 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
     nbits <- .split_nbits(unique(vals_vec))
     if(max_bits > 0 && max_bits <= nbits) nbits <- max_bits
 
-    print(nbits)
-    print(max_bits)
+    # print(nbits)
+    # print(max_bits)
     res_sublists <- .split_by_median_to_list(vals_vec, nbits)
     # print(res_sublists)
     # print(names(res_sublists[1]))
