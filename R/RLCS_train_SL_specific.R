@@ -135,11 +135,11 @@
 
     pop_to_delete <- unique(unlist(subsumers_list)) ## Reduce operations
     env$lcs$numerosities[pop_to_delete] <- 0 ## Go this just once!
-    ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
-    .apply_deletion_sl_env(env,
-                            deletion_limit = deletion_limit,
-                            max_pop_size = max_pop_size)
   }
+  ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
+  .apply_deletion_sl_env(env,
+                         deletion_limit = deletion_limit,
+                         max_pop_size = max_pop_size)
 }
 
 .validate_SL_train_df <- function(train_env_df) {
@@ -400,7 +400,7 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
                                      max_pop_size = run_params$get_max_pop_size())
 
 
-    ## Now implied in subsumption above
+    # ## Now implied in subsumption above
     # .apply_deletion_sl_env(env,
     #                        deletion_limit = run_params$get_deletion_threshold(),
     #                        max_pop_size = run_params$get_max_pop_size())

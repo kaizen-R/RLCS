@@ -132,12 +132,11 @@
     pop_to_delete <- unique(unlist(subsumers_list[which(!is.na(subsumers_list))])) ## Reduce operations
     env$lcs$numerosities[pop_to_delete] <- 0 ## Go this just once!
     ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
-    .apply_deletion_rl_env(env,
-                           deletion_limit = deletion_limit,
-                           max_pop_size = max_pop_size)
   }
 
-  # print(env$lcs)
+  .apply_deletion_rl_env(env,
+                         deletion_limit = deletion_limit,
+                         max_pop_size = max_pop_size)
 }
 
 .apply_deletion_rl_env <- function(env, deletion_limit = 0.6, max_pop_size = 10000) {
