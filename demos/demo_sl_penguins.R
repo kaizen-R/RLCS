@@ -2,7 +2,9 @@ library(palmerpenguins)
 library(RLCS)
 library(ggplot2)
 plot(penguins, col=as.factor(penguins$species))
-rlcs_penguins <- rlcs_rosetta_stone(penguins[complete.cases(penguins),], class_col=1)
+rlcs_penguins <- rlcs_rosetta_stone(penguins[complete.cases(penguins),],
+                                    class_col=1,
+                                    max_bits = 4)
 
 
 full_dataset <- cbind(as.data.frame(penguins[complete.cases(penguins),]), rlcs_penguins$model)
@@ -39,8 +41,7 @@ t_start <- Sys.time()
 
 ## This here is the training. That's all there is to it!
 penguins_classifier <- rlcs_train_sl(train_environment,
-                                 penguins_hyperparameters,
-                                 pre_trained_lcs = NULL)
+                                 penguins_hyperparameters)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
 # ## (IF you're willing to accept the cost on Accuracy...)
@@ -86,7 +87,10 @@ for(example in c(1, 3, 12)) {
   plot(g)
   full_dataset$Match <- NULL
 }
-reverse_match_set(penguins_classifier, 1, full_dataset)
+
 rlcs_rosetta_decode_rule(penguins_classifier, 1, rlcs_penguins)
+full_dataset[as.integer(reverse_match_set(penguins_classifier, 1, full_dataset)), ]
 rlcs_rosetta_decode_rule(penguins_classifier, 3, rlcs_penguins)
+full_dataset[as.integer(reverse_match_set(penguins_classifier, 3, full_dataset)), ]
 rlcs_rosetta_decode_rule(penguins_classifier, 12, rlcs_penguins)
+full_dataset[as.integer(reverse_match_set(penguins_classifier, 12, full_dataset)), ]

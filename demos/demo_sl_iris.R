@@ -95,7 +95,7 @@ plot(iris_classifier)
 library(ggplot2)
 
 ## Let's look at three example rules:
-for(example in c(1, 3, 4)) {
+for(example in c(1, 8, 9)) {
   sample_result_set <- reverse_match_set(iris_classifier, example, full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -119,8 +119,8 @@ head(print(iris_classifier), 20)
 
 ## Decoding rules from an RLCS population, using rosetta_stone object:
 rlcs_rosetta_decode_rule(iris_classifier, 1, rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier, 3, rlcs_iris)
-rlcs_rosetta_decode_rule(iris_classifier, 4, rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier, 8, rlcs_iris)
+rlcs_rosetta_decode_rule(iris_classifier, 9, rlcs_iris)
 
 
 

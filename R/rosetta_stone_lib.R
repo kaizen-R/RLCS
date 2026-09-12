@@ -35,8 +35,9 @@
   g_s[[nbits]]
 }
 
-## TODO: Characters & Factors
-## TODO: Allow variable length encoding, instead of 4 bits always
+## TODO: Characters
+## TODO: There is a problem with encoding/decoding, too much is stored,
+##      and then decoding is fuzzy. Something isn't right.
 #' Transforms numerical columns of a dataframe into RLCS compatible binary strings
 #'
 #' Transforms Numeric Columns each into 16 buckets, binary-encoded with Gray encoding.
@@ -98,11 +99,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
     nbits <- .split_nbits(unique(vals_vec))
     if(max_bits > 0 && max_bits <= nbits) nbits <- max_bits
 
-    # print(nbits)
-    # print(max_bits)
     res_sublists <- .split_by_median_to_list(vals_vec, nbits)
-    # print(res_sublists)
-    # print(names(res_sublists[1]))
     res_sublists_vecs <- which(sapply(1:length(res_sublists), \(i) { (names(res_sublists[i]) == "vec") }))
     return(list(cut_points = as.numeric(res_sublists[-res_sublists_vecs]),
                 vecs = res_sublists[res_sublists_vecs]))
@@ -126,11 +123,13 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
   for(t_col in which(1:ncol(input_df) != class_col)) {
     x <- input_df[,t_col]
-    # if(class(x) == "factor")
-    if(is.factor(x))
-      x <- as.numeric(x)
+
+    if(is.factor(x)) x <- as.numeric(x)
+
     if(is.numeric(x) || is.integer(x)) {
+
       nbits_Gray <- .split_nbits(unique(x))
+
       vecs_cuts <- .extract_cuts_and_sublists(x, min(nbits_Gray, max_bits))
 
       t_bin_strings <- .Gray_strings(min(nbits_Gray, max_bits))
@@ -146,10 +145,10 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
 
       t_res[[length(t_res)+1]] <- list(
         cuts = vecs_cuts$cut_points,
-        vals = unique_Gray_vals_final_vec,
+        vals = Gray_vals_final_vec, #unique_Gray_vals_final_vec,
         name = t_name,
         nbits = min(nbits_Gray, max_bits),#nbits_Gray,
-        factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(levels=levels(input_df[,t_col])), NA))
+        factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(input_df[,t_col]), NA))
         # factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(levels=levels(input_df[,t_col])), NA))
       if(is.null(output_df)) {
         output_df <- data.frame(Gray_vals_final_vec)
@@ -249,7 +248,7 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
       cat("AND ")
 
       if(is.na(rosetta_stone_obj$factor_vals[[i]])) {
-        print(paste(rosetta_stone_obj$var_names[i], ":"))
+        cat(paste(rosetta_stone_obj$var_names[i], ":"))
         candidates_between_res_set <- list()
         for(x in candidates_pos) {
           if(x == 1) {
@@ -329,7 +328,7 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
         tbits_tcol_0 <- paste(tbits_tcol, collapse="")
         t_levels <- rosetta_stone_obj$factor_vals[[i]][[1]]
         matching_positions <- which(sapply(rosetta_stone_obj$vals[[i]], these_2_match, tbits_tcol_0))
-        cat(paste(rosetta_stone_obj$var_names[i], "is any of {", paste(t_levels[matching_positions], collapse = ", "), '} '))
+        cat(paste(rosetta_stone_obj$var_names[i], "is any of {", paste(unique(t_levels[matching_positions]), collapse = ", "), '} '))
       }
     }
   }
