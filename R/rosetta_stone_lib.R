@@ -295,9 +295,9 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
             former_item <- candidate_ranges[[j-1]]
             current_item <- candidate_ranges[[j]]
 
-            print(former_item[2])
-            print(candidate_ranges[[j]])
-            print(current_item[1])
+            # print(former_item[2])
+            # print(candidate_ranges[[j]])
+            # print(current_item[1])
 
             if(t_streak == 0) {
               cat(paste("Start range:", former_item[1]))
