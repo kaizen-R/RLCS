@@ -148,7 +148,7 @@ rlcs_rosetta_stone <- function(input_df, class_col=1, max_bits=6) {
         cuts = vecs_cuts$cut_points,
         vals = unique_Gray_vals_final_vec,
         name = t_name,
-        nbits = nbits_Gray,
+        nbits = min(nbits_Gray, max_bits),#nbits_Gray,
         factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(levels=levels(input_df[,t_col])), NA))
         # factor_vals = ifelse(class(input_df[,t_col]) == "factor", list(levels=levels(input_df[,t_col])), NA))
       if(is.null(output_df)) {
@@ -222,6 +222,8 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
     candidates_pos <- 1:length(candidates)
     # browser()
     for(j in 1:tnbits) {
+      # cat(j, tbits_tcol, '\n')
+
       if(tbits_tcol[j] == 1) {
         t_pointers <- which(sapply(candidates, \(x) {
           strsplit(x, "")[[1]][j] == 1
@@ -249,24 +251,39 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
       if(is.na(rosetta_stone_obj$factor_vals[[i]])) {
         print(paste(rosetta_stone_obj$var_names[i], ":"))
         candidates_between_res_set <- list()
-        sapply(candidates_pos, \(x) {
+        for(x in candidates_pos) {
           if(x == 1) {
-            candidates_between_res_set[length(candidates_between_res_set)+1] <<- paste("less than:", t_cuts[1])
+            candidates_between_res_set[length(candidates_between_res_set)+1] <- paste("less than:", t_cuts[1])
           }
           if(x == 2^tnbits) {
-            candidates_between_res_set[length(candidates_between_res_set)+1] <<- paste("greater than:", t_cuts[2^tnbits-1])
+            candidates_between_res_set[length(candidates_between_res_set)+1] <- paste("greater than:", t_cuts[2^tnbits-1])
           }
           if(1 < x && x < 2^tnbits) {
-            candidates_between_res_set[length(candidates_between_res_set)+1] <<- list(c(t_cuts[x-1], t_cuts[x]))
+            candidates_between_res_set[length(candidates_between_res_set)+1] <- list(c(t_cuts[x-1], t_cuts[x]))
           }
-        })
+        }
+        # sapply(candidates_pos, \(x) {
+        #   if(x == 1) {
+        #     candidates_between_res_set[length(candidates_between_res_set)+1] <<- paste("less than:", t_cuts[1])
+        #   }
+        #   if(x == 2^tnbits) {
+        #     candidates_between_res_set[length(candidates_between_res_set)+1] <<- paste("greater than:", t_cuts[2^tnbits-1])
+        #   }
+        #   if(1 < x && x < 2^tnbits) {
+        #     candidates_between_res_set[length(candidates_between_res_set)+1] <<- list(c(t_cuts[x-1], t_cuts[x]))
+        #   }
+        # })
 
         ## First value a less than?
         if(length(candidates_between_res_set[[1]]) == 1)
           cat(candidates_between_res_set[[1]], '\n')
 
-        candidate_ranges <- candidates_between_res_set[which(sapply(candidates_between_res_set, \(x) { ifelse(length(x) > 1, T, F) }))]
+        # print(candidates_between_res_set)
+        candidate_ranges <- candidates_between_res_set[which(sapply(candidates_between_res_set, \(x) {
+          ifelse(length(x) > 1 && !is.na(x[1]), T, F)
+          }))]
 
+        # print(candidate_ranges)
         if(length(candidate_ranges) == 1) {
           cat(paste("Values in range:", paste(candidate_ranges[[1]], collapse="-")), '\n')
         }
@@ -278,12 +295,17 @@ rlcs_rosetta_decode_rule <- function(rlcs_model, rule_id, rosetta_stone_obj) {
             former_item <- candidate_ranges[[j-1]]
             current_item <- candidate_ranges[[j]]
 
+            print(former_item[2])
+            print(candidate_ranges[[j]])
+            print(current_item[1])
+
             if(t_streak == 0) {
               cat(paste("Start range:", former_item[1]))
               t_streak <- 1
             }
 
             if(t_streak == 1) {
+
 
               ## In streak, but not consecutive identical, print end
               if(former_item[2] != current_item[1]) {
