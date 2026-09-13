@@ -263,7 +263,8 @@
     ## Adding MEMORY for backwards reward updating...
     if(!is.null(lcs) &&
        any(lcs$numerosities > 0) &&
-       !is.null(agents[[j]]$chosen_action)) {
+       !is.null(agents[[j]]$chosen_action) &&
+       !is.null(last_instance_string)) {
       ## There was an action before
       t_match_set <- .get_match_set_mat_env3(as.numeric(strsplit(last_instance_string, "")[[1]]), environment())
       agents[[j]]$last_action <- t_match_set[which(lcs$actions[t_match_set] == agents[[j]]$chosen_action)]
@@ -311,6 +312,7 @@
         ((explore_exploit_mechanism == 1) && (i %% explore_turn == 0)) || ## Exploration Turn
         decide_explore) { ## Agent is "not hungry"
 
+      # cat("Explore step.\n")
       cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_string, wildcard_prob)
 
       if(!is.null(cover_rule)) {
@@ -322,7 +324,10 @@
 
           all_tested_actions <- lcs$actions[match_set] |> unique()
 
-          if(any(is.na(lcs$total_rewards))) browser()
+          if(any(is.na(lcs$total_rewards))) {
+            lcs$total_rewards <- lcs$total_rewards[which(!is.na(lcs$total_rewards))]
+            browser()
+          }
 
           ## Cleverer than random exploration:
           not_tested_yet <- !(possible_actions %in% all_tested_actions)
@@ -394,6 +399,7 @@
       }
     }
 
+    # cat(agents[[j]]$chosen_action, '\n')
     ## Not part of LCS, instead creating an internal "state" of the agent:
     agents[[j]]$internal_status <- max(-1, agents[[j]]$internal_status + reward)
 
