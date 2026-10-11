@@ -9,31 +9,29 @@ print(demo_env1[sample_of_rows,], row.names = F)
 ## Defaults will work but make things quite slow...
 ## Tuning some hyper-parameters makes it faster:
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = .2,
+  wildcard_prob = .6,
   rd_trigger = 20,
   mutation_probability = .2,
   tournament_pressure = 8,
-  n_epochs = 150,
-  deletion_trigger = 30,
-  deletion_threshold = 0.95)
+  n_epochs = 100,
+  deletion_trigger = 25,
+  deletion_threshold = 0.95,
+  max_pop_size = 80)
 
 ## Train an RLCS model with some specific hyperparameters
-## WIP for v0.2.0, major update of underlying data model for RLCS populations
-rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
-                             pre_trained_lcs = NULL)
+rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params)
+
+## WIP v0.2.2, UCS alignement for better validation:
+# rlcs_model1 <- rlcs_train_sl_ucs_s(demo_env1, demo_params)
+
 print(rlcs_model1)
 plot(rlcs_model1)
-
-# ## NEW! You could use torch?
-# ## Testing, for now, actually...
-# ## Not faster than CPU on Mac M1 with MPS... :(
-# rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
-#                              pre_trained_lcs = NULL,
-#                              use_gpu = T)
 
 ## Which rule of the model would match the following "state"?
 get_match_set("00101", rlcs_model1)
 rlcs_predict_sl(data.frame(state="00101", class="1", predicted=-1), rlcs_model1)
+
+
 
 ## Slightly harder example: More bits strings mean larger search space:
 demo_env1b <- rlcs_not_bit_4_10()
@@ -49,16 +47,15 @@ demo_params <- RLCS_hyperparameters(
   tournament_pressure = 8,
   n_epochs = 15,
   deletion_trigger = 5,
-  deletion_threshold = 0.95)
+  deletion_threshold = 0.95,
+  max_pop_size = 1000)
 
 t_start <- Sys.time()
-rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params,
-                             pre_trained_lcs = NULL)
+rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params)
+# rlcs_model1b <- rlcs_train_sl_ucs_s(demo_env1b, demo_params)
 cat('execution time for data mining:', Sys.time()-t_start, '\n')
 print(rlcs_model1b)
 plot(rlcs_model1b)
-
-
 
 ## Let's try another, different example:
 demo_env2 <- rlcs_demo_secret2()
@@ -105,17 +102,18 @@ plot(cleaner_rlcs_model3)
 
 ## Last example - Much SLOWER even, and as always, non-deterministic:
 demo_params <- RLCS_hyperparameters(
-  wildcard_prob = .3,
+  wildcard_prob = .6,
   rd_trigger = 25,
   mutation_probability = .1,
   tournament_pressure = 8,
   n_epochs = 50,
   deletion_trigger = 10,
   deletion_threshold = 0.9,
-  max_pop_size = 600)
+  max_pop_size = 3000)
 
 demo_env4 <- rlcs_mux11()
 rlcs_model4 <- rlcs_train_sl(demo_env4, demo_params)
+
 print(rlcs_model4)
 plot(rlcs_model4)
 cleaner_rlcs_model4 <- rlcs_simplify_pop(rlcs_model4, demo_env4)

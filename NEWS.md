@@ -11,6 +11,13 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.2.2
+
+Not finished, really, but I want to do some pushes even if only as backup of progress.
+Messy again, but fully functional. Much more validation of the implementation are being done,
+although it doesn't necessarily show, as this is done in a new folder for parallel work.
+
+
 ## v0.2.1
 
 Cleaned up code, fully functional (except for GPU support, currently not included).

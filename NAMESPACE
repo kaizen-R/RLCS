@@ -5,6 +5,7 @@ S3method(plot,rlcs)
 S3method(print,rlcs)
 
 export(rlcs_train_sl)
+export(rlcs_train_sl_ucs_s)
 export(rlcs_train_sl_horizontal_split)
 export(rlcs_train_sl_parallel_search_space)
 export(rlcs_predict_sl)

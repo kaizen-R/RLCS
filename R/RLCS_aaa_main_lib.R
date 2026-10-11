@@ -36,7 +36,9 @@
   # cat('\n', pos_to_update, '\n')
 
   ## If NO empty slot, add to all components, n_entries by n_entries for efficiency:
-  n_entries <- max(10, round(env$lcs$model_initial_space / 10, 0))
+  # n_entries <- max(10, round(env$lcs$model_initial_space / 10, 0))
+
+  n_entries <- 1
 
   if(!any(env$lcs$numerosities == 0)) {
   # if(length(pos_to_update) == 0) {
@@ -50,6 +52,10 @@
 
     env$lcs$match_counts <- c(env$lcs$match_counts, rep(1, n_entries)) ## could be integer
     env$lcs$correct_counts <- c(env$lcs$correct_counts, rep(1, n_entries))
+
+    ## New v0.2.2: Adding cs, "correct set size)
+    env$lcs$cs <- c(env$lcs$cs, rep(1, n_entries))
+
     env$lcs$numerosities <- c(env$lcs$numerosities, numeric(n_entries)) ## Default to 0
     env$lcs$accuracies <- c(env$lcs$accuracies, rep(1, n_entries)) ## numeric
 
@@ -82,6 +88,7 @@
 
   # env$lcs$match_counts[pos_to_update] <- 1 ## Already the default
   # env$lcs$correct_counts[pos_to_update] <- 1 ## Already the default
+  # env$lcs$cs[pos_to_update] <- 0 ## Already the default
   # env$lcs$accuracies[pos_to_update] <- 1 ## Already the default
   #
   # For RL:
@@ -125,6 +132,9 @@
 
     lcs$match_counts <- rep(1, n_entries) ## could be integer
     lcs$correct_counts <- rep(1, n_entries)
+    ## New in v0.2.2
+    lcs$cs <- rep(1, n_entries)
+
     lcs$numerosities <- numeric(n_entries) ## Default to 0
     lcs$accuracies <- numeric(n_entries) ## numeric
 
@@ -205,7 +215,8 @@
                                            match_count = 1,
                                            correct_count = 1,
                                            accuracy = 1,
-                                           numerosity = 1) {
+                                           numerosity = 1,
+                                           cs = 1) {
 
   ## Key here is creating a population structure
   if(is.null(env$lcs)) {
@@ -222,10 +233,15 @@
     env$lcs$match_counts[t_rule_pos] <- match_count
   if(correct_count != 1)
     env$lcs$correct_counts[t_rule_pos] <- correct_count
+  ## New v0.2.2: Adding cs, "correct set size"
+  if(cs != 1)
+    env$lcs$cs[t_rule_pos] <- cs
+
   if(match_count != 1 | correct_count != 1)
     env$lcs$accuracies[t_rule_pos] <- env$lcs$correct_counts[t_rule_pos] / env$lcs$match_counts[t_rule_pos]
   if(numerosity != 1)
     env$lcs$numerosities[t_rule_pos] <- numerosity
+
 
   return(t_rule_pos) ## Could be useful
 }
@@ -248,9 +264,9 @@
   env$lcs$match_counts[match_set] <- env$lcs$match_counts[match_set]+1
 }
 
-.inc_correct_count_env3 <- function(env) {
-  env$lcs$correct_counts[correct_set] <- env$lcs$correct_counts[correct_set]+1
-}
+# .inc_correct_count_env3 <- function(env) {
+#   env$lcs$correct_counts[correct_set] <- env$lcs$correct_counts[correct_set]+1
+# }
 
 .inc_numerosity_by_condition3 <- function(env, item) {
   t_positions <- (env$lcs$condition_strings == item)
@@ -513,6 +529,8 @@ reverse_match_set <- function(rlcs_classifier, position, rlcs_environment) {
 
   env$lcs$match_counts <- env$lcs$match_counts[survivors_set]
   env$lcs$correct_counts <- env$lcs$correct_counts[survivors_set]
+  ## NEW in v0.2.2:
+  env$lcs$cs <- env$lcs$cs[survivors_set]
 
   env$lcs$numerosities <- env$lcs$numerosities[survivors_set]
 

@@ -19,7 +19,7 @@ train_set <- sample(1:nrow(full_dataset),size = round(0.8*nrow(full_dataset)), r
 train_environment <- full_dataset[train_set,]
 test_environment <- full_dataset[-train_set,]
 # head(test_environment, n=3)
-nrow(train_environment)
+cat("Train Env. Size (nrows):", nrow(train_environment),'\n')
 nchar(full_dataset$state[1])
 
 ## Hyperparameters are key for performance of RLCS:
@@ -36,11 +36,17 @@ penguins_hyperparameters <- RLCS_hyperparameters(
   max_pop_size = 600
 )
 
+
+rlcs_train_environment <- train_environment[, c("state", "class")]
+rlcs_train_environment <- rlcs_train_environment |> dplyr::distinct()
+cat("Train Env. Size (nrows), after regularization:", nrow(rlcs_train_environment),'\n')
+
 ## Doubling process with intermediate cleanup
 t_start <- Sys.time()
 
+
 ## This here is the training. That's all there is to it!
-penguins_classifier <- rlcs_train_sl(train_environment,
+penguins_classifier <- rlcs_train_sl(rlcs_train_environment,
                                  penguins_hyperparameters)
 
 # ## SECRET TRICK: You can keep only the best rules of your model.
@@ -69,7 +75,7 @@ plot(penguins_classifier)
 head(print(penguins_classifier), 100)
 get_match_set(test_environment[1, "state"], penguins_classifier)
 
-for(example in c(1, 3, 12)) {
+for(example in c(1, 3, 13)) {
   sample_result_set <- reverse_match_set(penguins_classifier, example, full_dataset)
   full_dataset$Match <- "No"
   full_dataset$Match[sample_result_set] <- "Yes"
@@ -92,5 +98,5 @@ rlcs_rosetta_decode_rule(penguins_classifier, 1, rlcs_penguins)
 full_dataset[as.integer(reverse_match_set(penguins_classifier, 1, full_dataset)), ]
 rlcs_rosetta_decode_rule(penguins_classifier, 3, rlcs_penguins)
 full_dataset[as.integer(reverse_match_set(penguins_classifier, 3, full_dataset)), ]
-rlcs_rosetta_decode_rule(penguins_classifier, 12, rlcs_penguins)
-full_dataset[as.integer(reverse_match_set(penguins_classifier, 12, full_dataset)), ]
+rlcs_rosetta_decode_rule(penguins_classifier, 13, rlcs_penguins)
+full_dataset[as.integer(reverse_match_set(penguins_classifier, 13, full_dataset)), ]

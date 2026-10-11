@@ -23,13 +23,21 @@
 .ga_run_one_tournament_sl3b <- function(env, correct_set, tournament_pressure) {
 
   if(length(correct_set) == 1) {
+    env$parents_pos <- correct_set
+    # print("Echo 1")
+    # print(env$parents_pos)
     return(env$lcs$condition_strings[correct_set])
   }
 
   positive_numerosities_positions <- which(env$lcs$numerosities > 0)
   valid_set <- positive_numerosities_positions[positive_numerosities_positions %in% correct_set]
 
-  if(length(valid_set) < 2)  return(env$lcs$condition_strings[valid_set])
+  if(length(valid_set) < 2) {
+    env$parents_pos <- valid_set
+    # print("Echo 2")
+    # print(env$parents_pos)
+    return(env$lcs$condition_strings[valid_set])
+  }
 
   t_numerosities <- env$lcs$numerosities[valid_set]
   n_elements <- sum(t_numerosities)
@@ -56,6 +64,9 @@
   p2_index <- min(sample(array(pop_indices_parents_pop[-t_remove]), min(extract_n, length(pop_indices_parents_pop[-t_remove]))))
 
   parents_condition_strings <- c(t_pop[p1_index], t_pop[p2_index])
+  env$parents_pos <- c(p1_index, p2_index)
+  # print("Echo 3")
+  # print(env$parents_pos)
 
   return(parents_condition_strings)
 } ## I really would need to revisit this some day!
@@ -66,8 +77,12 @@
 .cross_over_parents_strings_sl_env3 <- function(env, correct_set, sel_mode,
                                            tournament_pressure) {
   ## Sometimes only one individual is in Correct population
-  if(length(correct_set) == 1)
+  if(length(correct_set) == 1) {
+    env$parents_pos <- correct_set
+    # print("Echo 0")
+    # print(env$parents_pos)
     return(env$lcs$condition_strings[correct_set]) #### IF SOMETHING BREAKS...
+  }
 
   if(sel_mode == "tournament") {
     parents <- .ga_run_one_tournament_sl3b(env, correct_set, tournament_pressure)

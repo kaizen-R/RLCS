@@ -68,11 +68,12 @@ print.rlcs <- function(x, ...) {
                      fixed_bits = lcs$lengths_fixed_bits[valid_positions],
                      match_count = lcs$match_counts[valid_positions],
                      correct_count = lcs$correct_counts[valid_positions],
+                     cs = lcs$cs[valid_positions],
                      numerosity = lcs$numerosities[valid_positions],
                      first_seen = lcs$rule_first_seens[valid_positions])
 
     names(df) <- c("condition", "action", "accuracy", "fixed_bits", "match_count",
-                   "correct_count", "numerosity", "first_seen")
+                   "correct_count", "avg.correctsetsize", "numerosity", "first_seen")
   }
 
   df

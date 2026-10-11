@@ -51,6 +51,20 @@ iris_hyperparameters <- RLCS_hyperparameters(
   max_pop_size = 600
 )
 
+# ## Faster configuration, by a lot...
+# iris_hyperparameters <- RLCS_hyperparameters(
+#   wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
+#   rd_trigger = 15, ## Smaller means more rules generated through GA tournament
+#   mutation_probability = 0.1,
+#   parents_selection_mode <- "tournament",
+#   tournament_pressure = 8,
+#   ## Most important parameters to vary so far:
+#   n_epochs = 90, ## Epochs to repeat process on train set
+#   deletion_trigger = 30, ## Number of epochs in between subsumption & deletion
+#   deletion_threshold = 0.95,
+#   max_pop_size = 3000
+# )
+
 ## Doubling process with intermediate cleanup
 t_start <- Sys.time()
 
@@ -71,6 +85,9 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(iris_classifier$condition_strings)
 
+## So what does it all look like?
+print(iris_classifier)
+plot(iris_classifier)
 
 ## NEW, Work in progress
 cleaner_iris_classifier <- rlcs_simplify_pop(iris_classifier, train_environment)
@@ -84,11 +101,9 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(cleaner_iris_classifier$condition_strings)
 
-### Visualizing the Model ###
 
-## So what does it all look like?
-print(iris_classifier)
-plot(iris_classifier)
+### Visualizing the Model some more ###
+
 
 ## Visualize how some of the generated rules correspond to the actual data:
 ## Here one proposed approach. Just for demo purposes.

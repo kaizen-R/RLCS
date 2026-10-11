@@ -1,3 +1,8 @@
+## This was an original first try at validation of RLCS vs other algorithms
+## I have since created functions with more metrics and more iterations
+## for more datasets, but these are long running and in context of more serious
+## work on the algorithm, so I skip sharing that.
+
 ## Running demo_sl_iris.R first to select train_set/test_set, then come here
 
 library(RLCS) ## Assuming you've gotten the package installed by now...
