@@ -15,6 +15,8 @@
 #' @field n_epochs numeric.
 #' @field deletion_trigger numeric.
 #' @field deletion_threshold numeric.
+#' @field max_pop_size numeric.
+#' @field specify numeric.
 #'
 #' @returns An RLCS Object with a set of hyperparameters for LCS Training.
 #' @export
@@ -28,7 +30,8 @@ RLCS_hyperparameters <- setRefClass(
                 parents_selection_mode = "character", tournament_pressure = "numeric",
                 n_epochs = "numeric", deletion_trigger = "numeric",
                 deletion_threshold = "numeric",
-                max_pop_size = "numeric"
+                max_pop_size = "numeric",
+                specify = "numeric"
   ),
   methods = list(
     initialize = function(wildcard_prob = 0.2,
@@ -36,7 +39,8 @@ RLCS_hyperparameters <- setRefClass(
                           parents_selection_mode = "tournament", tournament_pressure = 5,
                           n_epochs = 1000, deletion_trigger = 200,
                           deletion_threshold = 0.75,
-                          max_pop_size = 10000) {
+                          max_pop_size = 10000,
+                          specify = 0) {
       ## A tryCatch here would be perfect to control for invalid input.
 
       is_valid_probability_number <- function(t_num) {
@@ -68,12 +72,17 @@ RLCS_hyperparameters <- setRefClass(
       .self$tournament_pressure <- tournament_pressure
       .self$n_epochs <- n_epochs
       .self$deletion_trigger <- deletion_trigger
+      .self$specify <- specify
 
       if(is_valid_probability_number(deletion_threshold))
         .self$deletion_threshold <- deletion_threshold
 
       if(is.numeric(max_pop_size) && max_pop_size > 1 && max_pop_size < 100000) {
         .self$max_pop_size <- round(max_pop_size)
+      }
+
+      if(is.numeric(specify) && specify %in% c(0,1)) {
+        .self$specify <- specify
       }
     },
 
@@ -111,6 +120,10 @@ RLCS_hyperparameters <- setRefClass(
 
     get_max_pop_size = function() {
       .self$max_pop_size
+    },
+
+    get_specify = function() {
+      .self$specify
     }
   )
 )

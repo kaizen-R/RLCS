@@ -11,6 +11,13 @@ several performance testing setups (profvis, microbenchmark), tests for NLP
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
 
+## v0.2.3
+
+My implementation was proving very poor at the "parity" problem. I had to add a "specify" option
+in the style of UCS, however I didn't like to add a full separate step.
+So instead I chose to add the specify option to the GA, reducing pressure for generalization in parents selection
+and ensuring then the mutation step of algorithm pushes for specialization instead of random choice.
+
 ## v0.2.2
 
 Not finished, really, but I want to do some pushes even if only as backup of progress.

@@ -502,11 +502,10 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
       ## New: Moved: The idea is to call this only when absolutely needed:
       .update_accuracy_env3(env, match_set) ## This really only needs to happen here
 
-
       ## The GA, basically, happens here: Cross-over & Mutation:
       children <- .cross_over_parents_strings_sl_env3(env, correct_set, run_params$get_sel_mode(),
-                                       run_params$get_tournament_pressure()) |>
-        sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob())
+                                       run_params$get_tournament_pressure(), run_params$get_specify()) |>
+        sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob(), run_params$get_specify())
 
       ## In some cases, we have only one child.
       for(child in children) {

@@ -1,6 +1,27 @@
 ## Genetic Algorithm functions
-.mutate_condition_string <- function(cond_string, t_instance_state, mut_prob) {
 
+## v0.2.3: Adding optional "specify" preference in mutation
+.mutate_condition_string <- function(cond_string, t_instance_state, mut_prob, specify=0) {
+
+  # cat(specify, '\n')
+  if(specify) {
+
+    t_cond <- strsplit(cond_string, "", fixed = T)[[1]]
+    pos_dont_care <- which(t_cond == "#")
+    #mut_point <- which(stats::runif(nchar(pos_dont_care)) < 0.8) ## Specifying always set at 80%
+    # for(i in mut_point) {
+    #   t_cond[i] <- t_state[i]
+    # }
+    if(length(pos_dont_care) >= 1) {
+      t_state <- strsplit(t_instance_state, "", fixed = T)[[1]]
+      specify1 <- sample(pos_dont_care, 1) ## Specifying always one bit
+      t_cond[specify1] <- t_state[specify1]
+      cond_string <- paste(t_cond, collapse = "")
+    }
+    return(cond_string)
+  }
+
+  ## If not specify, then run normal mutation
   mut_point <- which(stats::runif(nchar(t_instance_state)) < mut_prob)
   if(length(mut_point) > 0) {
     t_state <- strsplit(t_instance_state, "", fixed = T)[[1]]
@@ -19,8 +40,8 @@
   return(cond_string)
 }
 
-
-.ga_run_one_tournament_sl3b <- function(env, correct_set, tournament_pressure) {
+## V0.2.3 Adding specify option to force one direction of GA
+.ga_run_one_tournament_sl3b <- function(env, correct_set, tournament_pressure, specify=0) {
 
   if(length(correct_set) == 1) {
     env$parents_pos <- correct_set
@@ -46,8 +67,13 @@
 
   extract_n <- min(n_elements, tournament_pressure)
 
-  ranking <- env$lcs$accuracies[valid_set] - (0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$conditions_length)
-  # ranking <- env$lcs$accuracies[valid_set] - 0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$condition_length + 0.01 * env$lcs$numerosities[valid_set]
+  if(specify) { ## V0.2.3 working on specifying option, so here reducing pressure to generalize...
+    ranking <- env$lcs$accuracies[valid_set]
+  } else {
+    ranking <- env$lcs$accuracies[valid_set] - (0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$conditions_length)
+    # ranking <- env$lcs$accuracies[valid_set] - 0.01 * env$lcs$lengths_fixed_bits[valid_set] / env$lcs$condition_length + 0.01 * env$lcs$numerosities[valid_set]
+  }
+
   ranking <- order(ranking, decreasing=T)
   t_pop <- t_pop[ranking]
 
@@ -73,19 +99,17 @@
 
 
 
-
+## V0.2.3 Adding specify option to force one direction of GA
 .cross_over_parents_strings_sl_env3 <- function(env, correct_set, sel_mode,
-                                           tournament_pressure) {
+                                           tournament_pressure, specify = 0) {
   ## Sometimes only one individual is in Correct population
   if(length(correct_set) == 1) {
     env$parents_pos <- correct_set
-    # print("Echo 0")
-    # print(env$parents_pos)
     return(env$lcs$condition_strings[correct_set]) #### IF SOMETHING BREAKS...
   }
 
   if(sel_mode == "tournament") {
-    parents <- .ga_run_one_tournament_sl3b(env, correct_set, tournament_pressure)
+    parents <- .ga_run_one_tournament_sl3b(env, correct_set, tournament_pressure, specify)
   }
 
   max_bits <- nchar(parents[1])
