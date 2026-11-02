@@ -34,6 +34,10 @@ probability of each bit to be mutated.}
 \item{\code{deletion_trigger}}{numeric.}
 
 \item{\code{deletion_threshold}}{numeric.}
+
+\item{\code{max_pop_size}}{numeric.}
+
+\item{\code{specify}}{numeric.}
 }}
 
 

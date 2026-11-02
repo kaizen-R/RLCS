@@ -11,6 +11,7 @@ export(rlcs_train_sl_parallel_search_space)
 export(rlcs_predict_sl)
 export(get_match_set)
 export(rlcs_simplify_pop)
+export(rlcs_visualize_tracker)
 
 export(rlcs_predict_rl)
 

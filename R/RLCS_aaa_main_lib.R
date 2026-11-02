@@ -154,6 +154,11 @@
     lcs$lengths_fixed_bits <- rep(-1, n_entries) #numeric(n_entries)
     # lcs$valid_rules <- logical(n_entries) ## equivalent to initialize to false
 
+    ## New in v0.2.3: Tracking quality progress for known problems:
+    lcs$perfect_pop <- NULL
+    lcs$quality_tracker <- data.frame(iteration = 0,
+                                      accurate_rules = 0,
+                                      perfect_rules = 0)
     lcs <- structure(lcs, class = "rlcs")
     return(lcs)
 }
@@ -515,7 +520,11 @@ reverse_match_set <- function(rlcs_classifier, position, rlcs_environment) {
 .apply_deletion_no_threshold_env3 <- function(env) {
   ## Works nicely with subsumption to remove unnecessary classifiers:
 
+  if(env$keep_min_experience) ## Adding minimum experience control (v0.2.3)
+    env$lcs$numerosities[which(env$lcs$numerosities == 0 & env$lcs$match_counts < 20)] <- 1
+
   survivors_set <- which(env$lcs$numerosities > 0)
+
   survivors_set <- survivors_set[which(survivors_set %in% which(env$lcs$lengths_fixed_bits > 0))]
   # survivors_set <- which(env$lcs$valid_rules)
   # delete_set <- which(env$lcs$numerosities == 0)

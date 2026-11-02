@@ -8,7 +8,9 @@ rlcs_train_sl(
   train_env_df,
   run_params = RLCS_hyperparameters(),
   pre_trained_lcs = NULL,
-  use_gpu = F
+  use_gpu = F,
+  perfect_pop = NULL,
+  keep_min_experience = FALSE
 )
 }
 \arguments{
@@ -22,6 +24,10 @@ such as: "00110101". This is a requirement for the current RLCS implementation.}
 
 \item{use_gpu}{Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
 Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).}
+
+\item{perfect_pop}{If set, uses a "best rule set" to help visualize progress of the training}
+
+\item{keep_min_experience}{If set, subsumption does not delete rules that haven't had time to learn enough.}
 }
 \value{
 An \R \code{RLCS Model} containing the proposed model, made of several classifiers.

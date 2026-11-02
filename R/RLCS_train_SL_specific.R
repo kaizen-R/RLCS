@@ -17,6 +17,14 @@
     correct_pos <- which(env$lcs$actions[match_set] == t_instance_class)
     correct_set <- match_set[correct_pos] ## NOT relative positions
     if(length(correct_set) > 0) {
+
+      ## New in v0.2.2: UCS updating Correct Set Size, i.e. mean(correct_sets)
+      env$lcs$cs[correct_set] <-
+        (env$lcs$cs[correct_set]*(env$lcs$correct_counts[correct_set])+
+           (length(correct_set))) /
+        (env$lcs$correct_counts[correct_set]+1)
+
+
       ## Now part of this function, because using env, makes more sense!
       env$lcs$correct_counts[correct_set] <- env$lcs$correct_counts[correct_set]+1
       return(correct_set)
@@ -67,15 +75,20 @@
 ## Classifiers are better or worse. CHOOSING THE BEST ones is important
 ## For SL, accuracy is top priority, followed by generality
 ## This is a faster approach to calculation although arguably could be discussed
-.lcs_best_sort_sl_env3 <- function(env) {
+.lcs_best_sort_sl_env3 <- function(env, specify = 0) {
 
   if(is.null(env$lcs)) return(NULL)
   if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
 
   # browser()
   ## Now this here is important: Numerosity SHOULD play a role, shouldn't it?
-  ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length
-  # ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length + 0.01 * env$lcs$numerosities
+  if(specify) {
+    ranking <- env$lcs$accuracies + 0.01 * env$lcs$numerosities
+  } else {
+    ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length
+    # ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length + 0.01 * env$lcs$numerosities
+  }
+
   sorted_entries <- order(ranking, decreasing=T)
 
   env$lcs$condition_strings <- env$lcs$condition_strings[sorted_entries]
@@ -161,18 +174,20 @@
 
 
 ## Another key function here.
-.apply_subsumption_whole_pop_sl <- function(env,deletion_limit = .6, max_pop_size = 10000) {
+.apply_subsumption_whole_pop_sl <- function(env, deletion_limit = .6, max_pop_size = 10000, specify = 0) {
 
   if(is.null(env$lcs)) return(NULL)
   if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
 
   .apply_deletion_no_threshold_env3(env)
-  .lcs_best_sort_sl_env3(env)
+  .lcs_best_sort_sl_env3(env, specify)
 
   ## Within this function in this case :)
   t_labs <- env$lcs$actions
 
+  # browser()
   useful_pos <- which(env$lcs$numerosities > 0)
+
   if(length(useful_pos) < 2) {
     print("Not enough valid population to run subsumption")
     return(NULL)
@@ -193,11 +208,24 @@
     subsumed_must_be_different_zero <-  rest_t_matrices_zeros %*%  env$lcs$matrix_match_1s[t_pos, ]
     subsumed_must_be_different_one <- rest_t_matrices_ones %*% env$lcs$matrix_match_0s[t_pos, ]
 
-    pop_to_delete <- which(
-      ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
-        (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
-        (t_labs[rest_pos] == t_labs[t_pos])
-    )
+    ## New in v0.2.3, specifying also requires we keep rules with high accuracy
+    ## in spite of not being as general. Let's say, accuracy 1
+    if(!specify) {
+      pop_to_delete <- which(
+        ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+          (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+          (t_labs[rest_pos] == t_labs[t_pos])
+      )
+    } else {
+      pop_to_delete <- which(
+        ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+          (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+          (t_labs[rest_pos] == t_labs[t_pos]) &
+          (env$lcs$accuracies[rest_pos] <= env$lcs$accuracies[t_pos])
+          # (env$lcs$accuracies[rest_pos] < 1)
+      )
+    }
+
 
     ## Return positions to be deleted from population
     if(!is.null(pop_to_delete) && length(pop_to_delete) > 0) {
@@ -209,7 +237,7 @@
 
   # subsumers_positions <- which(!is.na(subsumers_list))
   subsumers_positions <- which(!is.na(subsumers_list))
-  if(length(subsumers_positions)>0) {
+  if(length(subsumers_positions) > 0) {
     env$lcs$numerosities[subsumers_positions] <- vapply(subsumers_positions, \(i) {
       env$lcs$numerosities[i] + length(subsumers_list[[i]])
     }, numeric(1)) ## Go this just once!
@@ -217,10 +245,17 @@
     pop_to_delete <- unique(unlist(subsumers_list)) ## Reduce operations
     env$lcs$numerosities[pop_to_delete] <- 0 ## Go this just once!
   }
+
   ## New, to be reviewed: If I keep working with numerosities > 0, deletion is not useful:
-  .apply_deletion_sl_env(env,
-                         deletion_limit = deletion_limit,
+  if(specify) {
+    .apply_deletion_sl_env(env,
+                         deletion_limit = 0,
                          max_pop_size = max_pop_size)
+  } else {
+    .apply_deletion_sl_env(env,
+                           deletion_limit = deletion_limit,
+                           max_pop_size = max_pop_size)
+  }
 }
 
 
@@ -374,6 +409,7 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
     lcs <- rlcs_obj
 
     lcs$numerosities[i] <- 0
+    keep_min_experience <- FALSE ## For simplifying, we remove even new rules...
     .apply_deletion_no_threshold_env3(environment())
 
     train_df$predicted <- rlcs_predict_sl(recalculated_df, lcs)
@@ -406,7 +442,36 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   NULL
 }
 
+#' For known problems, visualize the model progress towards best ruleset.
+#'
+#' @param rlcs_model
+#' An RLCS model object.
+#'
+#' @returns
+#' The number of iterations until best population was found.
+#' @export
+#'
+#' @examples
+#' ## Generate a demo dataset
+#' demo_env1 <- rlcs_demo_secret1()
+#' perfect_rules <- c("###0#", "###1#")
+#' rlcs_model1 <- rlcs_train_sl(demo_env1,
+#'  perfect_pop = perfect_rules, keep_min_experience = TRUE)
+#' rlcs_visualize_tracker(rlcs_model1)
+#'
+rlcs_visualize_tracker <- function(rlcs_model) {
+  par(mfrow = c(1,2))
+  plot(rlcs_model$quality_tracker$accurate_rules ~ rlcs_model$quality_tracker$iteration,
+       main="N of Rules with Accuracy == 1", xlab = "iteration", ylab="number of rules")
+  best_first_found <- min(rlcs_model$quality_tracker$iteration[rlcs_model$quality_tracker$perfect_rules == length(rlcs_model$perfect_pop)])
 
+  plot(rlcs_model$quality_tracker$perfect_rules ~ rlcs_model$quality_tracker$iteration,
+       main="N of Rules matching perfect ruleset", xlab = paste("iteration (first best:", best_first_found, ")"), ylab="number of rules")
+  abline(v = best_first_found, col="red")
+  print(best_first_found)
+  par(mfrow=c(1,1))
+  best_first_found
+}
 
 
 
@@ -535,12 +600,14 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
   ## Apply Deletion by reducing numerosity
   if((train_count %% (run_params$deletion_trigger*size_env)) == 0) {
 
+    # cat('\n', train_count, '\n')
     .update_pop_accuracy_env3(env)
 
     ## Subsumption is too important to skip, for speed reasons.
     .apply_subsumption_whole_pop_sl(env,
-                                     deletion_limit = run_params$get_deletion_threshold(),
-                                     max_pop_size = run_params$get_max_pop_size())
+                                    deletion_limit = run_params$get_deletion_threshold(),
+                                    max_pop_size = run_params$get_max_pop_size(),
+                                    run_params$get_specify())
 
 
     # ## Now implied in subsumption above
@@ -564,6 +631,10 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 #' @param use_gpu
 #' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
 #' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#' @param perfect_pop
+#' If set, uses a "best rule set" to help visualize progress of the training
+#' @param keep_min_experience
+#' If set, subsumption does not delete rules that haven't had time to learn enough.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -583,16 +654,25 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 rlcs_train_sl <- function(train_env_df,
                           run_params = RLCS_hyperparameters(),
                           pre_trained_lcs = NULL,
-                          use_gpu = F) {
+                          use_gpu = F,
+                          perfect_pop = NULL,
+                          keep_min_experience = FALSE) {
 
   ## Basic input controls:
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
 
+  ## New in v0.2.3: Add minimum experience to safeguard rules from deletion if too young:
+  keep_min_experience <- keep_min_experience
+
   ## Initialization:
   lcs <- .new_rlcs(train_env_df$state[1], nrow(train_env_df))
   ## Re-training, or "online" updates
   if(!is.null(pre_trained_lcs)) lcs <- pre_trained_lcs
+
+  ## New in v0.2.3: One can track perfect population
+  lcs$perfect_pop <- perfect_pop
+
 
   ## For torch use:
   backup_gpu_flag <- use_gpu
@@ -632,6 +712,31 @@ rlcs_train_sl <- function(train_env_df,
                                                  (epoch-1)*size_env+i, ## train_count
                                                  run_params)
       # browser()
+      if(!is.null(perfect_pop)) {
+        if(((epoch-1)*size_env+i) %% min(50, run_params$deletion_trigger) == 0) {
+          perfect_matches_pos <- which(lcs$accuracies == 1 & lcs$condition_strings %in% perfect_pop)
+          lcs$quality_tracker <- rbind(lcs$quality_tracker,
+                                       data.frame(iteration = (epoch-1)*size_env+i,
+                                                  accurate_rules = length(which(lcs$accuracies == 1)),
+                                                  perfect_rules = length(perfect_matches_pos)))
+
+
+          ## Something weird maybe?
+          if(length(perfect_matches_pos) > length(perfect_pop)) {
+            cat('\n', ((epoch-1)*size_env+i))
+            cat('\n', lcs$condition_strings[perfect_matches_pos], '\n')
+            cat("actions:", lcs$actions[perfect_matches_pos], '\n')
+            cat("match_counts:", lcs$match_counts[perfect_matches_pos], '\n')
+            cat("accuracies:", lcs$accuracies[perfect_matches_pos], '\n')
+            cat("first_seen:", lcs$rule_first_seens[perfect_matches_pos], '\n')
+
+          }
+
+        }
+
+      }
+
+
     }
 
     # if(epoch %% 10 == 0)
@@ -668,6 +773,13 @@ rlcs_train_sl <- function(train_env_df,
   ## TBD
   lcs
 }
+
+
+
+
+
+
+
 
 
 
@@ -824,11 +936,16 @@ rlcs_train_sl <- function(train_env_df,
 rlcs_train_sl_ucs_s <- function(train_env_df,
                           run_params = RLCS_hyperparameters(),
                           pre_trained_lcs = NULL,
-                          use_gpu = F) {
+                          use_gpu = F,
+                          perfect_pop = NULL,
+                          keep_min_experience = FALSE) {
 
   ## Basic input controls:
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
+
+  ## New in v0.2.3: Add minimum experience to safeguard rules from deletion if too young:
+  keep_min_experience <- keep_min_experience
 
   ## Initialization:
   lcs <- .new_rlcs(train_env_df$state[1], nrow(train_env_df))
@@ -950,6 +1067,10 @@ rlcs_train_sl_ucs_s <- function(train_env_df,
 #' @param use_gpu
 #' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
 #' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#' @param perfect_pop
+#' If set, uses a "best rule set" to help visualize progress of the training
+#' @param keep_min_experience
+#' If set, subsumption does not delete rules that haven't had time to learn enough.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -971,11 +1092,16 @@ rlcs_train_sl_horizontal_split <- function(train_env_df, run_params = RLCS_hyper
                                            n_agents = 2,
                                            split_horizontal = T, ## That is but one option!
                                            max_pop_size_parallel = 10000,
-                                           use_gpu = F) {
+                                           use_gpu = F,
+                                           perfect_pop = NULL,
+                                           keep_min_experience = FALSE) {
 
   ## Basic input controls:
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
+
+  ## New in v0.2.3: Add minimum experience to safeguard rules from deletion if too young:
+  keep_min_experience <- keep_min_experience
 
   ## Initialization:
   lcs <- .new_rlcs(train_env_df$state[1])
@@ -1122,6 +1248,10 @@ rlcs_train_sl_horizontal_split <- function(train_env_df, run_params = RLCS_hyper
 #' @param use_gpu
 #' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
 #' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
+#' @param perfect_pop
+#' If set, uses a "best rule set" to help visualize progress of the training
+#' @param keep_min_experience
+#' If set, subsumption does not delete rules that haven't had time to learn enough.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -1146,11 +1276,16 @@ rlcs_train_sl_parallel_search_space <- function(train_env_df, run_params = RLCS_
                                                  second_evolution_iterations = 1,
                                                  second_evolution_run_params = NULL,
                                                  max_pop_size_parallel = 10000,
-                                                 use_gpu = F) {
+                                                 use_gpu = F,
+                                                perfect_pop = NULL,
+                                                keep_min_experience = FALSE) {
 
   ## Basic input controls:
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
   ## TODO Add Running Params Checks here... Use decorators!
+
+  ## New in v0.2.3: Add minimum experience to safeguard rules from deletion if too young:
+  keep_min_experience <- keep_min_experience
 
   ## Initialization:
   lcs <- .new_rlcs(train_env_df$state[1])
