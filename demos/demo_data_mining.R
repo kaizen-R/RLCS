@@ -13,7 +13,7 @@ demo_params <- RLCS_hyperparameters(
   rd_trigger = 20,
   mutation_probability = .2,
   tournament_pressure = 8,
-  n_epochs = 75,
+  n_epochs = 100,
   deletion_trigger = 25,
   deletion_threshold = 0.95,
   max_pop_size = 80)
@@ -28,15 +28,16 @@ print(rlcs_model1)
 plot(rlcs_model1)
 
 ## Better visualization of evolution process towards perfect ruleset
-perfect_rules <- c("###0#", "###1#")
+perfect_rules <- data.frame(rules = c("###0#", "###1#"),
+                            classes=c("1", "0"))
 for(i in 1:10) {
-  rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params,
-                               perfect_pop = perfect_rules,
-                               keep_min_experience = FALSE)
-  # print(rlcs_model1)
+  rlcs_model1 <- rlcs_train_sl(demo_env1, demo_params
+                               , perfect_pop = perfect_rules
+                               )
   rlcs_visualize_tracker(rlcs_model1)
 }
-
+print(rlcs_model1)
+plot(rlcs_model1)
 
 ## Which rule of the model would match the following "state"?
 get_match_set("00101", rlcs_model1)
@@ -56,17 +57,30 @@ demo_params <- RLCS_hyperparameters(
   rd_trigger = 20,
   mutation_probability = .2,
   tournament_pressure = 8,
-  n_epochs = 15,
-  deletion_trigger = 5,
+  n_epochs = 20,
+  deletion_trigger = 10,
   deletion_threshold = 0.95,
   max_pop_size = 1000)
 
 t_start <- Sys.time()
-rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params)
+rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params
+                              , keep_min_experience = TRUE
+                              , ucs_deletion = TRUE
+                              )
 # rlcs_model1b <- rlcs_train_sl_ucs_s(demo_env1b, demo_params)
 cat('execution time for data mining:', Sys.time()-t_start, '\n')
 print(rlcs_model1b)
 plot(rlcs_model1b)
+
+## New v0.2.4 visual:
+perfect_rules <- data.frame(rules = c('###0######', '###1######'),
+                            classes=c("1", "0"))
+for(i in 1:10) {
+  rlcs_model1b <- rlcs_train_sl(demo_env1b, demo_params
+                               , perfect_pop = perfect_rules
+  )
+  rlcs_visualize_tracker(rlcs_model1b)
+}
 
 ## Let's try another, different example:
 demo_env2 <- rlcs_demo_secret2()
@@ -99,28 +113,30 @@ plot(rlcs_model2)
 demo_params <- RLCS_hyperparameters(
   wildcard_prob = 0.5,
   n_epochs = 300,
-  deletion_trigger = 60,
+  deletion_trigger = 20,
   deletion_threshold = 0.95)
 
 demo_env3 <- rlcs_mux6()
 
-mux_6_perfect <- c("000###", "001###",
-                   "01#1##", "01#0##",
-                   "10##0#", "10##1#",
-                   "11###0", "11###1")
-
-rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params,
-                             perfect_pop = mux_6_perfect)
+rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params)
 print(rlcs_model3)
 plot(rlcs_model3)
-rlcs_visualize_tracker(rlcs_model3)
 
-rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params,
-                             perfect_pop = mux_6_perfect,
-                             keep_min_experience = TRUE)
-# print(rlcs_model3)
-plot(rlcs_model3)
-rlcs_visualize_tracker(rlcs_model3)
+## New v0.2.4 visual:
+mux_6_perfect <- data.frame(rules = c("000###", "001###",
+                                      "01#1##", "01#0##",
+                                      "10##0#", "10##1#",
+                                      "11###0", "11###1"),
+                            classes = c(0,1,1,0,0,1,0,1))
+for(i in 1:10) {
+  rlcs_model3 <- rlcs_train_sl(demo_env3, demo_params,
+                               perfect_pop = mux_6_perfect
+                               , keep_min_experience = TRUE
+                               , ucs_deletion = TRUE
+                               )
+  rlcs_visualize_tracker(rlcs_model3)
+}
+
 
 ## new in version 0.1.8, working on a function to simplify populations.
 cleaner_rlcs_model3 <- rlcs_simplify_pop(rlcs_model3, demo_env3)

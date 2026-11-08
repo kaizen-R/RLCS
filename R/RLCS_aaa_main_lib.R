@@ -53,7 +53,8 @@
     env$lcs$match_counts <- c(env$lcs$match_counts, rep(1, n_entries)) ## could be integer
     env$lcs$correct_counts <- c(env$lcs$correct_counts, rep(1, n_entries))
 
-    ## New v0.2.2: Adding cs, "correct set size)
+    ## New v0.2.2: Adding cs, "correct set size", as per UCS needs.
+    ## To be leveraged for UCS deletion
     env$lcs$cs <- c(env$lcs$cs, rep(1, n_entries))
 
     env$lcs$numerosities <- c(env$lcs$numerosities, numeric(n_entries)) ## Default to 0
@@ -156,9 +157,11 @@
 
     ## New in v0.2.3: Tracking quality progress for known problems:
     lcs$perfect_pop <- NULL
-    lcs$quality_tracker <- data.frame(iteration = 0,
-                                      accurate_rules = 0,
-                                      perfect_rules = 0)
+    lcs$quality_tracker <- list()
+    lcs$quality_tracker[[length(lcs$quality_tracker)+1]] <-
+      list(iteration = 0,
+           accurate_rules = 0,
+           perfect_rules = 0)
     lcs <- structure(lcs, class = "rlcs")
     return(lcs)
 }
@@ -323,6 +326,7 @@
                           env$lcs$matrix_match_1s %*% ti_cond) ==
                          env$lcs$lengths_fixed_bits
     # }
+
     if(any(match_set)) {
       match_set_bool <- match_set[valid_set]
 
@@ -512,6 +516,10 @@ reverse_match_set <- function(rlcs_classifier, position, rlcs_environment) {
 
   if(any(matched_condition)) {
     # print(matched_condition)
+    if(length(which(matched_condition)) > 1) {
+      cat('\nFound Duplicated rule in correct set')
+      browser()
+    }
     return(correct_set[matched_condition])
   }
   return(c())

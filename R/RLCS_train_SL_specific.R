@@ -16,6 +16,16 @@
     # correct_set <- which(env$lcs$actions_vec[match_set] == t_instance_class)
     correct_pos <- which(env$lcs$actions[match_set] == t_instance_class)
     correct_set <- match_set[correct_pos] ## NOT relative positions
+
+
+    if(any(duplicated(env$lcs$condition_strings[correct_set]))) {
+      browser()
+      position_dup <- which(duplicated(env$lcs$condition_strings[correct_set]))
+      dup_rules <- which(env$lcs$condition_strings[correct_set] == env$lcs$condition_strings[correct_set][position_dup])
+      print(dup_rules)
+    }
+
+
     if(length(correct_set) > 0) {
 
       ## New in v0.2.2: UCS updating Correct Set Size, i.e. mean(correct_sets)
@@ -85,8 +95,8 @@
   if(specify) {
     ranking <- env$lcs$accuracies + 0.01 * env$lcs$numerosities
   } else {
-    ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length
-    # ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length + 0.01 * env$lcs$numerosities
+    ranking <- env$lcs$accuracies - 0.0001 * env$lcs$lengths_fixed_bits #/ env$lcs$conditions_length
+    # ranking <- env$lcs$accuracies - 0.01 * env$lcs$lengths_fixed_bits / env$lcs$conditions_length + 0.001 * env$lcs$numerosities
   }
 
   sorted_entries <- order(ranking, decreasing=T)
@@ -174,8 +184,9 @@
 
 
 ## Another key function here.
-.apply_subsumption_whole_pop_sl <- function(env, deletion_limit = .6, max_pop_size = 10000, specify = 0) {
+.apply_subsumption_whole_pop_sl <- function(env, deletion_limit = .6, max_pop_size = 10000, final_iteration = FALSE, specify = 0) {
 
+  # Sys.sleep(0.001)
   if(is.null(env$lcs)) return(NULL)
   if(!any(env$lcs$numerosities > 0)) return(NULL) ## Nothing to sort...
 
@@ -196,6 +207,7 @@
   subsumers_list <- list()
 
   for(t_pos in useful_pos[1:(length(useful_pos)-1)]) { ## If this all works, will move it to C++...
+    if(env$lcs$match_counts[t_pos] <= 20) next ## skip this subsumer as it is not old enough
     ## For comparisons:
     rest_pos <- useful_pos[which(useful_pos > t_pos)] ## Careful, we don't want relative positions here!
     rest_t_matrices_zeros <- env$lcs$matrix_match_0s[rest_pos,]
@@ -211,12 +223,21 @@
     ## New in v0.2.3, specifying also requires we keep rules with high accuracy
     ## in spite of not being as general. Let's say, accuracy 1
     if(!specify) {
-      pop_to_delete <- which(
-        ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
-          (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
-          (t_labs[rest_pos] == t_labs[t_pos])
-      )
+      if(final_iteration)
+        pop_to_delete <- which(
+          ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+            (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+            (t_labs[rest_pos] == t_labs[t_pos])
+        )
+      else
+        pop_to_delete <- which(
+          ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
+            (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
+            (t_labs[rest_pos] == t_labs[t_pos]) &
+            env$lcs$match_counts[rest_pos] > 20 ## Still keeping new rules untouched
+        )
     } else {
+
       pop_to_delete <- which(
         ((subsumer_must_match_zeros+subsumer_must_match_ones) == env$lcs$lengths_fixed_bits[t_pos]) &
           (subsumed_must_be_different_zero+subsumed_must_be_different_one == 0) &
@@ -250,13 +271,70 @@
   if(specify) {
     .apply_deletion_sl_env(env,
                          deletion_limit = 0,
-                         max_pop_size = max_pop_size)
+                         max_pop_size = max_pop_size,
+                         final_iteration)
   } else {
     .apply_deletion_sl_env(env,
                            deletion_limit = deletion_limit,
-                           max_pop_size = max_pop_size)
+                           max_pop_size = max_pop_size,
+                           final_iteration)
   }
 }
+
+
+
+
+
+## v0.2.4: Testing UCS deletion to rebalance niches
+## Reference for pseudo-code and parameters:
+## "Revisiting UCS: Description, Fitness Sharing, and Comparison with XCS"
+## By Oriols-Puig, Bernardo-Mansilla
+.ucs_deletion <- function(env, max_pop_size = 10000) {
+
+  ## Proposed faster approximation
+  n_to_delete <- sum(env$lcs$numerosities) - max_pop_size
+  if(n_to_delete > 0) {
+  ## Iteration would respect better the pseudo-code, but would be potentially much
+  ## slower
+  # while(sum(env$lcs$numerosities) > max_pop_size) {
+    active_rules <- which(env$lcs$numerosities > 0)
+
+    if(length(active_rules) > 0) {
+      micro_fitnesses <- sapply(env$lcs$accuracies[active_rules], \(x) x^10) ## DEFAULT for UCS
+      macro_fitnesses <- micro_fitnesses * env$lcs$numerosities[active_rules]
+      ## v = 10 as per reference paper
+      F_P <- mean(macro_fitnesses)
+
+
+      candidates_for_removal <- c()
+      candidates_for_removal <- unlist(lapply(1:length(active_rules), \(i) {
+      # for(i in 1:length(active_rules)) {
+
+        rule_num <- active_rules[i]
+        temp_p_del <- env$lcs$cs[rule_num]*env$lcs$numerosities[rule_num]
+
+        ## 20 and 0.1, as per reference paper recommendations
+        p_del <- ifelse((env$lcs$match_counts[rule_num] > 20) & (micro_fitnesses[i] < 0.1 * F_P),
+               temp_p_del * F_P / env$lcs$accuracies[rule_num],
+               temp_p_del)
+
+        p_del <- round(p_del)
+
+        # candidates_for_removal <- c(candidates_for_removal, rep(rule_num, p_del))
+        rep(rule_num, p_del)
+      }
+      ))
+    }
+
+    to_delete <- sample(candidates_for_removal, n_to_delete, replace = FALSE)
+    env$lcs$numerosities[to_delete] <- env$lcs$numerosities[to_delete] - 1
+  }
+
+  .apply_deletion_no_threshold_env3(env)
+}
+
+
+
 
 
 .apply_subsumption_whole_pop_ucs_sl <- function(env,deletion_limit = .6, max_pop_size = 10000) {
@@ -427,14 +505,21 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 }
 
 
-.apply_deletion_sl_env <- function(env, deletion_limit = 0.6, max_pop_size = 10000) {
+.apply_deletion_sl_env <- function(env, deletion_limit = 0.6, max_pop_size = 10000, final_iteration = FALSE) {
 
   env$lcs$numerosities[env$lcs$accuracies < deletion_limit] <- 0
 
-  positions_nums <- which(env$lcs$numerosities > 0 & env$lcs$lengths_fixed_bits > 0)
+  positions_nums <- which(env$lcs$numerosities > 0 &
+                            env$lcs$lengths_fixed_bits > 0)
 
   if(length(positions_nums) > max_pop_size) {
     env$lcs$numerosities[positions_nums[(max_pop_size+1):length(positions_nums)]] <- 0
+  }
+
+  if(final_iteration) {
+    env$lcs$numerosities[which(env$lcs$match_counts <= 20)] <- 0
+    env$lcs$match_counts[which(env$lcs$match_counts <= 20)] <- 1000 ## TRICKING
+    ## Clean latest too new rules to clean up final outcome
   }
 
   .apply_deletion_no_threshold_env3(env)
@@ -454,19 +539,42 @@ rlcs_simplify_pop <- function(rlcs_obj, train_df) {
 #' @examples
 #' ## Generate a demo dataset
 #' demo_env1 <- rlcs_demo_secret1()
-#' perfect_rules <- c("###0#", "###1#")
+#' perfect_rules <- data.frame(rules = c("###0#", "###1#"),
+#                             classes=c("1", "0"))
 #' rlcs_model1 <- rlcs_train_sl(demo_env1,
 #'  perfect_pop = perfect_rules, keep_min_experience = TRUE)
 #' rlcs_visualize_tracker(rlcs_model1)
 #'
 rlcs_visualize_tracker <- function(rlcs_model) {
   par(mfrow = c(1,2))
-  plot(rlcs_model$quality_tracker$accurate_rules ~ rlcs_model$quality_tracker$iteration,
-       main="N of Rules with Accuracy == 1", xlab = "iteration", ylab="number of rules")
-  best_first_found <- min(rlcs_model$quality_tracker$iteration[rlcs_model$quality_tracker$perfect_rules == length(rlcs_model$perfect_pop)])
+  if(requireNamespace("plyr", quietly=T)) {
+  quality_tracker <- plyr::rbind.fill(lapply(rlcs_model$quality_tracker, \(x)
+                            data.frame(iteration = x$iteration,
+                                       accurate_rules = x$accurate_rules,
+                                       perfect_rules = x$perfect_rules)))
+  } else {
+    quality_tracker <- NULL
+    quality_tracker <- data.frame(iteration = rlcs_model$quality_tracker[[1]]$iteration,
+                                  accurate_rules = rlcs_model$quality_tracker[[1]]$accurate_rules,
+                                  perfect_rules = rlcs_model$quality_tracker[[1]]$perfect_rules)
+    for(i in 2:length(rlcs_model$quality_tracker)) {
+      quality_tracker <- rbind(quality_tracker,
+                               data.frame(iteration = rlcs_model$quality_tracker[[i]]$iteration,
+                                    accurate_rules = rlcs_model$quality_tracker[[i]]$accurate_rules,
+                                    perfect_rules = rlcs_model$quality_tracker[[i]]$perfect_rules)
+      )
+    }
 
-  plot(rlcs_model$quality_tracker$perfect_rules ~ rlcs_model$quality_tracker$iteration,
-       main="N of Rules matching perfect ruleset", xlab = paste("iteration (first best:", best_first_found, ")"), ylab="number of rules")
+  }
+  print(quality_tracker)
+  plot(quality_tracker$accurate_rules ~ quality_tracker$iteration,
+       main="N of Rules with Accuracy == 1",
+       xlab = "iteration", ylab="number of rules")
+  best_first_found <- min(quality_tracker$iteration[quality_tracker$perfect_rules == nrow(rlcs_model$perfect_pop)])
+
+  plot(quality_tracker$perfect_rules ~ quality_tracker$iteration,
+       main="N of Rules matching perfect ruleset",
+       xlab = paste("iteration (first best:", best_first_found, ")"), ylab="number of rules")
   abline(v = best_first_found, col="red")
   print(best_first_found)
   par(mfrow=c(1,1))
@@ -517,20 +625,36 @@ rlcs_visualize_tracker <- function(rlcs_model) {
   t_instance_vec <- env$environment_conds_mat[, sample_pos] ## matrix version better?
   t_instance_class <- env$environment_classes[sample_pos]
 
+  # if(any(duplicated(env$lcs$condition_strings[env$lcs$numerosities > 0]))) {
+  #   print(which(duplicated(env$lcs$condition_strings[env$lcs$numerosities > 0])))
+  #   print(env$lcs$condition_strings[env$lcs$numerosities > 0])
+  #   print(env$lcs$actions[env$lcs$numerosities > 0])
+  #   print(env$lcs$accuracies[env$lcs$numerosities > 0])
+  #   browser()
+  # }
   match_set <- .get_match_set_mat_env3(t_instance_vec, env)
+  # print("Match set")
+  # print(match_set)
+
+
 
   if(is.null(match_set) || length(match_set) == 0) { ## COVERING needed
-    for(iter in 1:3) { ## Testing more covering for new niches?
+    ## DOUBLE CHECK
+    # print("No match found")
+    # print(.get_match_set_mat_env3(t_instance_vec, env))
+
+    #for(iter in 1:3) { ## Testing more covering for new niches?
+    ## CAREFUL THIS CAN INTRODUCE DUPLICATES!!
       cover_rule <-
         .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                     run_params$get_wildcard_prob())
+
       if(!is.null(cover_rule)) {
         .add_valid_rule_to_lcs_env_mat(env, cover_rule,
                                    t_instance_class,
                                    train_count)
       }
-
-    } ## END TESTING MORE COVERING FOR NEW NICHES
+    #} ## END TESTING MORE COVERING FOR NEW NICHES
     return(NULL)
   }
 
@@ -546,7 +670,16 @@ rlcs_visualize_tracker <- function(rlcs_model) {
     cover_rule <- .generate_cover_rule_for_unmatched_instance(t_instance_state,
                                                               run_params$get_wildcard_prob())
     if(!is.null(cover_rule)) {
+      # if(any(duplicated(env$lcs$condition_strings[correct_set]))) {
+      #   print(which(duplicated(env$lcs$condition_strings[env$lcs$numerosities > 0])))
+      #   print(env$lcs$condition_strings[env$lcs$numerosities > 0])
+      #   print(env$lcs$actions[env$lcs$numerosities > 0])
+      #   print(env$lcs$accuracies[env$lcs$numerosities > 0])
+      #   browser()
+      # }
+      # print(paste("Null correct set, cover rule", cover_rule))
       .add_valid_rule_to_lcs_env_mat(env, cover_rule, t_instance_class, train_count)
+
     }
     return(NULL) ## Not convinced about this one here...
   } else {
@@ -573,17 +706,36 @@ rlcs_visualize_tracker <- function(rlcs_model) {
         sapply(.mutate_condition_string, t_instance_state, run_params$get_mut_prob(), run_params$get_specify())
 
       ## In some cases, we have only one child.
+      children <- unique(children) ## Mutation might have introduced duplicates!
       for(child in children) {
+
         pos_duplicated <- .found_same_condition3(env, correct_set, child)
 
         if(length(pos_duplicated) > 0) { ## Duplicate rule
           env$lcs$numerosities[pos_duplicated] <- env$lcs$numerosities[pos_duplicated] + 1
         } else {
-          .add_valid_rule_to_lcs_env_mat(env, child, t_instance_class, train_count)
+          if(!(child %in% env$lcs$condition_strings[correct_set])) {
+            .add_valid_rule_to_lcs_env_mat(env,
+                                           child,
+                                           t_instance_class,
+                                           train_count,
+           ## To be more aligned with UCS, as per v0.2.4:
+           ## Adjust new child's weights based on Parents values, specifically Correct Set Size
+                                           cs = mean(env$lcs$cs[env$parents_pos]))
+          }
         }
       }
     }
   }
+
+  ## v0.2.4 test: UCS Deletion addition, but not often
+  # if(train_count %% 10 & env$ucs_deletion) {
+  if(env$ucs_deletion & sum(env$lcs$numerosities) > run_params$get_max_pop_size()) {
+    .update_pop_accuracy_env3(env)
+    .ucs_deletion(env, run_params$get_max_pop_size())
+  }
+
+
 
   # ## NEW: More rule-discovery
   # ## OK, matched, correct set, but what if there is not enough correctset?
@@ -604,9 +756,14 @@ rlcs_visualize_tracker <- function(rlcs_model) {
     .update_pop_accuracy_env3(env)
 
     ## Subsumption is too important to skip, for speed reasons.
+    final_iteration <- FALSE
+    if(train_count == (size_env*n_epoch))
+      final_iteration <- TRUE ## Control for final subsumption
+
     .apply_subsumption_whole_pop_sl(env,
                                     deletion_limit = run_params$get_deletion_threshold(),
                                     max_pop_size = run_params$get_max_pop_size(),
+                                    final_iteration = final_iteration,
                                     run_params$get_specify())
 
 
@@ -632,9 +789,11 @@ rlcs_visualize_tracker <- function(rlcs_model) {
 #' Defaults to FALSE. OPTIONAL. ONLY USED if torch is available. Defaults to CUDA if found.
 #' Otherwise goes back to CPU (and is slower than not enabling the GPU option in the first place).
 #' @param perfect_pop
-#' If set, uses a "best rule set" to help visualize progress of the training
+#' Data frame of rules conditions and classes. If set, uses a "best rule set" to help visualize progress of the training
 #' @param keep_min_experience
 #' If set, subsumption does not delete rules that haven't had time to learn enough.
+#' @param ucs_deletion
+#' If set, use UCS deletion for niches rebalancing every ten iterations.
 #'
 #' @returns
 #' An \R \code{RLCS Model} containing the proposed model, made of several classifiers.
@@ -656,7 +815,8 @@ rlcs_train_sl <- function(train_env_df,
                           pre_trained_lcs = NULL,
                           use_gpu = F,
                           perfect_pop = NULL,
-                          keep_min_experience = FALSE) {
+                          keep_min_experience = FALSE,
+                          ucs_deletion = FALSE) {
 
   ## Basic input controls:
   .validate_SL_train_df(train_env_df) ## Maybe put this in a decorator?
@@ -664,6 +824,8 @@ rlcs_train_sl <- function(train_env_df,
 
   ## New in v0.2.3: Add minimum experience to safeguard rules from deletion if too young:
   keep_min_experience <- keep_min_experience
+  ## New in v0.2.4: Add minimum experience to safeguard rules from deletion if too young:
+  ucs_deletion <- ucs_deletion
 
   ## Initialization:
   lcs <- .new_rlcs(train_env_df$state[1], nrow(train_env_df))
@@ -695,6 +857,7 @@ rlcs_train_sl <- function(train_env_df,
 
   t_classes_counts <- table(train_env_df$class) ## For Coverage!!
 
+  was_found_perfect <- 0
   ## Expose algorithm to training set:
   for(epoch in 1:(run_params$get_n_epochs())) {
 
@@ -703,7 +866,20 @@ rlcs_train_sl <- function(train_env_df,
 
     for(i in 1:size_env) {
       ## Now this part of the algorithm is "necessarily" sequential...
-      #lcs <-
+
+      ## Debugging issue with deletion of valid rules
+      # temp_lcs <- lcs
+      # temp_rule_id <- i
+      if(!is.null(perfect_pop)) {
+        temp_matches_pos <- unlist(sapply(which(lcs$accuracies == 1 & lcs$numerosities > 0), \(i) {
+            if(lcs$condition_strings[i] %in% perfect_pop$rules) {
+              if(lcs$actions[i] == perfect_pop$classes[which(perfect_pop$rules == lcs$condition_strings[i])])
+                return(i)
+              return(NULL)
+            }
+          }))
+      }
+
       .rlcs_train_one_instance_one_epoch_mat_env3(environment(),
                                                  i,
                                                  train_env_df[i, ],
@@ -713,30 +889,49 @@ rlcs_train_sl <- function(train_env_df,
                                                  run_params)
       # browser()
       if(!is.null(perfect_pop)) {
-        if(((epoch-1)*size_env+i) %% min(50, run_params$deletion_trigger) == 0) {
-          perfect_matches_pos <- which(lcs$accuracies == 1 & lcs$condition_strings %in% perfect_pop)
-          lcs$quality_tracker <- rbind(lcs$quality_tracker,
-                                       data.frame(iteration = (epoch-1)*size_env+i,
-                                                  accurate_rules = length(which(lcs$accuracies == 1)),
-                                                  perfect_rules = length(perfect_matches_pos)))
 
+        perfect_matches_pos <- unlist(sapply(which(lcs$accuracies == 1 & lcs$numerosities > 0), \(i) {
+          if(lcs$condition_strings[i] %in% perfect_pop$rules) {
+            if(lcs$actions[i] == perfect_pop$classes[which(perfect_pop$rules == lcs$condition_strings[i])])
+              return(i)
+            return(NULL)
+          }
+        }))
+        # if(length(perfect_matches_pos) < length(temp_matches_pos)) {
+        #   browser()
+        # }
+
+        if(((epoch-1)*size_env+i) %% 100 == 0) {
+
+          lcs$quality_tracker[[length(lcs$quality_tracker)+1]] <-
+            list(iteration = (epoch-1)*size_env+i,
+                 accurate_rules = length(which(lcs$accuracies == 1)),
+                 perfect_rules = length(perfect_matches_pos))
 
           ## Something weird maybe?
-          if(length(perfect_matches_pos) > length(perfect_pop)) {
+          ## This shouldn't happen anymore as we have no duplicates anymore.
+          if(length(perfect_matches_pos) > nrow(perfect_pop)) {
             cat('\n', ((epoch-1)*size_env+i))
             cat('\n', lcs$condition_strings[perfect_matches_pos], '\n')
             cat("actions:", lcs$actions[perfect_matches_pos], '\n')
             cat("match_counts:", lcs$match_counts[perfect_matches_pos], '\n')
             cat("accuracies:", lcs$accuracies[perfect_matches_pos], '\n')
             cat("first_seen:", lcs$rule_first_seens[perfect_matches_pos], '\n')
-
           }
 
+          if(length(perfect_matches_pos) >= nrow(perfect_pop))
+            was_found_perfect <- 1
+
+          if(was_found_perfect & length(perfect_matches_pos) < nrow(perfect_pop)) {
+            print(lcs$condition_strings[perfect_matches_pos])
+            print(lcs$actions[perfect_matches_pos])
+            print(lcs$accuracies[perfect_matches_pos])
+            was_found_perfect <- 0
+          }
+
+
         }
-
       }
-
-
     }
 
     # if(epoch %% 10 == 0)

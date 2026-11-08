@@ -4,12 +4,23 @@
 
 Text encoding for binary input compatible with RLCS for NLP tasks is currently being
 studied and is potentially interesting. More RL work is needed, as right now there
-is no "actual" Policy being worked out, TD, SARSA, Q or otherwise.
+is no "actual" Policy being worked out, TD, SARSA, Q or otherwise. Actually XCS is not quite an XCS.
 Not included in the code itself in current version, although in the works (I maintain a separate WIP folder), 
 are complicated demos and tests for hierarchical setups of multiple connected RLCS models, 
 several performance testing setups (profvis, microbenchmark), tests for NLP 
 applications (data encoding is not easy, as mentioned above), and an example RL setup 
 with RLCS to optimise the RLCS hyperparameters themselves (!).
+
+## v0.2.4
+
+Work in progress.
+Adding UCS-style "deletion function", as optional call parameter for training.
+The goal is to see and compare runtimes and convergence on different datasets, with and without deletion.
+It's an "expensive" operation in terms of speed, though, for large populations.
+And first test don't show much value upfront, compared to a version without it.
+Fixed a couple of bugs:
+- In rare occasions "perfect rules" get deleted. Adding minimum experience to include or not in subsumption helped.
+- and sometimes others were duplicated (GA children, specifically), too.
 
 ## v0.2.3
 

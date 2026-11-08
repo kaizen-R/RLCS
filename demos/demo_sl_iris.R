@@ -51,20 +51,6 @@ iris_hyperparameters <- RLCS_hyperparameters(
   max_pop_size = 600
 )
 
-# ## Faster configuration, by a lot...
-# iris_hyperparameters <- RLCS_hyperparameters(
-#   wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
-#   rd_trigger = 15, ## Smaller means more rules generated through GA tournament
-#   mutation_probability = 0.1,
-#   parents_selection_mode <- "tournament",
-#   tournament_pressure = 8,
-#   ## Most important parameters to vary so far:
-#   n_epochs = 90, ## Epochs to repeat process on train set
-#   deletion_trigger = 30, ## Number of epochs in between subsumption & deletion
-#   deletion_threshold = 0.95,
-#   max_pop_size = 3000
-# )
-
 ## Doubling process with intermediate cleanup
 t_start <- Sys.time()
 
@@ -86,7 +72,9 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 length(iris_classifier$condition_strings)
 
 ## So what does it all look like?
-print(iris_classifier)
+head(print(iris_classifier), n=20)
+mean(iris_classifier$cs)
+sd(iris_classifier$cs)
 plot(iris_classifier)
 
 ## NEW, Work in progress
@@ -101,6 +89,45 @@ print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
 }))/nrow(test_environment), 2)))
 length(cleaner_iris_classifier$condition_strings)
 
+
+
+
+
+## Testing UCS deletion - v0.2.4
+## Faster configuration...
+iris_hyperparameters <- RLCS_hyperparameters(
+  wildcard_prob = 0.6, ## Probability that covering will choose a wildcard char
+  rd_trigger = 15, ## Smaller means more rules generated through GA tournament
+  mutation_probability = 0.1,
+  parents_selection_mode <- "tournament",
+  tournament_pressure = 8,
+  ## Most important parameters to vary so far:
+  n_epochs = 150, ## Epochs to repeat process on train set
+  deletion_trigger = 30, ## Number of epochs in between subsumption & deletion
+  deletion_threshold = 0.95,
+  max_pop_size = 3000
+)
+t_start <- Sys.time()
+
+## This here is the training. That's all there is to it!
+iris_classifier <- rlcs_train_sl(train_environment,
+                                 iris_hyperparameters
+                                 , keep_min_experience = TRUE
+                                 , ucs_deletion = TRUE
+                                 )
+t_end <- Sys.time()
+print(t_end - t_start) ## Training Runtime.
+
+## Let's see how we could do testing:
+test_environment$predicted <- -1 ## Stands for not found
+test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier, verbose=F)
+
+# head(test_environment)
+table(test_environment[, c("class", "predicted")])
+print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
+  ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
+}))/nrow(test_environment), 2)))
+length(iris_classifier$condition_strings)
 
 ### Visualizing the Model some more ###
 
