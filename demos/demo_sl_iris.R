@@ -68,7 +68,7 @@ test_environment$predicted <- rlcs_predict_sl(test_environment, iris_classifier,
 table(test_environment[, c("class", "predicted")])
 print(paste("Accuracy:", round(sum(sapply(1:nrow(test_environment), \(i) {
   ifelse(test_environment[i, "class"] == test_environment[i, "predicted"], 1, 0)
-}))/nrow(test_environment), 2)))
+}))/nrow(test_environment), 3)))
 length(iris_classifier$condition_strings)
 
 ## So what does it all look like?
